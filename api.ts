@@ -4,6 +4,49 @@ import { getTransactionObj, getAccount, stringToHex } from './utils'
 
 export let baseUrl = 'http://localhost:9001'
 
+async function getCurrentBlockNumber() {
+    let result = '0x0'
+    try {
+        let res = await axios.get(`${baseUrl}/sync-newest-cycle`)
+        let cycle = res.data.newestCycle
+        result = stringToHex(cycle.counter)
+        console.log('cycle counter', result)
+        console.log("Running eth_blockNumber")
+    } catch (e) {
+        console.log('Unable to get cycle number', e)
+    }
+    return result
+}
+
+async function getCurrentBlock() {
+    let blockNumber = await getCurrentBlockNumber()
+    let result = {
+        "difficulty": "0x4ea3f27bc",
+        "extraData": "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32",
+        "gasLimit": "0x1388",
+        "gasUsed": "0x0",
+        "hash": "0xdc0818cf78f21a8e70579cb46a43643f78291264dda342ae31049421c82d21ae",
+        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "miner": "0xbb7b8287f3f0a933474a79eae42cbca977791171",
+        "mixHash": "0x4fffe9ae21f1c9e15207b1f472d5bbdd68c9595d461666602f2be20daf5e7843",
+        "nonce": "0x689056015818adbe",
+        "number": blockNumber,
+        "parentHash": "0xe99e022112df268087ea7eafaf4790497fd21dbeeb6bd7a1721df161a6657a54",
+        "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+        "size": "0x220",
+        "stateRoot": "0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d",
+        "timestamp": "0x55ba467c",
+        "totalDifficulty": "0x78ed983323d",
+        "transactions": [
+        ],
+        "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "uncles": [
+        ]
+    }
+    return result
+}
+
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
         let result = "Mist/v0.9.3/darwin/go1.4.1"
@@ -17,8 +60,6 @@ export const methods = {
     },
     net_version: async function (args: any, callback: any) {
         let chainId = 1409
-        console.log("Running net_version")
-
         callback(null, chainId);
     },
     net_listening: async function (args: any, callback: any) {
@@ -67,16 +108,7 @@ export const methods = {
         callback(null, result);
     },
     eth_blockNumber: async function (args: any, callback: any) {
-        let result = '0x0'
-        try {
-            let res = await axios.get(`${baseUrl}/sync-newest-cycle`)
-            let cycle = res.data.newestCycle
-            result = stringToHex(cycle.counter)
-            console.log('cycle counter', result)
-            console.log("Running eth_blockNumber")
-        } catch (e) {
-            console.log('Unable to get cycle number', e)
-        }
+        let result = await getCurrentBlockNumber()
         callback(null, result);
     },
     eth_getBalance: async function (args: any, callback: any) {
@@ -150,8 +182,8 @@ export const methods = {
     eth_sendTransaction: async function (args: any, callback: any) {
         let result = "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"
         console.log("Running eth_sendTransaction", args)
-        let tx = args[0]
-        let res = await axios.post(`${baseUrl}/inject`, tx)
+        // let tx = args[0]
+        // let res = await axios.post(`${baseUrl}/inject`, tx)
         callback(null, result);
     },
     eth_sendRawTransaction: async function (args: any, callback: any) {
@@ -160,7 +192,6 @@ export const methods = {
             raw,
             timestamp: Date.now()
         }
-        console.log('Inject tx to consensor', tx)
         await axios.post(`${baseUrl}/inject`, tx)
         console.log("Running eth_sendRawTransaction", args)
 
@@ -172,23 +203,30 @@ export const methods = {
         callback(null, result);
     },
     eth_call: async function (args: any, callback: any) {
-        let result = "0x"
-        console.log("Running eth_call")
+        // let result = '0x0'
+        console.log("Running eth_call", args)
+        let callObj = args[0]
+        if (!callObj.from) {
+            callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
+        }
+        let res = await axios.post(`${baseUrl}/contract/call`, callObj)
+        let result = res.data.result
+        console.log('eth_call result', result)
         callback(null, result);
     },
     eth_estimateGas: async function (args: any, callback: any) {
-        let result = "0x5208"
+        let result = "0x2DC6C0"
         console.log("Running eth_estimateGas")
         callback(null, result);
     },
     eth_getBlockByHash: async function (args: any, callback: any) {
-        let result = "test"
+        let result = await getCurrentBlock()
         console.log("Running eth_getBlockByHash")
         callback(null, result);
     },
     eth_getBlockByNumber: async function (args: any, callback: any) {
-        let result = "test"
-        console.log("Running eth_getBlockByNumber")
+        let result = await getCurrentBlock()
+        console.log("Running eth_getBlockByNumber", result)
         callback(null, result);
     },
     eth_getTransactionByHash: async function (args: any, callback: any) {
@@ -207,10 +245,11 @@ export const methods = {
         callback(null, result);
     },
     eth_getTransactionReceipt: async function (args: any, callback: any) {
-        console.log("Running eth_getTransactionReceipt", args)
+        // console.log("Running eth_getTransactionReceipt", args)
         let txHash = args[0]
         let res = await axios.get(`${baseUrl}/tx/${txHash}`)
         let result = res.data.tx
+        // console.log('tx receipt', txHash, result)
         callback(null, result);
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
@@ -359,7 +398,7 @@ export const methods = {
         callback(null, result);
     },
     eth_chainId: async function (args: any, callback: any) {
-        let chainId = '1409'
+        let chainId = '8080'
         let hexValue = '0x' + parseInt(chainId, 10).toString(16)
         callback(null, hexValue);
     },
