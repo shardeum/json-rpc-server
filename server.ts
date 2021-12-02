@@ -12,7 +12,7 @@ app.use(cors({ methods: ['POST'] }));
 app.use(jsonParser());
 app.use(server.middleware());
 
-app.listen(8454, (err: any) => {
+app.listen(8080, (err: any) => {
     if (err) console.log('Unable to start JSON RPC Server', err)
     console.log('JSON RPC Server listening on port 8454')
 });

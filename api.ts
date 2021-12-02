@@ -1,6 +1,6 @@
 import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
-import { getTransactionObj, getAccount, stringToHex } from './utils'
+import { getTransactionObj, getAccount, stringToHex, sleep } from './utils'
 
 export let baseUrl = 'http://localhost:9001'
 
@@ -210,7 +210,7 @@ export const methods = {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
         let res = await axios.post(`${baseUrl}/contract/call`, callObj)
-        let result = res.data.result
+        let result = '0x' + res.data.result
         console.log('eth_call result', result)
         callback(null, result);
     },
@@ -230,9 +230,49 @@ export const methods = {
         callback(null, result);
     },
     eth_getTransactionByHash: async function (args: any, callback: any) {
-        let result = "test"
-        console.log("Running eth_getTransactionByHash")
-        callback(null, result);
+        console.log("Running eth_getTransactionByHash", args)
+        let txHash = args[0]
+        let retry = 0
+        let success = false
+        let result
+        let defaultResult: any = {
+            "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
+            "blockNumber":"0x5daf3b", // 6139707
+            "from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
+            "gas":"0xc350", // 50000
+            "gasPrice":"0x4a817c800", // 20000000000
+            "hash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
+            "input":"0x68656c6c6f21",
+            "nonce":"0x15", // 21
+            "to":"0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb",
+            "transactionIndex":"0x41", // 65
+            "value":"0xf3dbb76162000", // 4290000000000000
+            "v":"0x25", // 37
+            "r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
+            "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+        }
+        while(retry < 10 && !success) {
+            let res = await axios.get(`${baseUrl}/tx/${txHash}`)
+            result = res.data.tx
+            if (!result.transactionHash) {
+                console.log('tx', txHash, result)
+                console.log('Awaiting tx data for txHash', txHash)
+                await sleep(5000)
+                continue
+            }
+            success = true
+        }
+        if (!result.to) result.to = '0x' + '0'.repeat(42)
+        if (result.value === '0') {
+            result.value = '0x0'
+        }
+        defaultResult.hash = result.transactionHash
+        defaultResult.from = result.from
+        defaultResult.to = result.to
+        defaultResult.nonce = stringToHex(result.nonce)
+        defaultResult.contractAddress = result.contractAddress
+        console.log('tx', txHash, defaultResult)
+        callback(null, defaultResult);
     },
     eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {
         let result = "test"

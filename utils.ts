@@ -17,6 +17,14 @@ export function stringToHex(str: string) {
     return '0x' + parseInt(str, 10).toString(16)
 }
 
+export function sleep(ms: number) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(true)
+        }, ms)
+    })
+}
+
 export async function getAccount(addressStr: any) {
     try {
         let res = await axios.get(`${baseUrl}/account/${addressStr}`)
