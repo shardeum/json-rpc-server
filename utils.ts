@@ -13,7 +13,7 @@ export function getTransactionObj (tx: any) {
     }
 }
 
-export function stringToHex(str: string) {
+export function intStringToHex(str: string) {
     return '0x' + parseInt(str, 10).toString(16)
 }
 

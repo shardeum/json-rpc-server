@@ -1,6 +1,6 @@
 import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
-import { getTransactionObj, getAccount, stringToHex, sleep } from './utils'
+import { getTransactionObj, getAccount, intStringToHex, sleep } from './utils'
 
 export let baseUrl = 'http://localhost:9001'
 
@@ -9,7 +9,7 @@ async function getCurrentBlockNumber() {
     try {
         let res = await axios.get(`${baseUrl}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
-        result = stringToHex(cycle.counter)
+        let result = intStringToHex(cycle.counter)
         console.log('cycle counter', result)
         console.log("Running eth_blockNumber")
     } catch (e) {
@@ -121,9 +121,9 @@ export const methods = {
             let account = await getAccount(address)
             console.log('account', account)
             console.log('Shardium balance', typeof account.balance, account.balance)
-            let SHD = stringToHex(account.balance)
+            let SHD = intStringToHex(account.balance)
             console.log('SHD', typeof SHD, SHD)
-            balance = stringToHex(account.balance)
+            balance = intStringToHex(account.balance)
 
         } catch (e) {
             console.log('Unable to get account balance')
@@ -139,7 +139,9 @@ export const methods = {
     eth_getTransactionCount: async function (args: any, callback: any) {
         let address = args[0]
         let account = await getAccount(address)
-        let result = stringToHex(account.nonce)
+        console.log('account.nonce', account.nonce)
+        let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
+        if (result === '0x') result = '0x0'
         console.log("Running eth_getTransactionCount", args)
         console.log('Transaction count', result)
         callback(null, result);
@@ -190,7 +192,7 @@ export const methods = {
         let raw = args[0]
         let tx = {
             raw,
-            timestamp: Date.now()
+            // timestamp: Date.now()
         }
         await axios.post(`${baseUrl}/inject`, tx)
         console.log("Running eth_sendRawTransaction", args)
@@ -207,7 +209,7 @@ export const methods = {
         console.log("Running eth_call", args)
         let callObj = args[0]
         if (!callObj.from) {
-            callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
+            callObj['from'] = ''
         }
         let res = await axios.post(`${baseUrl}/contract/call`, callObj)
         let result = '0x' + res.data.result
@@ -266,12 +268,16 @@ export const methods = {
         if (result.value === '0') {
             result.value = '0x0'
         }
+
+        console.log('result.from', result.from)
+
+
         defaultResult.hash = result.transactionHash
         defaultResult.from = result.from
         defaultResult.to = result.to
-        defaultResult.nonce = stringToHex(result.nonce)
+        defaultResult.nonce = bufferToHex(Buffer.from(result.nonce, 'hex'))
         defaultResult.contractAddress = result.contractAddress
-        console.log('tx', txHash, defaultResult)
+        console.log('Final Tx:', txHash, defaultResult)
         callback(null, defaultResult);
     },
     eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {
