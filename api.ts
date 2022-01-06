@@ -139,12 +139,15 @@ export const methods = {
     eth_getTransactionCount: async function (args: any, callback: any) {
         let address = args[0]
         let account = await getAccount(address)
-        console.log('account.nonce', account.nonce)
-        let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
-        if (result === '0x') result = '0x0'
-        console.log("Running eth_getTransactionCount", args)
-        console.log('Transaction count', result)
-        callback(null, result);
+        if (account) {
+            let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
+            if (result === '0x') result = '0x0'
+            console.log("Running eth_getTransactionCount", args)
+            console.log('Transaction count', result)
+            callback(null, result);
+        } else {
+            callback(null, '0x0')
+        }
     },
     eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
         let result = "0xb"
@@ -192,7 +195,7 @@ export const methods = {
         let raw = args[0]
         let tx = {
             raw,
-            // timestamp: Date.now()
+            timestamp: Date.now()
         }
         await axios.post(`${baseUrl}/inject`, tx)
         console.log("Running eth_sendRawTransaction", args)
@@ -212,6 +215,11 @@ export const methods = {
             callObj['from'] = ''
         }
         let res = await axios.post(`${baseUrl}/contract/call`, callObj)
+        console.log('res.data.result', res.data.result)
+        if (res.data.result == null || res.data.result == undefined) {
+            callback(null, '0x0')
+            return
+        }
         let result = '0x' + res.data.result
         console.log('eth_call result', result)
         callback(null, result);
