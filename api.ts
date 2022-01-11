@@ -1,17 +1,18 @@
 import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
-import { getTransactionObj, getAccount, intStringToHex, sleep } from './utils'
+import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
 
-export let baseUrl = 'http://localhost:9001'
+export let verbose = true
+
 
 async function getCurrentBlockNumber() {
     let result = '0x0'
     try {
-        let res = await axios.get(`${baseUrl}/sync-newest-cycle`)
+        let res = await axios.get(`${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
         let result = intStringToHex(cycle.counter)
         console.log('cycle counter', result)
-        console.log("Running eth_blockNumber")
+        return result
     } catch (e) {
         console.log('Unable to get cycle number', e)
     }
@@ -20,7 +21,7 @@ async function getCurrentBlockNumber() {
 
 async function getCurrentBlock() {
     let blockNumber = await getCurrentBlockNumber()
-    let result = {
+    return {
         "difficulty": "0x4ea3f27bc",
         "extraData": "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32",
         "gasLimit": "0x1388",
@@ -38,83 +39,114 @@ async function getCurrentBlock() {
         "stateRoot": "0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d",
         "timestamp": "0x55ba467c",
         "totalDifficulty": "0x78ed983323d",
-        "transactions": [
-        ],
+        "transactions": [],
         "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-        "uncles": [
-        ]
+        "uncles": []
     }
-    return result
 }
 
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running web3_clientVersion', args)
+        }
+        if (verbose) {
+            console.log('Running getCurrentBlockNumber', args)
+        }
         let result = "Mist/v0.9.3/darwin/go1.4.1"
-        console.log("Running web3_clientVersion")
         callback(null, result);
     },
     web3_sha3: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running web3_sha', args)
+        }
         let result = "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad"
-        console.log("Running web3_sha3")
         callback(null, result);
     },
     net_version: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running net_version', args)
+        }
         let chainId = 1409
         callback(null, chainId);
     },
     net_listening: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running net_listening', args)
+        }
         let result = true
-        console.log("Running net_listening")
         callback(null, result);
     },
     net_peerCount: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running net_peerCount', args)
+        }
         let result = "0x2"
-        console.log("Running net_peerCount")
         callback(null, result);
     },
     eth_protocolVersion: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_protocolVersion', args)
+        }
         let result = "54"
-        console.log("Running eth_protocolVersion")
         callback(null, result);
     },
     eth_syncing: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_syncing', args)
+        }
         let result = "false"
-        console.log("Running test")
         callback(null, result);
     },
     eth_coinbase: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_coinbase', args)
+        }
         let result = ""
-        console.log("Running test")
         callback(null, result);
     },
     eth_mining: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_mining', args)
+        }
         let result = true
-        console.log("Running test")
         callback(null, result);
     },
     eth_hashrate: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_hashrate', args)
+        }
         let result = "0x38a"
-        console.log("Running test")
         callback(null, result);
     },
     eth_gasPrice: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_gasPrice', args)
+        }
         let result = "0x1dfd14000"
-        console.log("Running eth_gasPrice")
         callback(null, result);
     },
     eth_accounts: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_accounts', args)
+        }
         let result = ["0x407d73d8a49eeb85d32cf465507dd71d507100c1"]
-        console.log("Running eth_accounts")
         callback(null, result);
     },
     eth_blockNumber: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_blockNumber', args)
+        }
         let result = await getCurrentBlockNumber()
+        console.log('Current block number', result)
         callback(null, result);
     },
     eth_getBalance: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_getBalance', args)
+        }
         let balance = '0x0'
         try {
-            console.log('Getting eth_getBalance', args)
             let address = args[0]
             console.log('address', address)
             console.log('ETH balance', typeof balance, balance)
@@ -126,23 +158,27 @@ export const methods = {
             balance = intStringToHex(account.balance)
 
         } catch (e) {
-            console.log('Unable to get account balance')
+            console.log('Unable to get account balance', e)
         }
         console.log('Final balance', balance)
         callback(null, balance);
     },
     eth_getStorageAt: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_getStorageAt', args)
+        }
         let result = "0x00000000000000000000000000000000000000000000000000000000000004d2"
-        console.log("Running eth_getStorageAt")
         callback(null, result);
     },
     eth_getTransactionCount: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getTransactionCount', args)
+        }
         let address = args[0]
         let account = await getAccount(address)
         if (account) {
             let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
             if (result === '0x') result = '0x0'
-            console.log("Running eth_getTransactionCount", args)
             console.log('Transaction count', result)
             callback(null, result);
         } else {
@@ -150,55 +186,82 @@ export const methods = {
         }
     },
     eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getBlockTransactionCountByHash', args)
+        }
         let result = "0xb"
-        console.log("Running eth_getBlockTransactionCountByHash")
         callback(null, result);
     },
     eth_getBlockTransactionCountByNumber: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getBlockTransactionCountByNumber', args)
+        }
         let result = "0xa"
-        console.log("Running eth_getBlockTransactionCountByNumber")
         callback(null, result);
     },
     eth_getUncleCountByBlockHash: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getUncleCountByBlockHash', args)
+        }
         let result = "0x1"
-        console.log("Running eth_getUncleCountByBlockHash")
         callback(null, result);
     },
     eth_getUncleCountByBlockNumber: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getUnbleCountByBlockNumber', args)
+        }
         let result = "0x1"
-        console.log("Running eth_getUncleCountByBlockNumber")
         callback(null, result);
     },
     eth_getCode: async function (args: any, callback: any) {
-        let result = "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
-        console.log("Running eth_getCode")
+        if (verbose) {
+            console.log('Running getCode', args)
+        }
+        const emptyCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+        const account = await getAccount(args[0])
+        if (account && account.codeHash && account.codeHash) {
+            // if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
+            console.log('eth_getCode result', account.codeHash)
+            callback(null, account.codeHash)
+            return
+        }
+        let result = "0x0"
+        console.log('eth_getCode result', result)
         callback(null, result);
     },
     eth_sign: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_sign', args)
+        }
         let result = "0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b"
-        console.log("Running eth_sign")
         callback(null, result);
     },
     eth_signTransaction: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_signTransaction', args)
+        }
         let result = "0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b"
-        console.log("Running eth_signTransaction")
         callback(null, result);
     },
     eth_sendTransaction: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running sendTransaction', args)
+        }
         let result = "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"
-        console.log("Running eth_sendTransaction", args)
         // let tx = args[0]
-        // let res = await axios.post(`${baseUrl}/inject`, tx)
+        // let res = await axios.post(`${getBaseUrl()}/inject`, tx)
         callback(null, result);
     },
     eth_sendRawTransaction: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running sendRawTransaction', args)
+        }
         let raw = args[0]
         let tx = {
             raw,
             timestamp: Date.now()
         }
-        await axios.post(`${baseUrl}/inject`, tx)
-        console.log("Running eth_sendRawTransaction", args)
+        await axios.post(`${getBaseUrl()}/inject`, tx)
 
         const transaction = getTransactionObj(tx)
         const result = bufferToHex(transaction.hash())
@@ -208,15 +271,16 @@ export const methods = {
         callback(null, result);
     },
     eth_call: async function (args: any, callback: any) {
-        // let result = '0x0'
-        console.log("Running eth_call", args)
+        if (verbose) {
+            console.log('Running eth_call', args)
+        }
         let callObj = args[0]
         if (!callObj.from) {
-            callObj['from'] = ''
+            callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
-        let res = await axios.post(`${baseUrl}/contract/call`, callObj)
-        console.log('res.data.result', res.data.result)
-        if (res.data.result == null || res.data.result == undefined) {
+        let res = await axios.post(`${getBaseUrl()}/contract/call`, callObj)
+        console.log('contract call res.data.result', res.data.result)
+        if (res.data.result == null) {
             callback(null, '0x0')
             return
         }
@@ -225,22 +289,30 @@ export const methods = {
         callback(null, result);
     },
     eth_estimateGas: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running estimateGas', args)
+        }
         let result = "0x2DC6C0"
-        console.log("Running eth_estimateGas")
         callback(null, result);
     },
     eth_getBlockByHash: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getBlockByHash', args)
+        }
         let result = await getCurrentBlock()
-        console.log("Running eth_getBlockByHash")
         callback(null, result);
     },
     eth_getBlockByNumber: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getBlockByNumber', args)
+        }
         let result = await getCurrentBlock()
-        console.log("Running eth_getBlockByNumber", result)
         callback(null, result);
     },
     eth_getTransactionByHash: async function (args: any, callback: any) {
-        console.log("Running eth_getTransactionByHash", args)
+        if (verbose) {
+            console.log('Running getTransactionByHash', args)
+        }
         let txHash = args[0]
         let retry = 0
         let success = false
@@ -262,7 +334,7 @@ export const methods = {
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         }
         while(retry < 10 && !success) {
-            let res = await axios.get(`${baseUrl}/tx/${txHash}`)
+            let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
             result = res.data.tx
             if (!result.transactionHash) {
                 console.log('tx', txHash, result)
@@ -289,169 +361,214 @@ export const methods = {
         callback(null, defaultResult);
     },
     eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getTransactionByBlockHashAndIndex', args)
+        }
         let result = "test"
-        console.log("Running eth_getBlocketh_getTransactionByBlockHashAndIndexByNumber")
         callback(null, result);
     },
     eth_getTransactionByBlockNumberAndIndex: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getTransactionByBlockNumberAndIndex', args)
+        }
         let result = "test"
-        console.log("Running eth_getTransactionByBlockNumberAndIndex")
         callback(null, result);
     },
     eth_getTransactionReceipt: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getTransactionReceipt', args)
+        }
         // console.log("Running eth_getTransactionReceipt", args)
         let txHash = args[0]
-        let res = await axios.get(`${baseUrl}/tx/${txHash}`)
+        let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
         let result = res.data.tx
         // console.log('tx receipt', txHash, result)
         callback(null, result);
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getUncleByBlockHashAndIndex', args)
+        }
         let result = "test"
-        console.log("Running eth_getUncleByBlockHashAndIndex")
         callback(null, result);
     },
     eth_getUncleByBlockNumberAndIndex: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getUncleByBlockNumberAndIndex', args)
+        }
         let result = "test"
-        console.log("Running eth_getUncleByBlockNumberAndIndex")
         callback(null, result);
     },
     eth_getCompilers: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getCompilers', args)
+        }
         let result = ["solidity", "lll", "serpent"]
-        console.log("Running test")
         callback(null, result);
     },
     eth_compileSolidity: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running compileSolidity', args)
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_compileLLL: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_compileSerpent: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_newBlockFilter: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "0x1"
-        console.log("Running test")
         callback(null, result);
     },
     eth_newPendingTransactionFilter: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running newPendingTransactionFilter', args)
+        }
         let result = "0x1"
-        console.log("Running test")
         callback(null, result);
     },
     eth_uninstallFilter: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = true
-        console.log("Running test")
         callback(null, result);
     },
     eth_getFilterChanges: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_getFilterLogs: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_getLogs: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running getLogs', args)
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_getWork: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_submitWork: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_submitHashrate: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     db_putString: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running db_putString")
         callback(null, result);
     },
     db_getString: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running db_getString")
         callback(null, result);
     },
     db_putHex: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running db_putHex")
         callback(null, result);
     },
     db_getHex: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running db_getHex")
         callback(null, result);
     },
     shh_version: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_post: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_newIdentity: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_hasIdentity: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_newGroup: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_addToGroup: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_newFilter: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_uninstallFilter: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_getFilterChanges: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     shh_getMessages: async function (args: any, callback: any) {
+        if (verbose) {
+        }
         let result = "test"
-        console.log("Running test")
         callback(null, result);
     },
     eth_chainId: async function (args: any, callback: any) {
+        if (verbose) {
+            console.log('Running eth_chainId', args)
+        }
         let chainId = '8080'
         let hexValue = '0x' + parseInt(chainId, 10).toString(16)
         callback(null, hexValue);

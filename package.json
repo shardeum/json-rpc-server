@@ -4,7 +4,8 @@
   "description": "JSON RPC server for shardium platform",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node server.ts"
   },
   "author": "thantsintoe",
   "license": "ISC",
@@ -15,6 +16,7 @@
     "connect": "^3.7.0",
     "cors": "^2.8.5",
     "ethereumjs-util": "^7.1.3",
+    "express": "^4.17.2",
     "got": "^11.8.3",
     "jayson": "^3.6.5",
     "web3": "^1.6.1"
