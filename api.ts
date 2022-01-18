@@ -264,6 +264,7 @@ export const methods = {
         await axios.post(`${getBaseUrl()}/inject`, tx)
 
         const transaction = getTransactionObj(tx)
+        console.log('transaction obj', transaction)
         const result = bufferToHex(transaction.hash())
 
         console.log('Tx Hash', result)

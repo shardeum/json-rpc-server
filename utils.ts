@@ -1,19 +1,33 @@
 const {toBuffer} = require("ethereumjs-util");
-const {Transaction} = require("@ethereumjs/tx");
+const {Transaction, AccessListEIP2930Transaction} = require("@ethereumjs/tx");
 const axios = require("axios");
 export let node = {
     ip: 'localhost',
     port: 9001
 }
 
-export function getTransactionObj (tx: any) {
-    if (!tx.raw) return
+export function getTransactionObj(tx: any): any {
+    if (!tx.raw) throw Error('fail')
+    let transactionObj
+    const serializedInput = toBuffer(tx.raw)
     try {
-        const serializedInput = toBuffer(tx.raw)
-        return Transaction.fromRlpSerializedTx(serializedInput)
+        transactionObj = Transaction.fromRlpSerializedTx(serializedInput)
+        console.log('Legacy tx parsed:', transactionObj)
     } catch (e) {
-        console.log('Unable to get transaction obj', e)
+        console.log('Unable to get legacy transaction obj', e)
     }
+    if (!transactionObj) {
+        try {
+            transactionObj = AccessListEIP2930Transaction.fromRlpSerializedTx(serializedInput)
+            console.log('EIP2930 tx parsed:', transactionObj)
+        } catch (e) {
+            console.log('Unable to get EIP2930 transaction obj', e)
+        }
+    }
+
+    if (transactionObj) {
+        return transactionObj
+    } else throw Error('tx obj fail')
 }
 
 export function intStringToHex(str: string) {
