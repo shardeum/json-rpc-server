@@ -2,7 +2,7 @@ import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
 import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
 
-export let verbose = true
+export let verbose = false
 
 
 async function getCurrentBlockNumber() {
@@ -148,19 +148,19 @@ export const methods = {
         let balance = '0x0'
         try {
             let address = args[0]
-            console.log('address', address)
-            console.log('ETH balance', typeof balance, balance)
+            if (verbose) console.log('address', address)
+            if (verbose) console.log('ETH balance', typeof balance, balance)
             let account = await getAccount(address)
-            console.log('account', account)
-            console.log('Shardium balance', typeof account.balance, account.balance)
+            if (verbose) console.log('account', account)
+            if (verbose) console.log('Shardium balance', typeof account.balance, account.balance)
             let SHD = intStringToHex(account.balance)
-            console.log('SHD', typeof SHD, SHD)
+            if (verbose) console.log('SHD', typeof SHD, SHD)
             balance = intStringToHex(account.balance)
 
         } catch (e) {
             console.log('Unable to get account balance', e)
         }
-        console.log('Final balance', balance)
+        if (verbose) console.log('Final balance', balance)
         callback(null, balance);
     },
     eth_getStorageAt: async function (args: any, callback: any) {
@@ -179,7 +179,7 @@ export const methods = {
         if (account) {
             let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
             if (result === '0x') result = '0x0'
-            console.log('Transaction count', result)
+            if (verbose) console.log('Transaction count', result)
             callback(null, result);
         } else {
             callback(null, '0x0')
@@ -221,12 +221,12 @@ export const methods = {
         const account = await getAccount(args[0])
         if (account && account.codeHash && account.codeHash) {
             // if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
-            console.log('eth_getCode result', account.codeHash)
+            if (verbose) console.log('eth_getCode result', account.codeHash)
             callback(null, account.codeHash)
             return
         }
         let result = "0x0"
-        console.log('eth_getCode result', result)
+        if (verbose) console.log('eth_getCode result', result)
         callback(null, result);
     },
     eth_sign: async function (args: any, callback: any) {
@@ -264,10 +264,10 @@ export const methods = {
         await axios.post(`${getBaseUrl()}/inject`, tx)
 
         const transaction = getTransactionObj(tx)
-        console.log('transaction obj', transaction)
+        if (verbose) console.log('transaction obj', transaction)
         const result = bufferToHex(transaction.hash())
 
-        console.log('Tx Hash', result)
+        if (verbose) console.log('Tx Hash', result)
 
         callback(null, result);
     },
@@ -280,13 +280,13 @@ export const methods = {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
         let res = await axios.post(`${getBaseUrl()}/contract/call`, callObj)
-        console.log('contract call res.data.result', res.data.result)
+        if (verbose) console.log('contract call res.data.result', res.data.result)
         if (res.data.result == null) {
             callback(null, '0x0')
             return
         }
         let result = '0x' + res.data.result
-        console.log('eth_call result', result)
+        if (verbose) console.log('eth_call result', result)
         callback(null, result);
     },
     eth_estimateGas: async function (args: any, callback: any) {
@@ -350,7 +350,7 @@ export const methods = {
             result.value = '0x0'
         }
 
-        console.log('result.from', result.from)
+        if (verbose) console.log('result.from', result.from)
 
 
         defaultResult.hash = result.transactionHash
@@ -358,7 +358,7 @@ export const methods = {
         defaultResult.to = result.to
         defaultResult.nonce = bufferToHex(Buffer.from(result.nonce, 'hex'))
         defaultResult.contractAddress = result.contractAddress
-        console.log('Final Tx:', txHash, defaultResult)
+        if (verbose) console.log('Final Tx:', txHash, defaultResult)
         callback(null, defaultResult);
     },
     eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {

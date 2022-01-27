@@ -6,20 +6,23 @@ export let node = {
     port: 9001
 }
 
+//not great to have a duplicate flag. could refactor this later
+let verbose = false
+
 export function getTransactionObj(tx: any): any {
     if (!tx.raw) throw Error('fail')
     let transactionObj
     const serializedInput = toBuffer(tx.raw)
     try {
         transactionObj = Transaction.fromRlpSerializedTx(serializedInput)
-        console.log('Legacy tx parsed:', transactionObj)
+        if (verbose) console.log('Legacy tx parsed:', transactionObj)
     } catch (e) {
-        console.log('Unable to get legacy transaction obj', e)
+        if (verbose) console.log('Unable to get legacy transaction obj', e)
     }
     if (!transactionObj) {
         try {
             transactionObj = AccessListEIP2930Transaction.fromRlpSerializedTx(serializedInput)
-            console.log('EIP2930 tx parsed:', transactionObj)
+            if (verbose) console.log('EIP2930 tx parsed:', transactionObj)
         } catch (e) {
             console.log('Unable to get EIP2930 transaction obj', e)
         }
@@ -54,7 +57,7 @@ export function sleep(ms: number) {
 
 export async function getAccount(addressStr: any) {
     try {
-        console.log(`${getBaseUrl()}/account/${addressStr}`)
+        if (verbose) console.log(`${getBaseUrl()}/account/${addressStr}`)
         let res = await axios.get(`${getBaseUrl()}/account/${addressStr}`)
         return res.data.account
     } catch (e) {
