@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node server.ts"
+    "start": "ts-node server.ts",
+    "compile": "tsc -p ."
   },
   "author": "thantsintoe",
   "license": "ISC",
@@ -19,6 +20,7 @@
     "express": "^4.17.2",
     "got": "^11.8.3",
     "jayson": "^3.6.5",
-    "web3": "^1.6.1"
+    "web3": "^1.6.1",
+    "typescript": "^4.5.2"
   }
 }
