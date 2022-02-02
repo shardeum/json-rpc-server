@@ -1,0 +1,14 @@
+{
+  "port": 8080,
+  "chainId": 8080,
+  "nodeIpInfo": {
+    "externalIp": "localhost",
+    "externalPort": 9001
+  },
+  "dynamicConsensorNode": false,
+  "rotationInterval": 60,
+  "archiverIpInfo": {
+    "externalIp": "localhost",
+    "externalPort": 4000
+  }
+}

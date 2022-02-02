@@ -1,6 +1,7 @@
 const {toBuffer} = require("ethereumjs-util");
 const {Transaction, AccessListEIP2930Transaction} = require("@ethereumjs/tx");
 const axios = require("axios");
+const config = require("./config.json")
 export let node = {
     ip: 'localhost',
     port: 9001
@@ -44,6 +45,29 @@ export function changeNode(ip: string, port: number) {
     node.ip = ip
     node.port = port
     console.log(`RPC server subscribes to ${ip}:${port}`)
+}
+
+async function rotateConsensorNode() {
+  let consensor: any = await getRandomConsensorNode()
+  if (consensor) changeNode(consensor.ip, consensor.port)
+}
+
+export async function setConsensorNode() {
+  if (config.dynamicConsensorNode) {
+    await rotateConsensorNode()
+    setInterval(rotateConsensorNode, parseInt(config.rotationInterval) * 1000)
+  } else {
+    changeNode(config.nodeIpInfo.externalIp, config.nodeIpInfo.externalPort)
+  }
+}
+
+export async function getRandomConsensorNode() {
+  const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
+  const nodeList = res.data.nodeList
+  if (nodeList.length > 0) {
+    let randomIndex = Math.floor(Math.random() * nodeList.length)
+    return nodeList[randomIndex]
+  }
 }
 
 
