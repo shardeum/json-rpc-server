@@ -177,9 +177,13 @@ export const methods = {
         let address = args[0]
         let account = await getAccount(address)
         if (account) {
-            let result = bufferToHex(Buffer.from(account.nonce, 'hex'))
+            let nonce = parseInt(account.nonce)
+            let result = '0x' + nonce.toString(16)
             if (result === '0x') result = '0x0'
-            if (verbose) console.log('Transaction count', result)
+            if (true) {
+                console.log('account.nonce', account.nonce)
+                console.log('Transaction count', result)
+            }
             callback(null, result);
         } else {
             callback(null, '0x0')
@@ -352,11 +356,11 @@ export const methods = {
 
         if (verbose) console.log('result.from', result.from)
 
-
+        let nonce = parseInt(result.nonce)
         defaultResult.hash = result.transactionHash
         defaultResult.from = result.from
         defaultResult.to = result.to
-        defaultResult.nonce = bufferToHex(Buffer.from(result.nonce, 'hex'))
+        defaultResult.nonce = nonce
         defaultResult.contractAddress = result.contractAddress
         if (verbose) console.log('Final Tx:', txHash, defaultResult)
         callback(null, defaultResult);
