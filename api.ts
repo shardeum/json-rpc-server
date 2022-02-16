@@ -2,7 +2,7 @@ import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
 import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
 
-export let verbose = false
+export let verbose = true
 
 
 async function getCurrentBlockNumber() {
@@ -338,13 +338,13 @@ export const methods = {
             "r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         }
-        while(retry < 10 && !success) {
+        while(retry < 20 && !success) {
             let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-            result = res.data.tx
-            if (!result.transactionHash) {
+            result = res.data.account ? res.data.account.readableReceipt : null
+            if (result == null) {
                 console.log('tx', txHash, result)
                 console.log('Awaiting tx data for txHash', txHash)
-                await sleep(5000)
+                await sleep(2000)
                 continue
             }
             success = true
@@ -383,11 +383,9 @@ export const methods = {
         if (verbose) {
             console.log('Running getTransactionReceipt', args)
         }
-        // console.log("Running eth_getTransactionReceipt", args)
         let txHash = args[0]
         let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-        let result = res.data.tx
-        // console.log('tx receipt', txHash, result)
+        let result = res.data.account ? res.data.account.readableReceipt : null
         callback(null, result);
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {

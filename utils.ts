@@ -11,7 +11,7 @@ export let node = {
 let verbose = false
 
 export function getTransactionObj(tx: any): any {
-    if (!tx.raw) throw Error('fail')
+    if (!tx.raw) throw Error('No raw tx found.')
     let transactionObj
     const serializedInput = toBuffer(tx.raw)
     try {
