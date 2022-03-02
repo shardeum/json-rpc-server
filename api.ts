@@ -297,7 +297,15 @@ export const methods = {
         if (verbose) {
             console.log('Running estimateGas', args)
         }
-        let result = "0x2DC6C0"
+      let result = "0x2DC6C0"
+      try {
+          const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
+          const gasUsed = res.data.result
+          console.log('Gas used', gasUsed)
+          if(gasUsed) result = '0x' + gasUsed
+        } catch (e) {
+          console.log('Estimate gas error', e)
+        }
         callback(null, result);
     },
     eth_getBlockByHash: async function (args: any, callback: any) {
