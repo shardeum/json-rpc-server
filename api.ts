@@ -302,7 +302,7 @@ export const methods = {
           const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
           const gasUsed = res.data.result
           console.log('Gas used', gasUsed)
-          if(gasUsed) result = '0x' + gasUsed
+          //if(gasUsed) result = '0x' + gasUsed
         } catch (e) {
           console.log('Estimate gas error', e)
         }
