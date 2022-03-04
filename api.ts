@@ -2,7 +2,7 @@ import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
 import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
 
-export let verbose = true
+export let verbose = false
 
 
 async function getCurrentBlockNumber() {
@@ -11,7 +11,7 @@ async function getCurrentBlockNumber() {
         let res = await axios.get(`${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
         let result = intStringToHex(cycle.counter)
-        console.log('cycle counter', result)
+        if(verbose) console.log('cycle counter', result)
         return result
     } catch (e) {
         console.log('Unable to get cycle number', e)
@@ -301,7 +301,7 @@ export const methods = {
       try {
           const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
           const gasUsed = res.data.result
-          console.log('Gas used', gasUsed)
+          if(verbose) console.log('Gas used', gasUsed)
           //if(gasUsed) result = '0x' + gasUsed
         } catch (e) {
           console.log('Estimate gas error', e)
@@ -350,8 +350,10 @@ export const methods = {
             let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
             result = res.data.account ? res.data.account.readableReceipt : null
             if (result == null) {
-                console.log('tx', txHash, result)
-                console.log('Awaiting tx data for txHash', txHash)
+                if (verbose) {
+                    console.log('tx', txHash, result)
+                    console.log('Awaiting tx data for txHash', txHash)
+                }
                 await sleep(2000)
                 continue
             }
