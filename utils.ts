@@ -7,8 +7,9 @@ export let node = {
     port: 9001
 }
 
-//not great to have a duplicate flag. could refactor this later
-let verbose = false
+let verbose = config.verbose
+
+let gotArchiver = false
 
 export function getTransactionObj(tx: any): any {
     if (!tx.raw) throw Error('No raw tx found.')
@@ -49,7 +50,15 @@ export function changeNode(ip: string, port: number) {
 
 async function rotateConsensorNode() {
   let consensor: any = await getRandomConsensorNode()
-  if (consensor) changeNode(consensor.ip, consensor.port)
+  if (consensor){
+    let nodeIp = consensor.ip
+    //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
+    //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
+    if(config.useConfigNodeIp === true){
+        nodeIp = config.nodeIpInfo.externalIp
+    }
+    changeNode(nodeIp, consensor.port)      
+  }
 }
 
 export async function setConsensorNode() {
@@ -62,6 +71,14 @@ export async function setConsensorNode() {
 }
 
 export async function getRandomConsensorNode() {
+
+  if(config.askLocalHostForArchiver === true){
+    if(gotArchiver === false){
+        gotArchiver = true
+        //TODO query a localhost (or other) node or a valid archiver IP
+    }
+  }
+
   const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
   const nodeList = res.data.nodeList
   if (nodeList.length > 0) {

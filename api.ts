@@ -1,8 +1,9 @@
 import axios from "axios";
 import {bufferToHex} from "ethereumjs-util";
 import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
+const config = require("./config.json")
 
-export let verbose = false
+export let verbose = config.verbose
 
 
 async function getCurrentBlockNumber() {
@@ -582,7 +583,7 @@ export const methods = {
         if (verbose) {
             console.log('Running eth_chainId', args)
         }
-        let chainId = '8080'
+        let chainId = `${config.chainId}`
         let hexValue = '0x' + parseInt(chainId, 10).toString(16)
         callback(null, hexValue);
     },

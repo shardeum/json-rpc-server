@@ -6,10 +6,20 @@ const jsonParser = require('body-parser').json;
 const express = require('express')
 import {methods} from './api'
 import {changeNode, setConsensorNode} from './utils'
+const config = require("./config.json")
 
 const app = express()
 const server = new jayson.Server(methods);
-const port = 8080
+let port = config.port //8080
+
+const myArgs = process.argv.slice(2)
+if(myArgs.length > 0){
+  port = myArgs[0]   
+  config.port = port
+  console.log(`json-rpc-server port console override to:${port}`)
+}
+
+
 setConsensorNode().then(r => {
   console.log('Consensor node is selected.')
 })
