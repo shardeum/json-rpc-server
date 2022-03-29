@@ -261,20 +261,20 @@ export const methods = {
         if (verbose) {
             console.log('Running sendRawTransaction', args)
         }
+      try {
         let raw = args[0]
         let tx = {
             raw,
             timestamp: Date.now()
         }
-        await axios.post(`${getBaseUrl()}/inject`, tx)
-
+        axios.post(`${getBaseUrl()}/inject`, tx)
         const transaction = getTransactionObj(tx)
-        if (verbose) console.log('transaction obj', transaction)
         const result = bufferToHex(transaction.hash())
-
         if (verbose) console.log('Tx Hash', result)
-
         callback(null, result);
+      } catch(e) {
+        console.log(`Error while injecting tx to consensor`, e)
+      }
     },
     eth_call: async function (args: any, callback: any) {
         if (verbose) {
