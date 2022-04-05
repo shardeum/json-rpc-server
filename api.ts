@@ -300,9 +300,9 @@ export const methods = {
         }
       let result = "0x2DC6C0"
       try {
-          const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
-          const gasUsed = res.data.result
-          if(verbose) console.log('Gas used', gasUsed)
+        //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
+        //   const gasUsed = res.data.result
+        //   if(verbose) console.log('Gas used', gasUsed)
           //if(gasUsed) result = '0x' + gasUsed
         } catch (e) {
           console.log('Estimate gas error', e)
