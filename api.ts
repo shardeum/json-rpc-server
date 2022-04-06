@@ -21,7 +21,13 @@ async function getCurrentBlockNumber() {
 }
 
 async function getCurrentBlock() {
-    let blockNumber = await getCurrentBlockNumber()
+
+    let blockNumber = '0'
+    try {
+        blockNumber = await getCurrentBlockNumber()
+    } catch (e) {
+        console.log('Error getCurrentBlockNumber', e)
+    }    
     return {
         "difficulty": "0x4ea3f27bc",
         "extraData": "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32",
@@ -175,19 +181,23 @@ export const methods = {
         if (verbose) {
             console.log('Running getTransactionCount', args)
         }
-        let address = args[0]
-        let account = await getAccount(address)
-        if (account) {
-            let nonce = parseInt(account.nonce)
-            let result = '0x' + nonce.toString(16)
-            if (result === '0x') result = '0x0'
-            if (true) {
-                console.log('account.nonce', account.nonce)
-                console.log('Transaction count', result)
+        try {
+            let address = args[0]
+            let account = await getAccount(address)
+            if (account) {
+                let nonce = parseInt(account.nonce)
+                let result = '0x' + nonce.toString(16)
+                if (result === '0x') result = '0x0'
+                if (true) {
+                    console.log('account.nonce', account.nonce)
+                    console.log('Transaction count', result)
+                }
+                callback(null, result);
+            } else {
+                callback(null, '0x0')
             }
-            callback(null, result);
-        } else {
-            callback(null, '0x0')
+        } catch (e) {
+            console.log('Unable to getTransactionCount', e)
         }
     },
     eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
@@ -222,17 +232,21 @@ export const methods = {
         if (verbose) {
             console.log('Running getCode', args)
         }
-        const emptyCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
-        const account = await getAccount(args[0])
-        if (account && account.codeHash && account.codeHash) {
-            // if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
-            if (verbose) console.log('eth_getCode result', account.codeHash)
-            callback(null, account.codeHash)
-            return
+        try {
+            const emptyCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+            const account = await getAccount(args[0])
+            if (account && account.codeHash && account.codeHash) {
+                // if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
+                if (verbose) console.log('eth_getCode result', account.codeHash)
+                callback(null, account.codeHash)
+                return
+            }
+            let result = "0x0"
+            if (verbose) console.log('eth_getCode result', result)
+            callback(null, result);
+        } catch (e) {
+            console.log('Unable to eth_getCode', e)
         }
-        let result = "0x0"
-        if (verbose) console.log('eth_getCode result', result)
-        callback(null, result);
     },
     eth_sign: async function (args: any, callback: any) {
         if (verbose) {
@@ -284,22 +298,26 @@ export const methods = {
         if (!callObj.from) {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
-        let res = await axios.post(`${getBaseUrl()}/contract/call`, callObj)
-        if (verbose) console.log('contract call res.data.result', res.data.result)
-        if (res.data.result == null) {
-            callback(null, '0x0')
-            return
+        try {
+            let res = await axios.post(`${getBaseUrl()}/contract/call`, callObj)
+            if (verbose) console.log('contract call res.data.result', res.data.result)
+            if (res.data.result == null) {
+                callback(null, '0x0')
+                return
+            }
+            let result = '0x' + res.data.result
+            if (verbose) console.log('eth_call result', result)
+            callback(null, result);
+        } catch(e) {
+            console.log(`Error while making an eth call`, e)
         }
-        let result = '0x' + res.data.result
-        if (verbose) console.log('eth_call result', result)
-        callback(null, result);
     },
     eth_estimateGas: async function (args: any, callback: any) {
         if (verbose) {
             console.log('Running estimateGas', args)
         }
-      let result = "0x2DC6C0"
-      try {
+        let result = "0x2DC6C0"
+        try {
         //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
         //   const gasUsed = res.data.result
         //   if(verbose) console.log('Gas used', gasUsed)
@@ -313,6 +331,7 @@ export const methods = {
         if (verbose) {
             console.log('Running getBlockByHash', args)
         }
+        //getCurrentBlock handles errors, no try catch needed
         let result = await getCurrentBlock()
         callback(null, result);
     },
@@ -320,6 +339,7 @@ export const methods = {
         if (verbose) {
             console.log('Running getBlockByNumber', args)
         }
+        //getCurrentBlock handles errors, no try catch needed
         let result = await getCurrentBlock()
         callback(null, result);
     },
@@ -348,17 +368,22 @@ export const methods = {
             "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         }
         while(retry < 20 && !success) {
-            let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-            result = res.data.account ? res.data.account.readableReceipt : null
-            if (result == null) {
-                if (verbose) {
-                    console.log('tx', txHash, result)
-                    console.log('Awaiting tx data for txHash', txHash)
+            try {
+                let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
+                result = res.data.account ? res.data.account.readableReceipt : null
+                if (result == null) {
+                    if (verbose) {
+                        console.log('tx', txHash, result)
+                        console.log('Awaiting tx data for txHash', txHash)
+                    }
+                    await sleep(2000)
+                    continue
                 }
+                success = true
+            } catch (e) {
+                console.log('Error: eth_getTransactionByHash', e)
                 await sleep(2000)
-                continue
             }
-            success = true
         }
         if (!result.to) result.to = '0x' + '0'.repeat(42)
         if (result.value === '0') {
@@ -394,10 +419,14 @@ export const methods = {
         if (verbose) {
             console.log('Running getTransactionReceipt', args)
         }
-        let txHash = args[0]
-        let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-        let result = res.data.account ? res.data.account.readableReceipt : null
-        callback(null, result);
+        try {
+            let txHash = args[0]
+            let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
+            let result = res.data.account ? res.data.account.readableReceipt : null
+            callback(null, result);
+        } catch (e) {
+            console.log('Unable to eth_getTransactionReceipt', e)
+        }
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
         if (verbose) {
