@@ -316,7 +316,7 @@ export const methods = {
         if (verbose) {
             console.log('Running estimateGas', args)
         }
-        let result = "0x2DC6C0"
+        let result = "0x1C9C380" // 30 M gas
         try {
         //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
         //   const gasUsed = res.data.result
