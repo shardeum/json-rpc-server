@@ -20,6 +20,15 @@ if(myArgs.length > 0){
 }
 
 
+//maybe catch unhandled exceptions?
+process.on('uncaughtException', (err) => {
+    console.log('uncaughtException:' + err)
+})
+process.on('unhandledRejection', (err) => {
+    console.log('unhandledRejection:' + err)
+})
+
+
 setConsensorNode().then(r => {
   console.log('Consensor node is selected.')
 })
