@@ -12,18 +12,23 @@ pm2.connect(function (err) {
     for (let i = 0; i < count; i++) {
         startRPC(8080 + i)
     }
+    setTimeout(() => {
+        console.log(`Run "pm2 list" to see started processes.`)
+        process.exit(0)
+    }, 3000)
     return
 })
 
 function startRPC(port) {
+    const processName = 'rcp_' + port
     pm2.start({
         script: 'server.js',
-        name: 'rcp_' + port,
+        name: processName,
         args: String(port)
     }, function (err, apps) {
         if (err) {
             console.error(err)
-            pm2.restart('rpc', (err, proc) => {
+            pm2.restart(processName, (err, proc) => {
                 pm2.disconnect()
             })
             return
@@ -31,11 +36,4 @@ function startRPC(port) {
             console.log(`Started RPC server at port ${port}`)
         }
     })
-
-
-    // pm2.list((err, list) => {
-    //     console.log(err, list)
-    //     execa.command(`pm2 list`, { cwd: networkDir, env, stdio: [0, 1, 2] })
-    // })
-
 }
