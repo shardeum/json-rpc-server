@@ -1,6 +1,6 @@
 import axios from "axios";
-import {bufferToHex} from "ethereumjs-util";
-import {getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl} from './utils'
+import { bufferToHex } from "ethereumjs-util";
+import { getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl } from './utils'
 const config = require("./config.json")
 
 export let verbose = config.verbose
@@ -12,7 +12,7 @@ async function getCurrentBlockNumber() {
         let res = await axios.get(`${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
         let result = intStringToHex(cycle.counter)
-        if(verbose) console.log('cycle counter', result)
+        if (verbose) console.log('cycle counter', result)
         return result
     } catch (e) {
         console.log('Unable to get cycle number', e)
@@ -27,7 +27,7 @@ async function getCurrentBlock() {
         blockNumber = await getCurrentBlockNumber()
     } catch (e) {
         console.log('Error getCurrentBlockNumber', e)
-    }    
+    }
     return {
         "difficulty": "0x4ea3f27bc",
         "extraData": "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32",
@@ -165,7 +165,7 @@ export const methods = {
             balance = intStringToHex(account.balance)
 
         } catch (e) {
-            console.log('Unable to get account balance', e)
+            if (verbose) console.log('Unable to get account balance', e)
         }
         if (verbose) console.log('Final balance', balance)
         callback(null, balance);
@@ -275,20 +275,20 @@ export const methods = {
         if (verbose) {
             console.log('Running sendRawTransaction', args)
         }
-      try {
-        let raw = args[0]
-        let tx = {
-            raw,
-            timestamp: Date.now()
+        try {
+            let raw = args[0]
+            let tx = {
+                raw,
+                timestamp: Date.now()
+            }
+            axios.post(`${getBaseUrl()}/inject`, tx)
+            const transaction = getTransactionObj(tx)
+            const result = bufferToHex(transaction.hash())
+            if (verbose) console.log('Tx Hash', result)
+            callback(null, result);
+        } catch (e) {
+            console.log(`Error while injecting tx to consensor`, e)
         }
-        axios.post(`${getBaseUrl()}/inject`, tx)
-        const transaction = getTransactionObj(tx)
-        const result = bufferToHex(transaction.hash())
-        if (verbose) console.log('Tx Hash', result)
-        callback(null, result);
-      } catch(e) {
-        console.log(`Error while injecting tx to consensor`, e)
-      }
     },
     eth_call: async function (args: any, callback: any) {
         if (verbose) {
@@ -308,7 +308,7 @@ export const methods = {
             let result = '0x' + res.data.result
             if (verbose) console.log('eth_call result', result)
             callback(null, result);
-        } catch(e) {
+        } catch (e) {
             console.log(`Error while making an eth call`, e)
         }
     },
@@ -318,12 +318,12 @@ export const methods = {
         }
         let result = "0x1C9C380" // 30 M gas
         try {
-        //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
-        //   const gasUsed = res.data.result
-        //   if(verbose) console.log('Gas used', gasUsed)
-          //if(gasUsed) result = '0x' + gasUsed
+            //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
+            //   const gasUsed = res.data.result
+            //   if(verbose) console.log('Gas used', gasUsed)
+            //if(gasUsed) result = '0x' + gasUsed
         } catch (e) {
-          console.log('Estimate gas error', e)
+            console.log('Estimate gas error', e)
         }
         callback(null, result);
     },
@@ -352,22 +352,22 @@ export const methods = {
         let success = false
         let result
         let defaultResult: any = {
-            "blockHash":"0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
-            "blockNumber":"0x5daf3b", // 6139707
-            "from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
-            "gas":"0xc350", // 50000
-            "gasPrice":"0x4a817c800", // 20000000000
-            "hash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
-            "input":"0x68656c6c6f21",
-            "nonce":"0x15", // 21
-            "to":"0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb",
-            "transactionIndex":"0x41", // 65
-            "value":"0xf3dbb76162000", // 4290000000000000
-            "v":"0x25", // 37
-            "r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
-            "s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+            "blockHash": "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2",
+            "blockNumber": "0x5daf3b", // 6139707
+            "from": "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
+            "gas": "0xc350", // 50000
+            "gasPrice": "0x4a817c800", // 20000000000
+            "hash": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
+            "input": "0x68656c6c6f21",
+            "nonce": "0x15", // 21
+            "to": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb",
+            "transactionIndex": "0x41", // 65
+            "value": "0xf3dbb76162000", // 4290000000000000
+            "v": "0x25", // 37
+            "r": "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
+            "s": "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         }
-        while(retry < 20 && !success) {
+        while (retry < 20 && !success) {
             try {
                 let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
                 result = res.data.account ? res.data.account.readableReceipt : null

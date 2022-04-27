@@ -1,5 +1,5 @@
-const {toBuffer} = require("ethereumjs-util");
-const {Transaction, AccessListEIP2930Transaction} = require("@ethereumjs/tx");
+const { toBuffer } = require("ethereumjs-util");
+const { Transaction, AccessListEIP2930Transaction } = require("@ethereumjs/tx");
 const axios = require("axios");
 const config = require("./config.json")
 export let node = {
@@ -8,8 +8,25 @@ export let node = {
 }
 
 let verbose = config.verbose
-
 let gotArchiver = false
+let nodeList: any[] = []
+
+
+export async function updateNodeList() {
+    if (config.askLocalHostForArchiver === true) {
+        if (gotArchiver === false) {
+            gotArchiver = true
+            //TODO query a localhost (or other) node or a valid archiver IP
+        }
+    }
+
+    const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
+    const nodes = res.data.nodeList
+    if (nodes.length > 0) {
+        nodeList = [...nodes]
+        if (verbose) console.log('Nodelist is updated')
+    }
+}
 
 export function getTransactionObj(tx: any): any {
     if (!tx.raw) throw Error('No raw tx found.')
@@ -39,54 +56,44 @@ export function intStringToHex(str: string) {
     return '0x' + parseInt(str, 10).toString(16)
 }
 export function getBaseUrl() {
+    setConsensorNode()
     return `http://${node.ip}:${node.port}`
 }
 
 export function changeNode(ip: string, port: number) {
     node.ip = ip
     node.port = port
-    console.log(`RPC server subscribes to ${ip}:${port}`)
+    if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
 }
 
-async function rotateConsensorNode() {
-  let consensor: any = await getRandomConsensorNode()
-  if (consensor){
-    let nodeIp = consensor.ip
-    //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
-    //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
-    if(config.useConfigNodeIp === true){
-        nodeIp = config.nodeIpInfo.externalIp
+function rotateConsensorNode() {
+    let consensor: any = getRandomConsensorNode()
+    if (consensor) {
+        let nodeIp = consensor.ip
+        //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
+        //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
+        if (config.useConfigNodeIp === true) {
+            nodeIp = config.nodeIpInfo.externalIp
+        }
+        changeNode(nodeIp, consensor.port)
     }
-    changeNode(nodeIp, consensor.port)      
-  }
 }
 
-export async function setConsensorNode() {
-  if (config.dynamicConsensorNode) {
-    await rotateConsensorNode()
-    setInterval(rotateConsensorNode, parseInt(config.rotationInterval) * 1000)
-  } else {
-    changeNode(config.nodeIpInfo.externalIp, config.nodeIpInfo.externalPort)
-  }
-}
-
-export async function getRandomConsensorNode() {
-
-  if(config.askLocalHostForArchiver === true){
-    if(gotArchiver === false){
-        gotArchiver = true
-        //TODO query a localhost (or other) node or a valid archiver IP
+// this is the main function to be called every RPC request
+export function setConsensorNode() {
+    if (config.dynamicConsensorNode) {
+        rotateConsensorNode()
+    } else {
+        changeNode(config.nodeIpInfo.externalIp, config.nodeIpInfo.externalPort)
     }
-  }
-
-  const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
-  const nodeList = res.data.nodeList
-  if (nodeList.length > 0) {
-    let randomIndex = Math.floor(Math.random() * nodeList.length)
-    return nodeList[randomIndex]
-  }
 }
 
+export function getRandomConsensorNode() {
+    if (nodeList.length > 0) {
+        let randomIndex = Math.floor(Math.random() * nodeList.length)
+        return nodeList[randomIndex]
+    }
+}
 
 export function sleep(ms: number) {
     return new Promise(resolve => {

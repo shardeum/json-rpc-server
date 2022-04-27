@@ -5,7 +5,7 @@ const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
 import {methods} from './api'
-import {changeNode, setConsensorNode} from './utils'
+import {changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
 
 const app = express()
@@ -28,10 +28,12 @@ process.on('unhandledRejection', (err) => {
     console.log('unhandledRejection:' + err)
 })
 
-
-setConsensorNode().then(r => {
-  console.log('Consensor node is selected.')
+updateNodeList().then(success => {
+  setConsensorNode()
 })
+
+setInterval(updateNodeList, 10000)
+
 
 app.use(cors({methods: ['POST']}));
 app.use(jsonParser());
