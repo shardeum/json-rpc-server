@@ -28,6 +28,37 @@ export async function updateNodeList() {
     }
 }
 
+export async function waitRandomSecond() {
+    let second = Math.floor(Math.random() * 5) + 1
+    if (verbose) console.log(`Waiting ${second} second`)
+    await sleep(second * 1000)
+}
+
+export async function requestWithRetry(method: string, url: string, data: any = {}) {
+    let retry = 0
+    let maxRetry = 5
+    let success = false
+    while (!success && retry <= maxRetry) {
+        retry++
+        try {
+            const res = await axios({
+                method,
+                url,
+                data
+            });
+            if (res.status === 200 && !res.data.error) {
+                success = true
+                return res
+            }
+        } catch (e: any) {
+            console.log('Error: requestWithRetry', e.message)
+        }
+        console.log('Node is busy...will try again in a few seconds')
+        await waitRandomSecond()
+    }
+    return { data: null }
+}
+
 export function getTransactionObj(tx: any): any {
     if (!tx.raw) throw Error('No raw tx found.')
     let transactionObj
@@ -106,7 +137,8 @@ export function sleep(ms: number) {
 export async function getAccount(addressStr: any) {
     try {
         if (verbose) console.log(`${getBaseUrl()}/account/${addressStr}`)
-        let res = await axios.get(`${getBaseUrl()}/account/${addressStr}`)
+        // let res = await axios.get(`${getBaseUrl()}/account/${addressStr}`)
+        let res = await requestWithRetry('get', `${getBaseUrl()}/account/${addressStr}`)
         return res.data.account
     } catch (e) {
         console.log('getAccount error', e)

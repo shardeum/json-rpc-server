@@ -1,17 +1,26 @@
 import axios from "axios";
 import { bufferToHex } from "ethereumjs-util";
-import { getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl } from './utils'
+import { getAccount, getTransactionObj, intStringToHex, sleep, getBaseUrl, requestWithRetry, waitRandomSecond } from './utils'
 const config = require("./config.json")
 
 export let verbose = config.verbose
 
+let lastCycleTimestamp: number = 0
+let lastCycleCounter: string = '0x0'
 
 async function getCurrentBlockNumber() {
+    if (verbose) console.log('Running getCurrentBlockNumber')
     let result = '0x0'
+    if (Date.now() - lastCycleTimestamp < 60000) {
+        return lastCycleCounter
+    }
+
     try {
-        let res = await axios.get(`${getBaseUrl()}/sync-newest-cycle`)
+        let res = await requestWithRetry('get', `${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
         let result = intStringToHex(cycle.counter)
+        lastCycleTimestamp = Date.now()
+        lastCycleCounter = result
         if (verbose) console.log('cycle counter', result)
         return result
     } catch (e) {
@@ -165,7 +174,7 @@ export const methods = {
             balance = intStringToHex(account.balance)
 
         } catch (e) {
-            if (verbose) console.log('Unable to get account balance', e)
+            // if (verbose) console.log('Unable to get account balance', e)
         }
         if (verbose) console.log('Final balance', balance)
         callback(null, balance);
@@ -267,8 +276,6 @@ export const methods = {
             console.log('Running sendTransaction', args)
         }
         let result = "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"
-        // let tx = args[0]
-        // let res = await axios.post(`${getBaseUrl()}/inject`, tx)
         callback(null, result);
     },
     eth_sendRawTransaction: async function (args: any, callback: any) {
@@ -299,7 +306,7 @@ export const methods = {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
         try {
-            let res = await axios.post(`${getBaseUrl()}/contract/call`, callObj)
+            let res = await requestWithRetry('post', `${getBaseUrl()}/contract/call`, callObj)
             if (verbose) console.log('contract call res.data.result', res.data.result)
             if (res.data.result == null) {
                 callback(null, '0x0')
@@ -421,7 +428,7 @@ export const methods = {
         }
         try {
             let txHash = args[0]
-            let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
+            let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
             callback(null, result);
         } catch (e) {
