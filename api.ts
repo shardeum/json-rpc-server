@@ -376,7 +376,8 @@ export const methods = {
         }
         while (retry < 20 && !success) {
             try {
-                let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
+                //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
+                let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
                 result = res.data.account ? res.data.account.readableReceipt : null
                 if (result == null) {
                     if (verbose) {
