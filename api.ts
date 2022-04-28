@@ -8,6 +8,8 @@ export let verbose = config.verbose
 let lastCycleTimestamp: number = 0
 let lastCycleCounter: string = '0x0'
 
+const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
+
 async function getCurrentBlockNumber() {
     if (verbose) console.log('Running getCurrentBlockNumber')
     let result = '0x0'
@@ -309,7 +311,7 @@ export const methods = {
             let res = await requestWithRetry('post', `${getBaseUrl()}/contract/call`, callObj)
             if (verbose) console.log('contract call res.data.result', res.data.result)
             if (res.data.result == null) {
-                callback(null, '0x0')
+                callback(null, errorHexStatus)
                 return
             }
             let result = '0x' + res.data.result
@@ -317,6 +319,7 @@ export const methods = {
             callback(null, result);
         } catch (e) {
             console.log(`Error while making an eth call`, e)
+            callback(null, errorHexStatus)
         }
     },
     eth_estimateGas: async function (args: any, callback: any) {
@@ -434,6 +437,7 @@ export const methods = {
             callback(null, result);
         } catch (e) {
             console.log('Unable to eth_getTransactionReceipt', e)
+            callback(null, errorHexStatus)
         }
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
