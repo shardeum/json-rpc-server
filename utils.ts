@@ -10,7 +10,7 @@ export let node = {
 let verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
-
+let nextIndex = 0
 
 export async function updateNodeList() {
     if (config.askLocalHostForArchiver === true) {
@@ -35,12 +35,13 @@ export async function waitRandomSecond() {
 }
 
 export async function requestWithRetry(method: string, url: string, data: any = {}) {
-    let retry = 0
-    let maxRetry = 5
+    let retry = 5 //set this to 0 with for load testing rpc server
+    let maxRetry = 0
     let success = false
     while (!success && retry <= maxRetry) {
         retry++
         try {
+            if (verbose) console.log(`request from: ${url}`)
             const res = await axios({
                 method,
                 url,
@@ -53,8 +54,13 @@ export async function requestWithRetry(method: string, url: string, data: any = 
         } catch (e: any) {
             console.log('Error: requestWithRetry', e.message)
         }
-        console.log('Node is busy...will try again in a few seconds')
-        await waitRandomSecond()
+        
+        if(retry <= maxRetry){
+            if (verbose) console.log('Node is busy...will try again in a few seconds')
+            await waitRandomSecond()            
+        } else {
+            if (verbose) console.log('Node is busy...out of retries')
+        }
     }
     return { data: null }
 }
@@ -98,7 +104,7 @@ export function changeNode(ip: string, port: number) {
 }
 
 function rotateConsensorNode() {
-    let consensor: any = getRandomConsensorNode()
+    let consensor: any = getNextConsensorNode()//getRandomConsensorNode()
     if (consensor) {
         let nodeIp = consensor.ip
         //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
@@ -123,6 +129,20 @@ export function getRandomConsensorNode() {
     if (nodeList.length > 0) {
         let randomIndex = Math.floor(Math.random() * nodeList.length)
         return nodeList[randomIndex]
+    }
+}
+
+/**
+ * Round robin selection of next consensor index.
+ * @returns 
+ */
+export function getNextConsensorNode() {
+    if (nodeList.length > 0) {
+        nextIndex++
+        if(nextIndex >= nodeList.length){
+            nextIndex = 0
+        }
+        return nodeList[nextIndex]
     }
 }
 
