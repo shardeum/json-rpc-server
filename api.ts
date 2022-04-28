@@ -83,7 +83,7 @@ export const methods = {
         if (verbose) {
             console.log('Running net_version', args)
         }
-        let chainId = 1409
+        let chainId = config.chainId
         callback(null, chainId);
     },
     net_listening: async function (args: any, callback: any) {
