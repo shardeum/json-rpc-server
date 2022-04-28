@@ -5,7 +5,7 @@
     "externalIp": "localhost",
     "externalPort": 9001
   },
-  "dynamicConsensorNode": false,
+  "dynamicConsensorNode": true,
   "useConfigNodeIp" : true,
   "askLocalHostForArchiver": true,
   "rotationInterval": 60,
