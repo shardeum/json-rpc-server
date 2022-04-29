@@ -8,7 +8,9 @@ export let verbose = config.verbose
 let lastCycleTimestamp: number = 0
 let lastCycleCounter: string = '0x0'
 
-const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
+//const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
+const errorCode: number = 500 //server internal error
+const errorBusy = {code: errorCode, message: 'Busy or error'};
 
 async function getCurrentBlockNumber() {
     if (verbose) console.log('Running getCurrentBlockNumber')
@@ -310,8 +312,9 @@ export const methods = {
         try {
             let res = await requestWithRetry('post', `${getBaseUrl()}/contract/call`, callObj)
             if (verbose) console.log('contract call res.data.result', res.data.result)
-            if (res.data.result == null) {
-                callback(null, errorHexStatus)
+            if (res.data == null || res.data.result == null) {
+                //callback(null, errorHexStatus)
+                callback(errorBusy)
                 return
             }
             let result = '0x' + res.data.result
@@ -319,7 +322,8 @@ export const methods = {
             callback(null, result);
         } catch (e) {
             console.log(`Error while making an eth call`, e)
-            callback(null, errorHexStatus)
+            //callback(null, errorHexStatus)
+            callback(errorBusy)
         }
     },
     eth_estimateGas: async function (args: any, callback: any) {
@@ -437,7 +441,8 @@ export const methods = {
             callback(null, result);
         } catch (e) {
             console.log('Unable to eth_getTransactionReceipt', e)
-            callback(null, errorHexStatus)
+            //callback(null, errorHexStatus)
+            callback(errorBusy)
         }
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
