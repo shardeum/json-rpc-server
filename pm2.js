@@ -1,7 +1,11 @@
 const pm2 = require('pm2')
 const count = parseInt(process.argv[2])
+const config = require("./config.json")
 
-console.log("Count", count)
+const startingPort = config.port ?? 8080
+
+
+console.log(`count: ${count} starting port:${startingPort}`)
 
 pm2.connect(function (err) {
     if (err) {
@@ -10,7 +14,7 @@ pm2.connect(function (err) {
     }
 
     for (let i = 0; i < count; i++) {
-        startRPC(8080 + i)
+        startRPC(startingPort + i)
     }
     setTimeout(() => {
         console.log(`Run "pm2 list" to see started processes.`)
