@@ -403,7 +403,7 @@ export const methods = {
 
         if (verbose) console.log('result.from', result.from)
 
-        let nonce = parseInt(result.nonce)
+        let nonce = parseInt(result.nonce, 16)
         defaultResult.hash = result.transactionHash
         defaultResult.from = result.from
         defaultResult.to = result.to
