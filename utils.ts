@@ -35,8 +35,8 @@ export async function waitRandomSecond() {
 }
 
 export async function requestWithRetry(method: string, url: string, data: any = {}) {
-    let retry = 5 //set this to 0 with for load testing rpc server
-    let maxRetry = 0
+    let retry = 0 
+    let maxRetry = 5 //set this to 0 with for load testing rpc server
     let success = false
     while (!success && retry <= maxRetry) {
         retry++
