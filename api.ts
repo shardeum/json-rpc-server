@@ -14,8 +14,12 @@ const config = require("./config.json")
 
 export let verbose = config.verbose
 
-let lastCycleTimestamp: number = 0
+let lastQueryTimestamp: number = 0
 let lastCycleCounter: string = '0x0'
+let lastCycleInfo = {
+    counter: lastCycleCounter,
+    timestamp: '0x0'
+}
 
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode: number = 500 //server internal error
@@ -23,21 +27,19 @@ const errorBusy = {code: errorCode, message: 'Busy or error'};
 
 async function getCurrentCycleInfo() {
     if (verbose) console.log('Running getCurrentCycleInfo')
-    let result = {
-        counter: '0x0',
-        timestamp: Date.now()
-    }
-    let lastCycleTimestamp = 0
-    let lastCycleInfo: any
-    if (Date.now() - lastCycleTimestamp < 60000) {
+    if (Date.now() - lastQueryTimestamp < 60000) {
+        if (verbose) console.log('Returning getCurrentCycleInfo from cache')
         return lastCycleInfo
     }
+    let result = {...lastCycleInfo}
 
     try {
+        if (verbose) console.log('Querying getCurrentCycleInfo from validator')
         let res = await requestWithRetry('get', `${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
-        let result = {counter: intStringToHex(cycle.counter), timestamp: intStringToHex(cycle.start)}
-        lastCycleTimestamp = cycle.start
+        result = {counter: intStringToHex(cycle.counter), timestamp: intStringToHex(cycle.start)}
+        lastQueryTimestamp = Date.now()
+        lastCycleCounter = intStringToHex(cycle.counter)
         lastCycleInfo = result
         if (verbose) console.log('cycle info', result)
         return result
