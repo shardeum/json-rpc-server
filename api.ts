@@ -248,8 +248,8 @@ export const methods = {
         try {
             const emptyCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
             const account = await getAccount(args[0])
-            if (account && account.codeHash && account.codeHash) {
-                // if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
+            // if (account && account.codeHash && account.codeHash) {
+            if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
                 if (verbose) console.log('eth_getCode result', account.codeHash)
                 callback(null, account.codeHash)
                 return
