@@ -27,10 +27,6 @@ const errorBusy = {code: errorCode, message: 'Busy or error'};
 
 async function getCurrentCycleInfo() {
     if (verbose) console.log('Running getCurrentCycleInfo')
-    if (Date.now() - lastQueryTimestamp < 60000) {
-        if (verbose) console.log('Returning getCurrentCycleInfo from cache')
-        return lastCycleInfo
-    }
     let result = {...lastCycleInfo}
 
     try {
@@ -41,7 +37,6 @@ async function getCurrentCycleInfo() {
         lastQueryTimestamp = Date.now()
         lastCycleCounter = intStringToHex(cycle.counter)
         lastCycleInfo = result
-        if (verbose) console.log('cycle info', result)
         return result
     } catch (e) {
         console.log('Unable to get cycle number', e)
@@ -457,12 +452,13 @@ export const methods = {
             let txHash = args[0]
             let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
+            if (verbose) console.log(`Tx receipt for ${txHash}`, result)
             if (result) {
                 if (!result.to || result.to == '') result.to = null
                 if (result.logs == null) result.logs = []
                 if (verbose) console.log(`getTransactionReceipt result for ${txHash}`, result)
-                callback(null, result);
             }
+            callback(null, result);
         } catch (e) {
             console.log('Unable to eth_getTransactionReceipt', e)
             //callback(null, errorHexStatus)
