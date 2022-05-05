@@ -452,10 +452,11 @@ export const methods = {
             let txHash = args[0]
             let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
-            if (verbose) console.log(`Tx receipt for ${txHash}`, result)
             if (result) {
                 if (!result.to || result.to == '') result.to = null
                 if (result.logs == null) result.logs = []
+                if (result.status == 0) result.status = '0x0'
+                if (result.status == 1) result.status = '0x1'
                 if (verbose) console.log(`getTransactionReceipt result for ${txHash}`, result)
             }
             callback(null, result);
