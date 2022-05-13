@@ -7,7 +7,8 @@ import {
     sleep,
     getBaseUrl,
     requestWithRetry,
-    waitRandomSecond
+    waitRandomSecond,
+    trackRequestPerf
 } from './utils'
 
 const config = require("./config.json")
@@ -33,7 +34,9 @@ async function getCurrentCycleInfo() {
         if (verbose) console.log('Querying getCurrentCycleInfo from validator')
         let res = await requestWithRetry('get', `${getBaseUrl()}/sync-newest-cycle`)
         let cycle = res.data.newestCycle
-        result = {counter: intStringToHex(cycle.counter), timestamp: intStringToHex(cycle.start)}
+        let counter = String(Math.round(Date.now() / 1000))
+        // let counter = cycle.counter
+        result = {counter: intStringToHex(counter), timestamp: intStringToHex(cycle.start)}
         lastQueryTimestamp = Date.now()
         lastCycleCounter = intStringToHex(cycle.counter)
         lastCycleInfo = result
@@ -168,6 +171,7 @@ export const methods = {
         callback(null, result);
     },
     eth_blockNumber: async function (args: any, callback: any) {
+        trackRequestPerf('eth_blockNumber', args)
         if (verbose) {
             console.log('Running eth_blockNumber', args)
         }
@@ -176,6 +180,8 @@ export const methods = {
         else callback(null, result.counter)
     },
     eth_getBalance: async function (args: any, callback: any) {
+        trackRequestPerf('eth_getBalance', args)
+
         if (verbose) {
             console.log('Running eth_getBalance', args)
         }
@@ -297,6 +303,8 @@ export const methods = {
         callback(null, result);
     },
     eth_sendRawTransaction: async function (args: any, callback: any) {
+        let now = Date.now()
+        console.log('Sending raw tx to /inject endpoint', new Date(now), now)
         if (verbose) {
             console.log('Running sendRawTransaction', args)
         }
@@ -316,6 +324,7 @@ export const methods = {
         }
     },
     eth_call: async function (args: any, callback: any) {
+        trackRequestPerf('eth_call', args)
         if (verbose) {
             console.log('Running eth_call', args)
         }
@@ -445,7 +454,9 @@ export const methods = {
         callback(null, result);
     },
     eth_getTransactionReceipt: async function (args: any, callback: any) {
-        if (verbose) {
+        let now = Date.now()
+        console.log('Getting tx receipt', new Date(now), now)
+        if (true) {
             console.log('Running getTransactionReceipt', args)
         }
         try {
@@ -457,7 +468,7 @@ export const methods = {
                 if (result.logs == null) result.logs = []
                 if (result.status == 0) result.status = '0x0'
                 if (result.status == 1) result.status = '0x1'
-                if (verbose) console.log(`getTransactionReceipt result for ${txHash}`, result)
+                if (true) console.log(`getTransactionReceipt result for ${txHash}`, result)
             }
             callback(null, result);
         } catch (e) {

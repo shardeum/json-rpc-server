@@ -11,6 +11,7 @@ let verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
 let nextIndex = 0
+let perfTracker: any = {}
 
 export async function updateNodeList() {
     if (config.askLocalHostForArchiver === true) {
@@ -41,7 +42,7 @@ export async function requestWithRetry(method: string, url: string, data: any = 
     while (!success && retry <= maxRetry) {
         retry++
         try {
-            if (verbose) console.log(`request from: ${url}`)
+            // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
             const res = await axios({
                 method,
                 url,
@@ -114,6 +115,22 @@ function rotateConsensorNode() {
         }
         changeNode(nodeIp, consensor.port)
     }
+}
+
+export function trackRequestPerf(methodName: any, args: string[]) {
+    let now = Math.round(Date.now() / 1000)
+    if (perfTracker[methodName]) {
+        perfTracker[methodName].push({args, timestamp: now})
+        if (perfTracker[methodName].length >= 10) {
+            let timeElapsed = perfTracker[methodName][9].timestamp - perfTracker[methodName][0].timestamp
+            let requestPerSecond = 10 / timeElapsed
+            console.log('Request per second', methodName, requestPerSecond)
+            perfTracker[methodName] = []
+        }
+    } else {
+        perfTracker[methodName] = [{args, timestamp: now}]
+    }
+    console.log(`Request received for ${methodName}, ${args ? args[0]: ''} at time ${new Date(now * 1000)}`)
 }
 
 // this is the main function to be called every RPC request
