@@ -117,20 +117,13 @@ function rotateConsensorNode() {
     }
 }
 
-export function trackRequestPerf(methodName: any, args: string[]) {
+export function apiStatCollector(methodName: any, args: string[]) {
     let now = Math.round(Date.now() / 1000)
     if (perfTracker[methodName]) {
         perfTracker[methodName].push({args, timestamp: now})
-        if (perfTracker[methodName].length >= 10) {
-            let timeElapsed = perfTracker[methodName][9].timestamp - perfTracker[methodName][0].timestamp
-            let requestPerSecond = 10 / timeElapsed
-            console.log('Request per second', methodName, requestPerSecond)
-            perfTracker[methodName] = []
-        }
     } else {
         perfTracker[methodName] = [{args, timestamp: now}]
     }
-    console.log(`Request received for ${methodName}, ${args ? args[0]: ''} at time ${new Date(now * 1000)}`)
 }
 
 // this is the main function to be called every RPC request
@@ -181,3 +174,26 @@ export async function getAccount(addressStr: any) {
         console.log('getAccount error', e)
     }
 }
+
+export function apiPefLogger(intervalInSecond: number){
+    // snapshot the perfTracker, 
+    // because perfTracker could very well be changing while this function is running
+    // so perfTracker cannnot be used for active calculation
+    const snapshot = perfTracker;
+    perfTracker = {}
+
+    const converted: any = {};
+
+    // calculate request per second
+    for (const key in snapshot) {
+        converted[key] = (snapshot[key].length/intervalInSecond).toFixed(2)
+    }
+
+    const sorted = Object.entries(converted)
+        .sort(([,a]: any,[,b]: any) => b-a)
+        .slice(0,5)
+        .reduce((r, [k, v]) => ({ ...r, [k]: v }), {})
+
+    console.log(`Top 5 loaded endpoints for the last ${intervalInSecond}s :`,sorted)
+}
+

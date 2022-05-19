@@ -5,7 +5,7 @@ const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
 import {methods} from './api'
-import {changeNode, setConsensorNode, updateNodeList} from './utils'
+import {apiPefLogger, apiStatCollector, changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
 
 const app = express()
@@ -42,6 +42,15 @@ app.get('/api/subscribe', (req: any, res: any) => {
   const port = parseInt(query.port) || 9001
   changeNode(ip, port)
   res.end(`Successfully changed to ${ip}:${port}`)
+})
+
+
+setInterval(()=>{ apiPefLogger(60) }, 60000);
+
+// express middleware which records every single request coming in for what endpoint it request
+app.use((req: any,res: any,next: Function) => { 
+    apiStatCollector(req.body.method, req.body.params);
+    next();
 })
 
 app.use(server.middleware());

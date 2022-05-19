@@ -8,7 +8,6 @@ import {
     getBaseUrl,
     requestWithRetry,
     waitRandomSecond,
-    trackRequestPerf
 } from './utils'
 
 const config = require("./config.json")
@@ -171,7 +170,6 @@ export const methods = {
         callback(null, result);
     },
     eth_blockNumber: async function (args: any, callback: any) {
-        trackRequestPerf('eth_blockNumber', args)
         if (verbose) {
             console.log('Running eth_blockNumber', args)
         }
@@ -180,7 +178,6 @@ export const methods = {
         else callback(null, result.counter)
     },
     eth_getBalance: async function (args: any, callback: any) {
-        trackRequestPerf('eth_getBalance', args)
 
         if (verbose) {
             console.log('Running eth_getBalance', args)
@@ -324,7 +321,6 @@ export const methods = {
         }
     },
     eth_call: async function (args: any, callback: any) {
-        trackRequestPerf('eth_call', args)
         if (verbose) {
             console.log('Running eth_call', args)
         }
