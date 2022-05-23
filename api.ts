@@ -17,7 +17,7 @@ export let verbose = config.verbose
 let lastQueryTimestamp: number = 0
 let lastCycleCounter: string = '0x0'
 let lastCycleInfo = {
-    counter: lastCycleCounter,
+    blockNumber: lastCycleCounter,
     timestamp: '0x0'
 }
 
@@ -25,19 +25,16 @@ let lastCycleInfo = {
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
 
-async function getCurrentCycleInfo() {
-    if (verbose) console.log('Running getCurrentCycleInfo')
+async function getCurrentBlockInfo() {
+    if (verbose) console.log('Running getCurrentBlockInfo')
     let result = {...lastCycleInfo}
 
     try {
-        if (verbose) console.log('Querying getCurrentCycleInfo from validator')
-        let res = await requestWithRetry('get', `${getBaseUrl()}/sync-newest-cycle`)
-        let cycle = res.data.newestCycle
-        let counter = String(Math.round(Date.now() / 1000))
-        // let counter = cycle.counter
-        result = {counter: intStringToHex(counter), timestamp: intStringToHex(cycle.start)}
-        lastQueryTimestamp = Date.now()
-        lastCycleCounter = intStringToHex(cycle.counter)
+        if (verbose) console.log('Querying getCurrentBlockInfo from validator')
+        let res = await requestWithRetry('get', `${getBaseUrl()}/eth_blockNumber`)
+        let blockNumber = res.data.blockNumber
+        let timestamp = Date.now()
+        result = {blockNumber: intStringToHex(String(blockNumber)), timestamp: intStringToHex(String(timestamp))}
         lastCycleInfo = result
         return result
     } catch (e) {
@@ -50,11 +47,11 @@ async function getCurrentBlock() {
     let blockNumber = '0'
     let timestamp = '0x55ba467c'
     try {
-        let cycleInfo = await getCurrentCycleInfo()
-        blockNumber = cycleInfo.counter
-        timestamp = cycleInfo.timestamp
+        let result = await getCurrentBlockInfo()
+        blockNumber = result.blockNumber
+        timestamp = result.timestamp
     } catch (e) {
-        console.log('Error getCurrentCycleInfo', e)
+        console.log('Error getCurrentBlockInfo', e)
     }
     if (verbose) console.log('Running getcurrentBlock', blockNumber, timestamp)
     return {
@@ -87,7 +84,7 @@ export const methods = {
             console.log('Running web3_clientVersion', args)
         }
         if (verbose) {
-            console.log('Running getCurrentCycleInfo', args)
+            console.log('Running getCurrentBlockInfo', args)
         }
         let result = "Mist/v0.9.3/darwin/go1.4.1"
         callback(null, result);
@@ -173,9 +170,9 @@ export const methods = {
         if (verbose) {
             console.log('Running eth_blockNumber', args)
         }
-        let result = await getCurrentCycleInfo()
-        if (result.counter == null) callback(null, '0x0');
-        else callback(null, result.counter)
+        let {blockNumber} = await getCurrentBlockInfo()
+        if (blockNumber == null) callback(null, '0x0');
+        else callback(null, blockNumber)
     },
     eth_getBalance: async function (args: any, callback: any) {
 
