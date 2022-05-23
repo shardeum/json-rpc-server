@@ -120,9 +120,9 @@ function rotateConsensorNode() {
 export function apiStatCollector(methodName: any, args: string[]) {
     let now = Math.round(Date.now() / 1000)
     if (perfTracker[methodName]) {
-        perfTracker[methodName].push({args, timestamp: now})
+        perfTracker[methodName].push(true)
     } else {
-        perfTracker[methodName] = [{args, timestamp: now}]
+        perfTracker[methodName] = [true]
     }
 }
 
@@ -194,6 +194,6 @@ export function apiPefLogger(intervalInSecond: number){
         .slice(0,5)
         .reduce((r, [k, v]) => ({ ...r, [k]: v }), {})
 
-    console.log(`Top 5 loaded endpoints for the last ${intervalInSecond}s :`,sorted)
+    console.log(`Top 5 busiest endpoints for the last ${intervalInSecond}s :`,sorted)
 }
 
