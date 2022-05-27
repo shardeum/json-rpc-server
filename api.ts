@@ -34,7 +34,7 @@ async function getCurrentBlockInfo() {
         let res = await requestWithRetry('get', `${getBaseUrl()}/eth_blockNumber`)
         let blockNumber = res.data.blockNumber
         let timestamp = Date.now()
-        result = {blockNumber: intStringToHex(String(blockNumber)), timestamp: intStringToHex(String(timestamp))}
+        result = {blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp))}
         lastCycleInfo = result
         return result
     } catch (e) {
@@ -171,6 +171,7 @@ export const methods = {
             console.log('Running eth_blockNumber', args)
         }
         let {blockNumber} = await getCurrentBlockInfo()
+        if (verbose) console.log('BLOCK NUMBER', blockNumber, parseInt(blockNumber, 16))
         if (blockNumber == null) callback(null, '0x0');
         else callback(null, blockNumber)
     },
@@ -369,8 +370,11 @@ export const methods = {
         if (verbose) {
             console.log('Running getBlockByNumber', args)
         }
-        //getCurrentBlock handles errors, no try catch needed
-        let result = await getCurrentBlock()
+        let blockNumber = args[0]
+        if(blockNumber !== 'latest') blockNumber = parseInt(blockNumber, 16)
+        let res = await requestWithRetry('get', `${getBaseUrl()}/eth_getBlockByNumber?blockNumber=${blockNumber}`)
+        let result = res.data.block
+        if (verbose) console.log('BLOCK DETAIL', result)
         callback(null, result);
     },
     eth_getTransactionByHash: async function (args: any, callback: any) {
