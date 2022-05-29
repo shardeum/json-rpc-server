@@ -47,6 +47,50 @@ app.get('/api/subscribe', (req: any, res: any) => {
 
 setInterval(()=>{ apiPefLogger(60) }, 60000);
 
+// express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
+class RequestersList {
+  ips: Map<string, number>
+  constructor() {
+    this.ips = new Map()
+  }
+
+  madeReqInLast10Sec(ip: string): boolean {
+    const now = Date.now()
+
+    let lastReqTime = this.ips.get(ip)
+
+    if (!lastReqTime) {
+      this.ips.set(ip, now)
+      return false
+    }
+
+    if (now - lastReqTime <= 10000) {
+      return true
+    } else {
+      this.ips.set(ip, now)
+      return false
+    }
+  }
+}
+
+const requestersList = new RequestersList()
+
+app.use((req: any, res: any, next: Function) => {
+  // Let eth_getBalance reqs pass
+  if (req.body.method === 'eth_getBalance') {
+    next()
+    return
+  }
+  // Stop the request if this IP has made one in the last 10 sec
+  if (requestersList.madeReqInLast10Sec(req.ip)) {
+    res.status(503).send('Too many requests from this IP, try again in 10 seconds.')
+    // Alternatively sending an empty response might result in less client errors
+    // res.send()
+    return
+  }
+  next()
+})
+
 // express middleware which records every single request coming in for what endpoint it request
 app.use((req: any,res: any,next: Function) => { 
     apiStatCollector(req.body.method, req.body.params);
