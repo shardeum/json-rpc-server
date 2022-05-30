@@ -1,5 +1,6 @@
 const { toBuffer } = require("ethereumjs-util");
 const { Transaction, AccessListEIP2930Transaction } = require("@ethereumjs/tx");
+const EventEmitter = require('events');
 const axios = require("axios");
 const config = require("./config.json")
 export let node = {
@@ -11,7 +12,6 @@ let verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
 let nextIndex = 0
-let perfTracker: any = {}
 
 export async function updateNodeList() {
     if (config.askLocalHostForArchiver === true) {
@@ -117,14 +117,14 @@ function rotateConsensorNode() {
     }
 }
 
-export function apiStatCollector(methodName: any, args: string[]) {
-    let now = Math.round(Date.now() / 1000)
-    if (perfTracker[methodName]) {
-        perfTracker[methodName].push(true)
-    } else {
-        perfTracker[methodName] = [true]
-    }
-}
+// export function apiStatCollector(methodName: any, args: string[]) {
+//     let now = Math.round(Date.now() / 1000)
+//     if (perfTracker[methodName]) {
+//         perfTracker[methodName].push(true)
+//     } else {
+//         perfTracker[methodName] = [true]
+//     }
+// }
 
 // this is the main function to be called every RPC request
 export function setConsensorNode() {
@@ -173,27 +173,5 @@ export async function getAccount(addressStr: any) {
     } catch (e) {
         console.log('getAccount error', e)
     }
-}
-
-export function apiPefLogger(intervalInSecond: number){
-    // snapshot the perfTracker, 
-    // because perfTracker could very well be changing while this function is running
-    // so perfTracker cannnot be used for active calculation
-    const snapshot = perfTracker;
-    perfTracker = {}
-
-    const converted: any = {};
-
-    // calculate request per second
-    for (const key in snapshot) {
-        converted[key] = (snapshot[key].length/intervalInSecond).toFixed(2)
-    }
-
-    const sorted = Object.entries(converted)
-        .sort(([,a]: any,[,b]: any) => b-a)
-        .slice(0,5)
-        .reduce((r, [k, v]) => ({ ...r, [k]: v }), {})
-
-    console.log(`Top 5 busiest endpoints for the last ${intervalInSecond}s :`,sorted)
 }
 

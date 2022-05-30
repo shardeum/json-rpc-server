@@ -4,8 +4,10 @@ const cors = require('cors');
 const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
+import { ObjectFlags } from 'typescript';
 import {methods} from './api'
-import {apiPefLogger, apiStatCollector, changeNode, setConsensorNode, updateNodeList} from './utils'
+import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
+import {changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
 
 const app = express()
@@ -44,8 +46,33 @@ app.get('/api/subscribe', (req: any, res: any) => {
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
+app.get('/api-stats', (req: any, res: any) => {
+  try{
+    for ( const [key,value] of Object.entries(logData)){
+      logData[key].tAvg = value.tTotal / value.count
+    }
+    return res.json(logData).status(200)
+  }catch(e){
+    return res.json({error: "Internal Server Error"}).status(500)
+  }
+})
 
-setInterval(()=>{ apiPefLogger(60) }, 60000);
+// this api is as of now public
+// meaning everyone can reset this
+// not a very good idea
+// app.get('/reset-timers', (req: any, res: any) => {
+//   try{
+//     for ( const [key,] of Object.entries(logData)){
+//       delete logData[key]
+//     }
+//     return res.json({status: 'ok'}).status(200)
+//   }catch(e){
+//     return res.json({error: "Internal Server Error"}).status(500)
+//   }
+// })
+
+// profile performance every 30min
+setInterval(()=>{ apiPefLogger() }, 60000 * 30);
 
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
@@ -101,10 +128,42 @@ app.use((req: any, res: any, next: Function) => {
   next()
 })
 
-// express middleware which records every single request coming in for what endpoint it request
-app.use((req: any,res: any,next: Function) => { 
-    apiStatCollector(req.body.method, req.body.params);
-    next();
+logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
+
+  logTicket[ticket] = {
+    api_name: api_name, 
+    start_timer: start_timer
+  }
+})
+
+logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
+
+  if(!logTicket.hasOwnProperty(ticket)) return
+
+  const { api_name, start_timer } = logTicket[ticket]
+  // tfinal is the time it took to complete an api
+  const tfinal = end_timer - start_timer;
+  if(logData.hasOwnProperty(api_name)){
+
+    logData[api_name].count += 1
+    logData[api_name].tTotal += tfinal
+
+    const tMin = logData[api_name].tMin 
+    const tMax = logData[api_name].tMax
+
+    logData[api_name].tMin = (tfinal < tMin) ? tfinal : tMin
+    logData[api_name].tMax = (tfinal > tMax) ? tfinal : tMax
+
+  }
+  if(!logData.hasOwnProperty(api_name)){
+    logData[api_name] = {
+      count: 1,
+      tMin: tfinal,
+      tMax: tfinal,
+      tTotal: tfinal,
+    }
+  }
+  delete logTicket[ticket]
 })
 
 app.use(server.middleware());
