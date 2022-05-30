@@ -52,6 +52,15 @@ class RequestersList {
   ips: Map<string, number>
   constructor() {
     this.ips = new Map()
+    let self = this
+    setInterval(() => {
+      self.clearOldIps() 
+    }, 5 * 60 * 1000)
+  }
+
+  clearOldIps() {
+    console.log('Clearing old ips map')
+    this.ips = new Map()
   }
 
   madeReqInLast10Sec(ip: string): boolean {
