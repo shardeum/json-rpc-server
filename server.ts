@@ -77,15 +77,16 @@ const requestersList = new RequestersList()
 
 app.use((req: any, res: any, next: Function) => {
   // Let eth_getBalance reqs pass
-  if (req.body.method === 'eth_getBalance') {
+  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction') {
     next()
     return
   }
   // Stop the request if this IP has made one in the last 10 sec
   if (requestersList.madeReqInLast10Sec(req.ip)) {
     res.status(503).send('Too many requests from this IP, try again in 10 seconds.')
-    // Alternatively sending an empty response might result in less client errors
-    // res.send()
+    console.log('Too many requests from this IP, try again in 10 seconds.', req.ip)
+    // // Alternatively sending an empty response might result in less client errors
+    // // res.send()
     return
   }
   next()
