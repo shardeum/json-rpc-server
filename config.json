@@ -13,7 +13,9 @@
     "externalIp": "localhost",
     "externalPort": 4000
   },
-  "rateLimit": true,
+  "rateLimit": false,
   "allowReqPerMinute": 10,
+  "statLog": false,
+  "statLogStdoutInterval": 30,
   "verbose" : false
 }

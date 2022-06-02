@@ -71,8 +71,6 @@ app.get('/api-stats', (req: any, res: any) => {
 //   }
 // })
 
-// profile performance every 30min
-setInterval(()=>{ apiPefLogger() }, 60000 * 30);
 
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
@@ -143,6 +141,7 @@ class RequestersList {
 const requestersList = new RequestersList()
 
 app.use((req: any, res: any, next: Function) => {
+  // if we move the bound of the if-scope wrapping the whole middleware, we could potentially have better performance
   if (!config.rateLimit) {
     next()
     return
@@ -165,6 +164,11 @@ app.use((req: any, res: any, next: Function) => {
   requestersList.addSuccessfulRequest(ip)
   next()
 })
+
+if (config.statLog){
+  // profile performance every 30min
+  setInterval(()=>{ apiPefLogger() }, 60000 * config.statLogStdoutInterval);
+}
 
 logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
 

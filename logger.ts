@@ -1,4 +1,5 @@
 const EventEmitter = require('events');
+const config = require('./config.json');
 
 type LogData = {
     [key: string]: {
@@ -17,9 +18,16 @@ type LogTicket = {
     }
 }
 
+export const mutedEvents: any = {
+    on: () => {
+        console.log("=> Logging is disabled")
+    },
+    emit: () => {}
+}
+
 export let logData: LogData = {}
 export let logTicket: LogTicket = {}
-export const logEventEmitter = new EventEmitter();
+export const logEventEmitter = config.statLog ? new EventEmitter() : mutedEvents;
 
 export function apiPefLogger(){
     console.log(`=> API PERF RESULTS`)
@@ -34,11 +42,12 @@ export function apiPefLogger(){
             Min: ${tMin.toFixed(3)} ms, 
             Max: ${tMax.toFixed(3)} ms,
             Total: ${tTotal.toFixed(3)} ms,
-            Avg: ${tTotal/count} ms,
+            Avg: ${(tTotal/count).toFixed(3)} ms,
             Request per second: ${(count/process.uptime()).toFixed(3)} req/s`
         )
     }
     // clean up every set Interval
     logTicket = {}
 }
+
 
