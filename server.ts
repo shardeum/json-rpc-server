@@ -31,7 +31,7 @@ process.on('unhandledRejection', (err) => {
     console.log('unhandledRejection:' + err)
 })
 
-
+app.set("trust proxy", true);
 app.use(cors({methods: ['POST']}));
 app.use(jsonParser());
 app.get('/api/subscribe', (req: any, res: any) => {
@@ -76,34 +76,66 @@ setInterval(()=>{ apiPefLogger() }, 60000 * 30);
 
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
-  ips: Map<string, number>
+  ips: Map<string, number[]>
+  requestTracker: any
   constructor() {
     this.ips = new Map()
+    this.requestTracker = {}
     let self = this
     setInterval(() => {
       self.clearOldIps() 
+    }, 10 * 1000)
+    setInterval(() => {
+      self.logMostFrequentIps()
     }, 5 * 60 * 1000)
   }
 
   clearOldIps() {
-    console.log('Clearing old ips map')
-    this.ips = new Map()
-  }
-
-  madeReqInLast10Sec(ip: string): boolean {
     const now = Date.now()
+    const oneMinute = 60 * 1000
+    for (let [ip, reqHistory] of this.ips) {
+      if (now - reqHistory[0] >= oneMinute) {
+        this.ips.delete(ip)
+      }
+    }
+  }
+  logMostFrequentIps() {
+    let records = Object.values(this.requestTracker)
+    records = records.sort((a: any, b: any) => a.count - b.count)
+    console.log('Most frequent IPs:', records)
+    this.requestTracker = {}
+  }
+  addSuccessfulRequest(ip: string) {
+    if (this.requestTracker[ip]) {
+      this.requestTracker[ip].count += 1
+    } else {
+      this.requestTracker[ip] = {ip, count: 1}
+    }
+  }
+  isExceedRateLimit(ip: string): boolean {
+    const now = Date.now()
+    const oneMinute = 60 * 1000
 
-    let lastReqTime = this.ips.get(ip)
+    let reqHistory = this.ips.get(ip)
 
-    if (!lastReqTime) {
-      this.ips.set(ip, now)
+    if (!reqHistory) {
+      this.ips.set(ip, [now])
       return false
     }
 
-    if (now - lastReqTime <= 10000) {
-      return true
+    if (reqHistory.length > 0 && now - reqHistory[0] <= oneMinute) {
+      // check number of request made during last 60s
+      const numOfReqMade = reqHistory.length
+      if (numOfReqMade < config.allowReqPerMinute) {
+        console.log(`This ip ${ip} has not exceeded req limit ${numOfReqMade} < ${config.allowReqPerMinute}`)
+        let newReqHistory = [...reqHistory, now]
+        this.ips.set(ip, newReqHistory)
+        return false
+      } else {
+        console.log(`This ip ${ip} has equal or exceeded req limit ${numOfReqMade} >= ${config.allowReqPerMinute}`)
+        return true
+      }
     } else {
-      this.ips.set(ip, now)
       return false
     }
   }
@@ -112,19 +144,27 @@ class RequestersList {
 const requestersList = new RequestersList()
 
 app.use((req: any, res: any, next: Function) => {
-  // Let eth_getBalance reqs pass
-  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction') {
+  if (!config.rateLimit) {
     next()
     return
   }
-  // Stop the request if this IP has made one in the last 10 sec
-  if (requestersList.madeReqInLast10Sec(req.ip)) {
-    res.status(503).send('Too many requests from this IP, try again in 10 seconds.')
-    console.log('Too many requests from this IP, try again in 10 seconds.', req.ip)
-    // // Alternatively sending an empty response might result in less client errors
-    // // res.send()
+  // Let eth_getBalance reqs pass
+  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction' && req.body.method !== 'eth_call') {
+    next()
     return
   }
+  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+  console.log('IP vs req.ip', ip, req.ip)
+  if (ip.substr(0, 7) == '::ffff:') {
+    ip = ip.substr(7)
+  }
+  // Stop the request if this IP has made one in the last 10 sec
+  if (requestersList.isExceedRateLimit(ip)) {
+    res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
+    console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
+    return
+  }
+  requestersList.addSuccessfulRequest(ip)
   next()
 })
 

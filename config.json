@@ -13,5 +13,7 @@
     "externalIp": "localhost",
     "externalPort": 4000
   },
+  "rateLimit": true,
+  "allowReqPerMinute": 10,
   "verbose" : false
 }
