@@ -321,7 +321,7 @@ export const methods = {
                 let nonce = parseInt(account.nonce)
                 let result = '0x' + nonce.toString(16)
                 if (result === '0x') result = '0x0'
-                if (true) {
+                if (verbose) {
                     console.log('account.nonce', account.nonce)
                     console.log('Transaction count', result)
                 }
@@ -330,7 +330,7 @@ export const methods = {
                 callback(null, '0x0')
             }
         } catch (e) {
-            console.log('Unable to getTransactionCount', e)
+            if(verbose) console.log('Unable to getTransactionCount', e)
         }finally{
             logEventEmitter.emit('fn_end',ticket,performance.now())
         }
@@ -463,8 +463,8 @@ export const methods = {
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
         let now = Date.now()
-        console.log('Sending raw tx to /inject endpoint', new Date(now), now)
         if (verbose) {
+            console.log('Sending raw tx to /inject endpoint', new Date(now), now)
             console.log('Running sendRawTransaction', args)
         }
         try {
@@ -667,8 +667,8 @@ export const methods = {
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
         let now = Date.now()
-        console.log('Getting tx receipt', new Date(now), now)
-        if (true) {
+        if (verbose) {
+            console.log('Getting tx receipt', new Date(now), now)
             console.log('Running getTransactionReceipt', args)
         }
         try {

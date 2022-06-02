@@ -171,7 +171,6 @@ export async function getAccount(addressStr: any) {
         let res = await requestWithRetry('get', `${getBaseUrl()}/account/${addressStr}`)
         return res.data.account
     } catch (e) {
-        console.log('getAccount error', e)
+        // console.log('getAccount error', e)
     }
 }
-

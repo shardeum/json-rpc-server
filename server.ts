@@ -149,7 +149,7 @@ app.use((req: any, res: any, next: Function) => {
     return
   }
   // Let eth_getBalance reqs pass
-  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction' && req.body.method !== 'eth_call') {
+  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction') {
     next()
     return
   }
