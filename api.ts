@@ -619,6 +619,11 @@ export const methods = {
                 await sleep(2000)
             }
         }
+        if (!result) {
+            logEventEmitter.emit('fn_end',ticket,performance.now())
+            callback(errorBusy)
+            return
+        }
         if (!result.to) result.to = '0x' + '0'.repeat(42)
         if (result.value === '0') {
             result.value = '0x0'
