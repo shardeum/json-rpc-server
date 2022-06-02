@@ -16,7 +16,7 @@ let port = config.port //8080
 let chainId = config.chainId //8080
 
 const myArgs = process.argv.slice(2)
-if(myArgs.length > 0){
+if(myArgs.length > 0) {
   port = myArgs[0]
   config.port = port
   console.log(`json-rpc-server port console override to:${port}`)
@@ -83,7 +83,7 @@ class RequestersList {
     this.requestTracker = {}
     let self = this
     setInterval(() => {
-      self.clearOldIps() 
+      self.clearOldIps()
     }, 10 * 1000)
     setInterval(() => {
       self.logMostFrequentIps()
@@ -127,7 +127,6 @@ class RequestersList {
       // check number of request made during last 60s
       const numOfReqMade = reqHistory.length
       if (numOfReqMade < config.allowReqPerMinute) {
-        console.log(`This ip ${ip} has not exceeded req limit ${numOfReqMade} < ${config.allowReqPerMinute}`)
         let newReqHistory = [...reqHistory, now]
         this.ips.set(ip, newReqHistory)
         return false
@@ -154,7 +153,6 @@ app.use((req: any, res: any, next: Function) => {
     return
   }
   let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
-  console.log('IP vs req.ip', ip, req.ip)
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
@@ -171,7 +169,7 @@ app.use((req: any, res: any, next: Function) => {
 logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
 
   logTicket[ticket] = {
-    api_name: api_name, 
+    api_name: api_name,
     start_timer: start_timer
   }
 })
@@ -188,7 +186,7 @@ logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
     logData[api_name].count += 1
     logData[api_name].tTotal += tfinal
 
-    const tMin = logData[api_name].tMin 
+    const tMin = logData[api_name].tMin
     const tMax = logData[api_name].tMax
 
     logData[api_name].tMin = (tfinal < tMin) ? tfinal : tMin
