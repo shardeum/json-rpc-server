@@ -680,7 +680,7 @@ export const methods = {
                 if (result.logs == null) result.logs = []
                 if (result.status == 0) result.status = '0x0'
                 if (result.status == 1) result.status = '0x1'
-                if (true) console.log(`getTransactionReceipt result for ${txHash}`, result)
+                if (verbose) console.log(`getTransactionReceipt result for ${txHash}`, result)
             }
             callback(null, result);
             logEventEmitter.emit('fn_end',ticket,performance.now())
