@@ -101,7 +101,7 @@ class RequestersList {
   }
   logMostFrequentIps() {
     let records = Object.values(this.requestTracker)
-    records = records.sort((a: any, b: any) => a.count - b.count)
+    records = records.sort((a: any, b: any) => b.count - a.count)
     console.log('Most frequent IPs:', records)
     this.requestTracker = {}
   }
