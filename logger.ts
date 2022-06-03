@@ -47,7 +47,6 @@ export function apiPefLogger(){
         )
     }
     // clean up every set Interval
+    console.log(logTicket)
     logTicket = {}
 }
-
-

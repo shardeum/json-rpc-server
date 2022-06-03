@@ -82,7 +82,7 @@ async function getCurrentBlock() {
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
         const api_name = 'web3_clientVersion' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -100,7 +100,7 @@ export const methods = {
     },
     web3_sha3: async function (args: any, callback: any) {
         const api_name = 'web3_sha3' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -115,7 +115,7 @@ export const methods = {
     },
     net_version: async function (args: any, callback: any) {
         const api_name = 'net_version' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -129,7 +129,7 @@ export const methods = {
     },
     net_listening: async function (args: any, callback: any) {
         const api_name = 'net_listening' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -142,7 +142,7 @@ export const methods = {
     },
     net_peerCount: async function (args: any, callback: any) {
         const api_name = 'net_peerCount' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -155,7 +155,7 @@ export const methods = {
     },
     eth_protocolVersion: async function (args: any, callback: any) {
         const api_name = 'eth_protocolVersion' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -168,7 +168,7 @@ export const methods = {
     },
     eth_syncing: async function (args: any, callback: any) {
         const api_name = 'eth_syncing' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -181,7 +181,7 @@ export const methods = {
     },
     eth_coinbase: async function (args: any, callback: any) {
         const api_name = 'eth_coinbase' 
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -194,7 +194,7 @@ export const methods = {
     },
     eth_mining: async function (args: any, callback: any) {
         const api_name = 'eth_mining'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -207,7 +207,7 @@ export const methods = {
     },
     eth_hashrate: async function (args: any, callback: any) {
         const api_name = 'eth_hashrate'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -220,7 +220,7 @@ export const methods = {
     },
     eth_gasPrice: async function (args: any, callback: any) {
         const api_name = 'eth_gasPrice'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -233,7 +233,7 @@ export const methods = {
     },
     eth_accounts: async function (args: any, callback: any) {
         const api_name = 'eth_accounts'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -246,7 +246,7 @@ export const methods = {
     },
     eth_blockNumber: async function (args: any, callback: any) {
         const api_name = 'eth_blockNumber'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -266,7 +266,7 @@ export const methods = {
     },
     eth_getBalance: async function (args: any, callback: any) {
         const api_name = 'eth_getBalance'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -294,7 +294,7 @@ export const methods = {
     },
     eth_getStorageAt: async function (args: any, callback: any) {
         const api_name = 'eth_getStorageAt'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -307,7 +307,7 @@ export const methods = {
     },
     eth_getTransactionCount: async function (args: any, callback: any) {
         const api_name = 'eth_getTransactionCount'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -337,7 +337,7 @@ export const methods = {
     },
     eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
         const api_name = 'eth_getBlockTransactionCountByHash'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -352,7 +352,7 @@ export const methods = {
     },
     eth_getBlockTransactionCountByNumber: async function (args: any, callback: any) {
         const api_name = 'eth_getBlockTransactionCountByNumber'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -365,7 +365,7 @@ export const methods = {
     },
     eth_getUncleCountByBlockHash: async function (args: any, callback: any) {
         const api_name = 'eth_getUncleCountByBlockHash'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -378,7 +378,7 @@ export const methods = {
     },
     eth_getUncleCountByBlockNumber: async function (args: any, callback: any) {
         const api_name = 'eth_getUncleCountByBlockNumber'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -391,7 +391,7 @@ export const methods = {
     },
     eth_getCode: async function (args: any, callback: any) {
         const api_name = 'eth_getCode'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -418,7 +418,7 @@ export const methods = {
     },
     eth_sign: async function (args: any, callback: any) {
         const api_name = 'eth_sign'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -431,7 +431,7 @@ export const methods = {
     },
     eth_signTransaction: async function (args: any, callback: any) {
         const api_name = 'eth_signTransaction'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -444,7 +444,7 @@ export const methods = {
     },
     eth_sendTransaction: async function (args: any, callback: any) {
         const api_name = 'eth_sendTransaction'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -458,7 +458,7 @@ export const methods = {
     },
     eth_sendRawTransaction: async function (args: any, callback: any) {
         const api_name = 'eth_sendRawTransaction'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -486,7 +486,7 @@ export const methods = {
     },
     eth_call: async function (args: any, callback: any) {
         const api_name = 'eth_call'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -519,7 +519,7 @@ export const methods = {
     },
     eth_estimateGas: async function (args: any, callback: any) {
         const api_name = 'eth_estimateGas'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -540,7 +540,7 @@ export const methods = {
     },
     eth_getBlockByHash: async function (args: any, callback: any) {
         const api_name = 'eth_getBlockByHash'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -554,7 +554,7 @@ export const methods = {
     },
     eth_getBlockByNumber: async function (args: any, callback: any) {
         const api_name = 'eth_getBlockByNumber'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -571,7 +571,7 @@ export const methods = {
     },
     eth_getTransactionByHash: async function (args: any, callback: any) {
         const api_name = 'eth_getTransactionByHash'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -643,7 +643,7 @@ export const methods = {
     },
     eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {
         const api_name = 'eth_getTransactionByBlockHashAndIndex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -656,7 +656,7 @@ export const methods = {
     },
     eth_getTransactionByBlockNumberAndIndex: async function (args: any, callback: any) {
         const api_name = 'eth_getTransactionByBlockNumberAndIndex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -669,7 +669,7 @@ export const methods = {
     },
     eth_getTransactionReceipt: async function (args: any, callback: any) {
         const api_name = 'eth_getTransactionReceipt'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -700,7 +700,7 @@ export const methods = {
     },
     eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
         const api_name = 'eth_getUncleByBlockHashAndIndex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -713,7 +713,7 @@ export const methods = {
     },
     eth_getUncleByBlockNumberAndIndex: async function (args: any, callback: any) {
         const api_name = 'eth_getUncleByBlockNumberAndIndex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -726,7 +726,7 @@ export const methods = {
     },
     eth_getCompilers: async function (args: any, callback: any) {
         const api_name = 'eth_getCompilers'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -739,7 +739,7 @@ export const methods = {
     },
     eth_compileSolidity: async function (args: any, callback: any) {
         const api_name = 'eth_compileSolidity'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -752,7 +752,7 @@ export const methods = {
     },
     eth_compileLLL: async function (args: any, callback: any) {
         const api_name = 'eth_compileLLL'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -764,7 +764,7 @@ export const methods = {
     },
     eth_compileSerpent: async function (args: any, callback: any) {
         const api_name = 'eth_compileSerpent'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -776,7 +776,7 @@ export const methods = {
     },
     eth_newBlockFilter: async function (args: any, callback: any) {
         const api_name = 'eth_newBlockFilter'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -788,7 +788,7 @@ export const methods = {
     },
     eth_newPendingTransactionFilter: async function (args: any, callback: any) {
         const api_name = 'eth_newPendingTransactionFilter'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -801,7 +801,7 @@ export const methods = {
     },
     eth_uninstallFilter: async function (args: any, callback: any) {
         const api_name = 'eth_uninstallFilter'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -813,7 +813,7 @@ export const methods = {
     },
     eth_getFilterChanges: async function (args: any, callback: any) {
         const api_name = 'eth_getFilterChanges'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -825,7 +825,7 @@ export const methods = {
     },
     eth_getFilterLogs: async function (args: any, callback: any) {
         const api_name = 'eth_getFilterLogs'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -837,7 +837,7 @@ export const methods = {
     },
     eth_getLogs: async function (args: any, callback: any) {
         const api_name = 'eth_getLogs'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -850,7 +850,7 @@ export const methods = {
     },
     eth_getWork: async function (args: any, callback: any) {
         const api_name = 'eth_getWork'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -862,7 +862,7 @@ export const methods = {
     },
     eth_submitWork: async function (args: any, callback: any) {
         const api_name = 'eth_submitWork'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -874,7 +874,7 @@ export const methods = {
     },
     eth_submitHashrate: async function (args: any, callback: any) {
         const api_name = 'eth_submitHashrate'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -886,7 +886,7 @@ export const methods = {
     },
     db_putString: async function (args: any, callback: any) {
         const api_name = 'db_putString'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -898,7 +898,7 @@ export const methods = {
     },
     db_getString: async function (args: any, callback: any) {
         const api_name = 'db_getString'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -910,7 +910,7 @@ export const methods = {
     },
     db_putHex: async function (args: any, callback: any) {
         const api_name = 'db_putHex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -922,7 +922,7 @@ export const methods = {
     },
     db_getHex: async function (args: any, callback: any) {
         const api_name = 'db_getHex'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -934,7 +934,7 @@ export const methods = {
     },
     shh_version: async function (args: any, callback: any) {
         const api_name = 'shh_version'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -946,7 +946,7 @@ export const methods = {
     },
     shh_post: async function (args: any, callback: any) {
         const api_name = 'shh_post'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -958,7 +958,7 @@ export const methods = {
     },
     shh_newIdentity: async function (args: any, callback: any) {
         const api_name = 'shh_newIdentity'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -970,7 +970,7 @@ export const methods = {
     },
     shh_hasIdentity: async function (args: any, callback: any) {
         const api_name = 'shh_hasIdentity'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -982,7 +982,7 @@ export const methods = {
     },
     shh_newGroup: async function (args: any, callback: any) {
         const api_name = 'shh_newGroup'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -994,7 +994,7 @@ export const methods = {
     },
     shh_addToGroup: async function (args: any, callback: any) {
         const api_name = 'shh_addToGroup'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -1006,7 +1006,7 @@ export const methods = {
     },
     shh_newFilter: async function (args: any, callback: any) {
         const api_name = 'shh_newFilter'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -1018,7 +1018,7 @@ export const methods = {
     },
     shh_uninstallFilter: async function (args: any, callback: any) {
         const api_name = 'shh_uninstallFilter'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -1030,7 +1030,7 @@ export const methods = {
     },
     shh_getFilterChanges: async function (args: any, callback: any) {
         const api_name = 'shh_getFilterChanges'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -1042,7 +1042,7 @@ export const methods = {
     },
     shh_getMessages: async function (args: any, callback: any) {
         const api_name = 'shh_getMessages'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
@@ -1054,7 +1054,7 @@ export const methods = {
     },
     eth_chainId: async function (args: any, callback: any) {
         const api_name = 'eth_chainId'
-        const ticket = crypto.createHash('md5')
+        const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
