@@ -9,6 +9,7 @@ import {methods} from './api'
 import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
 import {changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
+const blackList = require("./blacklist.json")
 
 const app = express()
 const server = new jayson.Server(methods);
@@ -75,10 +76,12 @@ app.get('/api-stats', (req: any, res: any) => {
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
   ips: Map<string, number[]>
+  bannedIps: string[]
   requestTracker: any
-  constructor() {
+  constructor(blackList: string[]) {
     this.ips = new Map()
     this.requestTracker = {}
+    this.bannedIps = blackList
     let self = this
     setInterval(() => {
       self.clearOldIps()
@@ -110,6 +113,12 @@ class RequestersList {
       this.requestTracker[ip] = {ip, count: 1}
     }
   }
+  isIpBanned(ip: string) {
+    console.log('ip to test', ip)
+    console.log('banned ips', this.bannedIps)
+    if (this.bannedIps.indexOf(ip) >= 0) return true
+    else return false
+  }
   isExceedRateLimit(ip: string): boolean {
     const now = Date.now()
     const oneMinute = 60 * 1000
@@ -138,7 +147,7 @@ class RequestersList {
   }
 }
 
-const requestersList = new RequestersList()
+const requestersList = new RequestersList(blackList.ips)
 
 app.use((req: any, res: any, next: Function) => {
   // if we move the bound of the if-scope wrapping the whole middleware, we could potentially have better performance
@@ -154,6 +163,11 @@ app.use((req: any, res: any, next: Function) => {
   let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
+  }
+  if (requestersList.isIpBanned(ip)) {
+    res.status(503).send('Too many requests from this IP')
+    console.log(`This ip ${ip} is banned.`)
+    return
   }
   // Stop the request if this IP has made one in the last 10 sec
   if (requestersList.isExceedRateLimit(ip)) {

@@ -598,7 +598,7 @@ export const methods = {
             "r": "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
             "s": "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
         }
-        while (retry < 1 && !success) {
+        while (retry < 10 && !success) {
             try {
                 //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
                 let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
