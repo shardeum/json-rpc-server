@@ -78,9 +78,13 @@ class RequestersList {
   ips: Map<string, number[]>
   bannedIps: string[]
   requestTracker: any
+  allRequestTracker: any
+  totalTxTracker: any
   constructor(blackList: string[]) {
     this.ips = new Map()
     this.requestTracker = {}
+    this.allRequestTracker = {}
+    this.totalTxTracker = {}
     this.bannedIps = blackList
     let self = this
     setInterval(() => {
@@ -101,17 +105,44 @@ class RequestersList {
     }
   }
   logMostFrequentIps() {
+    // log and clean successful requests
     let records = Object.values(this.requestTracker)
     records = records.sort((a: any, b: any) => b.count - a.count)
-    console.log('Most frequent IPs:', records)
+    console.log('Most frequent successful IPs:', records)
     this.requestTracker = {}
+
+    // log and clean all requests
+    let allRecords = Object.values(this.allRequestTracker)
+    allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
+    console.log('Most frequent all IPs:', allRecords)
+    this.allRequestTracker = {}
+
+    // log total injected tx by ip
+    let txRecords = Object.values(this.totalTxTracker)
+    txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
+    console.log('Most tx injected by IPs', txRecords)
+
   }
   addSuccessfulRequest(ip: string) {
+    console.log('adding successful request',ip)
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
       this.requestTracker[ip] = {ip, count: 1}
     }
+    if (this.totalTxTracker[ip]) {
+      this.totalTxTracker[ip].count += 1
+    } else {
+      this.totalTxTracker[ip] = {ip, count: 1}
+    }
+  }
+  addRequest(ip: string) {
+    if (this.allRequestTracker[ip]) {
+      this.allRequestTracker[ip].count += 1
+    } else {
+      this.allRequestTracker[ip] = {ip, count: 1}
+    }
+    console.log(this.allRequestTracker, this.requestTracker, this.totalTxTracker)
   }
   isIpBanned(ip: string) {
     if (this.bannedIps.indexOf(ip) >= 0) return true
@@ -153,7 +184,6 @@ app.use((req: any, res: any, next: Function) => {
     next()
     return
   }
-  // Let eth_getBalance reqs pass
   if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction') {
     next()
     return
@@ -162,17 +192,16 @@ app.use((req: any, res: any, next: Function) => {
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
+  requestersList.addRequest(ip)
   if (requestersList.isIpBanned(ip)) {
     res.status(503).send('Too many requests from this IP')
     console.log(`This ip ${ip} is banned.`)
-  requestersList.addSuccessfulRequest(ip)
     return
   }
   // Stop the request if this IP has made one in the last 10 sec
   if (requestersList.isExceedRateLimit(ip)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
     console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
-  requestersList.addSuccessfulRequest(ip)
     return
   }
   requestersList.addSuccessfulRequest(ip)
