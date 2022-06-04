@@ -114,8 +114,6 @@ class RequestersList {
     }
   }
   isIpBanned(ip: string) {
-    console.log('ip to test', ip)
-    console.log('banned ips', this.bannedIps)
     if (this.bannedIps.indexOf(ip) >= 0) return true
     else return false
   }
@@ -167,12 +165,14 @@ app.use((req: any, res: any, next: Function) => {
   if (requestersList.isIpBanned(ip)) {
     res.status(503).send('Too many requests from this IP')
     console.log(`This ip ${ip} is banned.`)
+  requestersList.addSuccessfulRequest(ip)
     return
   }
   // Stop the request if this IP has made one in the last 10 sec
   if (requestersList.isExceedRateLimit(ip)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
     console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
+  requestersList.addSuccessfulRequest(ip)
     return
   }
   requestersList.addSuccessfulRequest(ip)
