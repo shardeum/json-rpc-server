@@ -182,79 +182,76 @@ class RequestersList {
     if (this.bannedIps.indexOf(ip) >= 0) return true
     else return false
   }
-  isExceedRateLimit(ip: string): boolean {
+  isRequestOkay(ip: string, reqType: string ): boolean {
     const now = Date.now()
     const oneMinute = 60 * 1000
+
+    if (this.isIpBanned(ip)) {
+      console.log(`This ip ${ip} is banned.`)
+      return false
+    }
+
+    this.addAllRequest(ip)
+
+    if (reqType === 'eth_getBalance' || reqType === 'eth_call' || reqType === 'eth_blockNumber') {
+      return true
+    }
 
     let heavyReqHistory = this.heavyRequests.get(ip)
     let allReqHistory = this.allRequests.get(ip)
 
     if (!heavyReqHistory || !allReqHistory) {
-      return false
+      if (reqType !== 'eth_getBalance' && reqType !== 'eth_call' && reqType !== 'eth_blockNumber') {
+        this.addHeavyRequest(ip)
+      }
+      return true
     }
 
     if (allReqHistory && allReqHistory.length >= 61) {
       if (now - allReqHistory[allReqHistory.length - 61] < oneMinute) {
         if (true) console.log(`Ban this ip`)
-        requestersList.addToBlacklist(ip)
-        return true
+        this.addToBlacklist(ip)
+        return false
       }
     }
 
     if (allReqHistory && allReqHistory.length >= 30) {
       if (now - allReqHistory[allReqHistory.length - 30] < oneMinute) {
         if (true) console.log(`Your last all req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[allReqHistory.length - 30]) / 1000), 'seconds')
-        return true
+        return false
       }
     }
 
     if (heavyReqHistory && heavyReqHistory.length >= 10) {
       if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
         if(true) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
-        return true
+        return false
       }
     }
 
-
-
     if (true) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
-    return false
+    if (reqType !== 'eth_getBalance' && reqType !== 'eth_call' && reqType !== 'eth_blockNumber') {
+      this.addHeavyRequest(ip)
+    }
+    return true
   }
 }
 
 const requestersList = new RequestersList(blackList.ips)
 
 app.use((req: any, res: any, next: Function) => {
-  // if we move the bound of the if-scope wrapping the whole middleware, we could potentially have better performance
   if (!config.rateLimit) {
     next()
     return
   }
-  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+  let ip = req.socket.remoteAddress
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
-  if (requestersList.isIpBanned(ip)) {
-    res.status(503).send('Too many requests from this IP')
-    console.log(`This ip ${ip} is banned.`)
-    return
-  }
 
-  requestersList.addAllRequest(ip)
-
-  if (req.body.method === 'eth_getBalance' || req.body.method === 'eth_call' || req.body.method === 'eth_blockNumber') {
-    next()
-    return
-  }
-
-  // rate limit for all other requests
-  if (requestersList.isExceedRateLimit(ip)) {
+  if (!requestersList.isRequestOkay(ip, req.body.method)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
-    // console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
     return
-  }
-  if (req.body.method !== 'eth_getBalance' && req.body.method !== 'eth_call' && req.body.method !== 'eth_blockNumber') {
-    requestersList.addHeavyRequest(ip)
   }
   next()
 })
