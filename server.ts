@@ -136,6 +136,15 @@ class RequestersList {
       //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
+    for (let [address, reqHistory] of this.heavyAddresses) {
+      let i = 0
+      for (; i < reqHistory.length; i++) {
+        if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
+      }
+      if (i > 0) reqHistory.splice(0, i - 1) // oldest item is at index 0
+      //console.log('reqHistory after clearing heavy request history', reqHistory.length)
+    }
+
     // unban the ip after 1 hour
     this.bannedIps = this.bannedIps.filter((record: any) => {
       if (now - record.timestamp >= 60 * 60 * 1000) return false
