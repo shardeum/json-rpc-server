@@ -184,20 +184,20 @@ class RequestersList {
     }
 
     if (heavyReqHistory && heavyReqHistory.length >= 10) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 1] < oneMinute) {
-        if(config.verbose) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
+      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
+        if(true) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         return true
       }
     }
 
     if (allReqHistory && allReqHistory.length >= 30) {
-      if (now - allReqHistory[allReqHistory.length - 1] < oneMinute) {
-        if (config.verbose) console.log(`Your last all req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[allReqHistory.length - 1]) / 1000), 'seconds')
+      if (now - allReqHistory[allReqHistory.length - 30] < oneMinute) {
+        if (true) console.log(`Your last all req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[allReqHistory.length - 30]) / 1000), 'seconds')
         return true
       }
     }
 
-    if (config.verbose) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
+    if (true) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
     return false
   }
 }
