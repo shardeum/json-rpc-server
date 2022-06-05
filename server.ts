@@ -1,15 +1,17 @@
 const jayson = require('jayson');
-import { Account, Address, BN, bufferToHex, isValidAddress, toBuffer } from 'ethereumjs-util'
+import {Account, Address, BN, bufferToHex, isValidAddress, toBuffer} from 'ethereumjs-util'
+
 const fs = require('fs')
 const url = require('url')
 const cors = require('cors');
 const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
-import { ObjectFlags } from 'typescript';
+import {ObjectFlags} from 'typescript';
 import {methods, verbose} from './api'
-import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
+import {logData, logTicket, logEventEmitter, apiPefLogger} from './logger';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
+
 const config = require("./config.json")
 const blackList = require("./blacklist.json")
 const whiteList = require("./whitelist.json")
@@ -20,7 +22,7 @@ let port = config.port //8080
 let chainId = config.chainId //8080
 
 const myArgs = process.argv.slice(2)
-if(myArgs.length > 0) {
+if (myArgs.length > 0) {
   port = myArgs[0]
   config.port = port
   console.log(`json-rpc-server port console override to:${port}`)
@@ -51,12 +53,12 @@ app.get('/api/subscribe', (req: any, res: any) => {
 })
 
 app.get('/api-stats', (req: any, res: any) => {
-  try{
-    for ( const [key,value] of Object.entries(logData)){
+  try {
+    for (const [key, value] of Object.entries(logData)) {
       logData[key].tAvg = value.tTotal / value.count
     }
     return res.json(logData).status(200)
-  }catch(e){
+  } catch (e) {
     return res.json({error: "Internal Server Error"}).status(500)
   }
 })
@@ -79,12 +81,15 @@ app.get('/api-stats', (req: any, res: any) => {
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
   heavyRequests: Map<string, number[]>
+  heavyAddresses: Map<string, number[]>
   bannedIps: any[]
   requestTracker: any
   allRequestTracker: any
   totalTxTracker: any
+
   constructor(blackList: string[] = []) {
     this.heavyRequests = new Map()
+    this.heavyAddresses = new Map()
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -99,6 +104,7 @@ class RequestersList {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
   }
+
   addToBlacklist(ip: string) {
     this.bannedIps.push({ip, timestamp: Date.now()})
     fs.readFile('blacklist.json', function (err: any, currentDataStr: string) {
@@ -115,7 +121,7 @@ class RequestersList {
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
       console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
-      for (let j=0; j < reqHistory.length; j++) {
+      for (let j = 0; j < reqHistory.length; j++) {
         if (j > 0) {
           console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
         }
@@ -136,6 +142,7 @@ class RequestersList {
       else return true
     })
   }
+
   logMostFrequentIps() {
     // log and clean successful requests
     let records = Object.values(this.requestTracker)
@@ -164,6 +171,7 @@ class RequestersList {
     console.log('Total num of txs injected by IPs', txRecords)
     this.totalTxTracker = {}
   }
+
   addHeavyRequest(ip: string) {
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
@@ -175,13 +183,23 @@ class RequestersList {
     } else {
       this.totalTxTracker[ip] = {ip, count: 1}
     }
-    if(this.heavyRequests.get(ip)) {
+    if (this.heavyRequests.get(ip)) {
       let reqHistory = this.heavyRequests.get(ip)
-      if(reqHistory) reqHistory.push(Date.now())
+      if (reqHistory) reqHistory.push(Date.now())
     } else {
       this.heavyRequests.set(ip, [Date.now()])
     }
   }
+
+  addHeavyAddress(address: string) {
+    if (this.heavyAddresses.get(address)) {
+      let reqHistory = this.heavyAddresses.get(address)
+      if (reqHistory) reqHistory.push(Date.now())
+    } else {
+      this.heavyAddresses.set(address, [Date.now()])
+    }
+  }
+
   addAllRequest(ip: string) {
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
@@ -189,14 +207,16 @@ class RequestersList {
       this.allRequestTracker[ip] = {ip, count: 1}
     }
   }
+
   isIpBanned(ip: string) {
     let bannedIpList = this.bannedIps.map(data => data.ip)
     if (bannedIpList.indexOf(ip) >= 0) return true
     else return false
   }
+
   isQueryType(reqType: string, reqParams: any[]) {
     try {
-      let heavyTypes = ['eth_sendRawTransaction',  'eth_sendTransaction']
+      let heavyTypes = ['eth_sendRawTransaction', 'eth_sendTransaction']
       if (heavyTypes.indexOf(reqType) >= 0) return false
       // if (reqType === 'eth_call' && reqParams[0].data.indexOf('0x70a08231') === -1) {
       //   if(config.verbose) console.log('Not a balance query eth_call. Considered as heavy.')
@@ -207,7 +227,8 @@ class RequestersList {
       return true
     }
   }
-  isRequestOkay(ip: string, reqType: string, reqParams: any[] ): boolean {
+
+  isRequestOkay(ip: string, reqType: string, reqParams: any[]): boolean {
     const now = Date.now()
     const oneMinute = 60 * 1000
 
@@ -227,8 +248,8 @@ class RequestersList {
     let heavyReqHistory = this.heavyRequests.get(ip)
 
     if (!heavyReqHistory) return true
-    if (heavyReqHistory.length >= 20) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 20] < oneMinute) {
+    if (heavyReqHistory.length >= 61) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (true) console.log(`Ban this ip ${ip}`)
         this.addToBlacklist(ip)
         return false
@@ -236,30 +257,45 @@ class RequestersList {
     }
     console.log('heavy req history', heavyReqHistory.length);
 
+    if (heavyReqHistory.length >= 10) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
+        if (true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+        return false
+      }
+    }
+
     if (reqType === 'eth_sendRawTransaction') {
       try {
-        const transaction = getTransactionObj({ raw: reqParams[0]})
+        const transaction = getTransactionObj({raw: reqParams[0]})
         let readableTx = {
           from: transaction.getSenderAddress().toString(),
           to: transaction.to ? transaction.to.toString() : '',
           value: transaction.value.toString(),
           data: bufferToHex(transaction.data),
         }
-        console.log('tx from spammer', readableTx)
-        if (readableTx.to === '0x2879dc124811f5e06e99271da9d68f212f675203') return false
-      } catch(e) {
+        if (readableTx.from) this.addHeavyAddress(readableTx.from)
+        if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyRequest(readableTx.to)
+
+        let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
+        if (fromAddressHistory && fromAddressHistory.length >= 10) {
+          if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
+            if (true) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+            return false
+          }
+        }
+
+        let toAddressHistory = this.heavyAddresses.get(readableTx.to)
+        if (toAddressHistory && toAddressHistory.length >= 10) {
+          if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
+            if (true) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
+            return false
+          }
+        }
+      } catch (e) {
         console.log('Error while get tx obj', e)
       }
     }
-    if (heavyReqHistory.length >= 6) {
-
-      if (now - heavyReqHistory[heavyReqHistory.length - 6] < oneMinute) {
-        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 6]) / 1000), 'seconds')
-        return false
-      }
-    }
-
-    if (heavyReqHistory && config.verbose) console.log(`We allow ip ${ip}, request count ${heavyReqHistory.length}`)
+    if (heavyReqHistory && config.verbose) console.log(`We allow ip ${ip}`)
     return true
   }
 }
@@ -285,9 +321,11 @@ app.use((req: any, res: any, next: Function) => {
   next()
 })
 
-if (config.statLog){
+if (config.statLog) {
   // profile performance every 30min
-  setInterval(()=>{ apiPefLogger() }, 60000 * config.statLogStdoutInterval);
+  setInterval(() => {
+    apiPefLogger()
+  }, 60000 * config.statLogStdoutInterval);
 }
 
 logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
@@ -300,12 +338,12 @@ logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: n
 
 logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
 
-  if(!logTicket.hasOwnProperty(ticket)) return
+  if (!logTicket.hasOwnProperty(ticket)) return
 
-  const { api_name, start_timer } = logTicket[ticket]
+  const {api_name, start_timer} = logTicket[ticket]
   // tfinal is the time it took to complete an api
   const tfinal = end_timer - start_timer;
-  if(logData.hasOwnProperty(api_name)){
+  if (logData.hasOwnProperty(api_name)) {
 
     logData[api_name].count += 1
     logData[api_name].tTotal += tfinal
@@ -317,7 +355,7 @@ logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
     logData[api_name].tMax = (tfinal > tMax) ? tfinal : tMax
 
   }
-  if(!logData.hasOwnProperty(api_name)){
+  if (!logData.hasOwnProperty(api_name)) {
     logData[api_name] = {
       count: 1,
       tMin: tfinal,
