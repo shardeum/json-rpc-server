@@ -92,7 +92,7 @@ class RequestersList {
     let self = this
     setInterval(() => {
       self.clearOldIps()
-    }, 60 * 1000)
+    }, 20 * 1000)
     setInterval(() => {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
@@ -172,8 +172,8 @@ class RequestersList {
   }
   isQueryType(reqType: string, reqParams: any[]) {
     try {
-      let queryTypes = ['eth_sendRawTransaction',  'eth_sendTransaction']
-      if (queryTypes.indexOf(reqType) >= 0) return false
+      let heavyTypes = ['eth_sendRawTransaction',  'eth_sendTransaction']
+      if (heavyTypes.indexOf(reqType) >= 0) return false
       // if (reqType === 'eth_call' && reqParams[0].data.indexOf('0x70a08231') === -1) {
       //   if(config.verbose) console.log('Not a balance query eth_call. Considered as heavy.')
       //   return false
@@ -184,7 +184,6 @@ class RequestersList {
     }
   }
   isRequestOkay(ip: string, reqType: string, reqParams: any[] ): boolean {
-    console.log('checking for ', reqType)
     const now = Date.now()
     const oneMinute = 60 * 1000
 
@@ -197,11 +196,9 @@ class RequestersList {
       return true
     }
 
-    this.addHeavyRequest(ip)
-    let heavyReqHistory = this.heavyRequests.get(ip)
-
     // record this heavy request before checking
     this.addHeavyRequest(ip)
+    let heavyReqHistory = this.heavyRequests.get(ip)
 
     if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
@@ -211,14 +208,14 @@ class RequestersList {
       }
     }
 
-    if (heavyReqHistory && heavyReqHistory.length >= 50) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 50] < oneMinute) {
-        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 50]) / 1000), 'seconds')
+    if (heavyReqHistory && heavyReqHistory.length >= 10) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
+        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         return false
       }
     }
 
-    if (heavyReqHistory) console.log(`We allow ip ${ip}, request count ${heavyReqHistory.length}`)
+    if (heavyReqHistory && config.verbose) console.log(`We allow ip ${ip}, request count ${heavyReqHistory.length}`)
     return true
   }
 }
