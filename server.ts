@@ -123,13 +123,13 @@ class RequestersList {
     // log and clean successful requests
     let records = Object.values(this.requestTracker)
     records = records.sort((a: any, b: any) => b.count - a.count)
-    console.log('Most frequent successful IPs:', records)
+    if (config.verbose) console.log('Most frequent successful IPs:', records)
     this.requestTracker = {}
 
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
-    console.log('Most frequent all IPs (rejected + successful):', allRecords)
+    if (config.verbose) console.log('Most frequent all IPs (rejected + successful):', allRecords)
     this.allRequestTracker = {}
 
     // log total injected tx by ip
@@ -137,7 +137,7 @@ class RequestersList {
     txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
     console.log('Total num of txs injected by IPs', txRecords)
   }
-  addSuccessfulRequest(ip: string) {
+  addHeavyRequest(ip: string) {
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
@@ -148,12 +148,24 @@ class RequestersList {
     } else {
       this.totalTxTracker[ip] = {ip, count: 1}
     }
+    if(this.heavyRequests.get(ip)) {
+      let reqHistory = this.heavyRequests.get(ip)
+      if(reqHistory) reqHistory.push(Date.now())
+    } else {
+      this.heavyRequests.set(ip, [Date.now()])
+    }
   }
-  addRequest(ip: string) {
+  addAllRequest(ip: string) {
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
     } else {
       this.allRequestTracker[ip] = {ip, count: 1}
+    }
+    if(this.allRequests.get(ip)) {
+      let reqHistory = this.allRequests.get(ip)
+      if(reqHistory) reqHistory.push(Date.now())
+    } else {
+      this.allRequests.set(ip, [Date.now()])
     }
   }
   isIpBanned(ip: string) {
@@ -168,26 +180,23 @@ class RequestersList {
     let allReqHistory = this.allRequests.get(ip)
 
     if (!heavyReqHistory || !allReqHistory) {
-      this.heavyRequests.set(ip, [now])
-      this.allRequests.set(ip, [now])
       return false
-    }
-
-    if (allReqHistory && allReqHistory.length >= 30) {
-      if (now - allReqHistory[allReqHistory.length - 1] < oneMinute) {
-        if (config.verbose) console.log(`Your last req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
-        return true
-      }
     }
 
     if (heavyReqHistory && heavyReqHistory.length >= 10) {
       if (now - heavyReqHistory[heavyReqHistory.length - 1] < oneMinute) {
-        if(config.verbose) console.log(`Your last req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
+        if(config.verbose) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
         return true
       }
     }
-    heavyReqHistory.push(now)
-    allReqHistory.push(now)
+
+    if (allReqHistory && allReqHistory.length >= 30) {
+      if (now - allReqHistory[allReqHistory.length - 1] < oneMinute) {
+        if (config.verbose) console.log(`Your last all req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[allReqHistory.length - 1]) / 1000), 'seconds')
+        return true
+      }
+    }
+
     if (config.verbose) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
     return false
   }
@@ -201,27 +210,32 @@ app.use((req: any, res: any, next: Function) => {
     next()
     return
   }
-  if (req.body.method !== 'eth_sendRawTransaction' && req.body.method !== 'eth_sendTransaction') {
-    next()
-    return
-  }
   let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
-  requestersList.addRequest(ip)
   if (requestersList.isIpBanned(ip)) {
     res.status(503).send('Too many requests from this IP')
     console.log(`This ip ${ip} is banned.`)
     return
   }
-  // Stop the request if this IP has made one in the last 10 sec
+
+  requestersList.addAllRequest(ip)
+
+  if (req.body.method === 'eth_getBalance' || req.body.method === 'eth_call' || req.body.method === 'eth_blockNumber') {
+    next()
+    return
+  }
+
+  // rate limit for all other requests
   if (requestersList.isExceedRateLimit(ip)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
     // console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
     return
   }
-  requestersList.addSuccessfulRequest(ip)
+  if (req.body.method !== 'eth_getBalance' && req.body.method !== 'eth_call' && req.body.method !== 'eth_blockNumber') {
+    requestersList.addHeavyRequest(ip)
+  }
   next()
 })
 
