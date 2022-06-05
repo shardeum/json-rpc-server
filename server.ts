@@ -75,13 +75,15 @@ app.get('/api-stats', (req: any, res: any) => {
 
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
-  ips: Map<string, number[]>
+  heavyRequests: Map<string, number[]>
+  allRequests: Map<string, number[]>
   bannedIps: string[]
   requestTracker: any
   allRequestTracker: any
   totalTxTracker: any
   constructor(blackList: string[]) {
-    this.ips = new Map()
+    this.heavyRequests = new Map()
+    this.allRequests = new Map()
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -89,7 +91,7 @@ class RequestersList {
     let self = this
     setInterval(() => {
       self.clearOldIps()
-    }, 10 * 1000)
+    }, 60 * 1000)
     setInterval(() => {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
@@ -98,10 +100,23 @@ class RequestersList {
   clearOldIps() {
     const now = Date.now()
     const oneMinute = 60 * 1000
-    for (let [ip, reqHistory] of this.ips) {
-      if (now - reqHistory[0] >= oneMinute) {
-        this.ips.delete(ip)
+    for (let [ip, reqHistory] of this.heavyRequests) {
+      let numOfRecordsToRemove = 0
+      for (let i=0; i < reqHistory.length; i++) {
+        if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
+        else if (now - reqHistory[i] > oneMinute) numOfRecordsToRemove++
       }
+      reqHistory.splice(0, numOfRecordsToRemove) // oldest item is at index 0
+      console.log('reqHistory after clearing heavy request history', reqHistory)
+    }
+    for (let [ip, reqHistory] of this.allRequests) {
+      let numOfRecordsToRemove = 0
+      for (let i=0; i < reqHistory.length; i++) {
+        if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
+        else if (now - reqHistory[i] > oneMinute) numOfRecordsToRemove++
+      }
+      reqHistory.splice(0, numOfRecordsToRemove) // oldest item is at index 0
+      console.log('reqHistory after clearing all request history', reqHistory)
     }
   }
   logMostFrequentIps() {
@@ -114,17 +129,15 @@ class RequestersList {
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
-    console.log('Most frequent all IPs:', allRecords)
+    console.log('Most frequent all IPs (rejected + successful):', allRecords)
     this.allRequestTracker = {}
 
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
     txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
-    console.log('Most tx injected by IPs', txRecords)
-
+    console.log('Total num of txs injected by IPs', txRecords)
   }
   addSuccessfulRequest(ip: string) {
-    console.log('adding successful request',ip)
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
@@ -142,7 +155,6 @@ class RequestersList {
     } else {
       this.allRequestTracker[ip] = {ip, count: 1}
     }
-    console.log(this.allRequestTracker, this.requestTracker, this.totalTxTracker)
   }
   isIpBanned(ip: string) {
     if (this.bannedIps.indexOf(ip) >= 0) return true
@@ -152,27 +164,32 @@ class RequestersList {
     const now = Date.now()
     const oneMinute = 60 * 1000
 
-    let reqHistory = this.ips.get(ip)
+    let heavyReqHistory = this.heavyRequests.get(ip)
+    let allReqHistory = this.allRequests.get(ip)
 
-    if (!reqHistory) {
-      this.ips.set(ip, [now])
+    if (!heavyReqHistory || !allReqHistory) {
+      this.heavyRequests.set(ip, [now])
+      this.allRequests.set(ip, [now])
       return false
     }
 
-    if (reqHistory.length > 0 && now - reqHistory[0] <= oneMinute) {
-      // check number of request made during last 60s
-      const numOfReqMade = reqHistory.length
-      if (numOfReqMade < config.allowReqPerMinute) {
-        let newReqHistory = [...reqHistory, now]
-        this.ips.set(ip, newReqHistory)
-        return false
-      } else {
-        console.log(`This ip ${ip} has equal or exceeded req limit ${numOfReqMade} >= ${config.allowReqPerMinute}`)
+    if (allReqHistory && allReqHistory.length >= 30) {
+      if (now - allReqHistory[allReqHistory.length - 1] < oneMinute) {
+        if (config.verbose) console.log(`Your last req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
         return true
       }
-    } else {
-      return false
     }
+
+    if (heavyReqHistory && heavyReqHistory.length >= 10) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 1] < oneMinute) {
+        if(config.verbose) console.log(`Your last req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 1]) / 1000), 'seconds')
+        return true
+      }
+    }
+    heavyReqHistory.push(now)
+    allReqHistory.push(now)
+    if (config.verbose) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
+    return false
   }
 }
 
@@ -201,7 +218,7 @@ app.use((req: any, res: any, next: Function) => {
   // Stop the request if this IP has made one in the last 10 sec
   if (requestersList.isExceedRateLimit(ip)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
-    console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
+    // console.log(`Too many requests from this IP ${ip}, try again in 60 seconds.`)
     return
   }
   requestersList.addSuccessfulRequest(ip)
