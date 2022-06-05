@@ -274,7 +274,7 @@ class RequestersList {
           data: bufferToHex(transaction.data),
         }
         if (readableTx.from) this.addHeavyAddress(readableTx.from)
-        if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyRequest(readableTx.to)
+        if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
 
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
         if (fromAddressHistory && fromAddressHistory.length >= 10) {
