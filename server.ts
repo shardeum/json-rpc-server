@@ -172,18 +172,19 @@ class RequestersList {
   }
   isQueryType(reqType: string, reqParams: any[]) {
     try {
-      let queryTypes = ['eth_getBalance', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_gasPrice', 'eth_feeHistory', 'eth_getTransactionCount', 'eth_getCode', 'eth_estimateGas']
-      if (queryTypes.indexOf(reqType) >= 0) return true
-      if (reqType === 'eth_call' && reqParams[0].data.indexOf('0x70a08231') >= 0) {
-        if(config.verbose) console.log('ERC20 balance query detected. Request okay')
-        return true
-      }
-      return false
+      let queryTypes = ['eth_sendRawTransaction',  'eth_sendTransaction']
+      if (queryTypes.indexOf(reqType) >= 0) return false
+      // if (reqType === 'eth_call' && reqParams[0].data.indexOf('0x70a08231') === -1) {
+      //   if(config.verbose) console.log('Not a balance query eth_call. Considered as heavy.')
+      //   return false
+      // }
+      return true
     } catch (e) {
-      return false
+      return true
     }
   }
   isRequestOkay(ip: string, reqType: string, reqParams: any[] ): boolean {
+    console.log('checking for ', reqType)
     const now = Date.now()
     const oneMinute = 60 * 1000
 
@@ -196,35 +197,28 @@ class RequestersList {
       return true
     }
 
+    this.addHeavyRequest(ip)
     let heavyReqHistory = this.heavyRequests.get(ip)
 
-    // no heavy requests for this ip yet, allow this request
-    if (!heavyReqHistory) {
-      if (!this.isQueryType(reqType, reqParams)) {
-        this.addHeavyRequest(ip)
-      }
-      return true
-    }
+    // record this heavy request before checking
+    this.addHeavyRequest(ip)
 
     if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (true) console.log(`Ban this ip`)
+        if (true) console.log(`Ban this ip ${ip}`)
         this.addToBlacklist(ip)
         return false
       }
     }
 
-    if (heavyReqHistory && heavyReqHistory.length >= 10) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
-        if(true) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+    if (heavyReqHistory && heavyReqHistory.length >= 50) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 50] < oneMinute) {
+        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 50]) / 1000), 'seconds')
         return false
       }
     }
 
-    if (true) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
-    if (!this.isQueryType(reqType, reqParams)) {
-      this.addHeavyRequest(ip)
-    }
+    if (heavyReqHistory) console.log(`We allow ip ${ip}, request count ${heavyReqHistory.length}`)
     return true
   }
 }
