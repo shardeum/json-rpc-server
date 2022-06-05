@@ -247,16 +247,15 @@ class RequestersList {
     this.addHeavyRequest(ip)
     let heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (heavyReqHistory.length >= 61) {
+    if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (true) console.log(`Ban this ip ${ip}`)
         this.addToBlacklist(ip)
         return false
       }
     }
-    console.log('heavy req history', heavyReqHistory.length);
 
-    if (heavyReqHistory.length >= 10) {
+    if (heavyReqHistory && heavyReqHistory.length >= 10) {
       if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
         if (true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         return false
