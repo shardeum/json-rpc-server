@@ -11,6 +11,7 @@ import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
 import {changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
 const blackList = require("./blacklist.json")
+const whiteList = require("./whitelist.json")
 
 const app = express()
 const server = new jayson.Server(methods);
@@ -99,9 +100,9 @@ class RequestersList {
   }
   addToBlacklist(ip: string) {
     this.bannedIps.push({ip, timestamp: Date.now()})
-    fs.writeFile('blacklist.json', JSON.stringify(this.bannedIps.map(data => data.ip)), (err: any) => {
-      console.log(`Added ip ${ip} to banned list`)
-    })
+    // fs.writeFile('blacklist.json', JSON.stringify(this.bannedIps.map(data => data.ip)), (err: any) => {
+    //   console.log(`Added ip ${ip} to banned list`)
+    // })
   }
 
   clearOldIps() {
@@ -187,6 +188,8 @@ class RequestersList {
     const now = Date.now()
     const oneMinute = 60 * 1000
 
+    if (whiteList.indexOf(ip) >= 0) return true
+
     if (this.isIpBanned(ip)) {
       console.log(`This ip ${ip} is banned.`)
       return false
@@ -227,10 +230,11 @@ app.use((req: any, res: any, next: Function) => {
     next()
     return
   }
-  let ip = req.socket.remoteAddress
+  let ip = req.ip
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
+  console.log('IP is ', ip)
 
   let reqParams = req.body.params
   if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
