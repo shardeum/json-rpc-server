@@ -96,6 +96,9 @@ class RequestersList {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
   }
+  addToBlacklist(ip) {
+    this.bannedIps.push(ip)
+  }
 
   clearOldIps() {
     const now = Date.now()
@@ -183,9 +186,10 @@ class RequestersList {
       return false
     }
 
-    if (heavyReqHistory && heavyReqHistory.length >= 10) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
-        if(true) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+    if (allReqHistory && allReqHistory.length >= 61) {
+      if (now - allReqHistory[allReqHistory.length - 61] < oneMinute) {
+        if (true) console.log(`Ban this ip`)
+        requestersList.addToBlacklist(ip)
         return true
       }
     }
@@ -196,6 +200,15 @@ class RequestersList {
         return true
       }
     }
+
+    if (heavyReqHistory && heavyReqHistory.length >= 10) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
+        if(true) console.log(`Your last heavy req is less than 60s ago`, heavyReqHistory.length, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+        return true
+      }
+    }
+
+
 
     if (true) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
     return false
