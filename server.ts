@@ -6,7 +6,7 @@ const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
 import { ObjectFlags } from 'typescript';
-import {methods} from './api'
+import {methods, verbose} from './api'
 import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
 import {changeNode, setConsensorNode, updateNodeList} from './utils'
 const config = require("./config.json")
@@ -77,14 +77,12 @@ app.get('/api-stats', (req: any, res: any) => {
 // express middleware that limits requests to 1 every 10 sec per IP, unless its a eth_getBalance request
 class RequestersList {
   heavyRequests: Map<string, number[]>
-  allRequests: Map<string, number[]>
   bannedIps: any[]
   requestTracker: any
   allRequestTracker: any
   totalTxTracker: any
-  constructor(blackList: string[]) {
+  constructor(blackList: string[] = []) {
     this.heavyRequests = new Map()
-    this.allRequests = new Map()
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -101,6 +99,9 @@ class RequestersList {
   }
   addToBlacklist(ip: string) {
     this.bannedIps.push({ip, timestamp: Date.now()})
+    fs.writeFile('blacklist.json', JSON.stringify(this.bannedIps.map(data => data.ip)), (err: any) => {
+      console.log(`Added ip ${ip} to banned list`)
+    })
   }
 
   clearOldIps() {
@@ -114,15 +115,7 @@ class RequestersList {
       if (i > 0) reqHistory.splice(0, i - 1) // oldest item is at index 0
       console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
-    for (let [ip, reqHistory] of this.allRequests) {
-      let numOfRecordsToRemove = 0
-      for (let i=0; i < reqHistory.length; i++) {
-        if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
-        else if (now - reqHistory[i] > oneMinute) numOfRecordsToRemove++
-      }
-      reqHistory.splice(0, numOfRecordsToRemove) // oldest item is at index 0
-      console.log('reqHistory after clearing all request history', reqHistory)
-    }
+
     // unban the ip after 1 hour
     this.bannedIps = this.bannedIps.filter((record: any) => {
       if (now - record.timestamp >= 60 * 60 * 1000) return false
@@ -171,18 +164,26 @@ class RequestersList {
     } else {
       this.allRequestTracker[ip] = {ip, count: 1}
     }
-    if(this.allRequests.get(ip)) {
-      let reqHistory = this.allRequests.get(ip)
-      if(reqHistory) reqHistory.push(Date.now())
-    } else {
-      this.allRequests.set(ip, [Date.now()])
-    }
   }
   isIpBanned(ip: string) {
-    if (this.bannedIps.indexOf(ip) >= 0) return true
+    let bannedIpList = this.bannedIps.map(data => data.ip)
+    if (bannedIpList.indexOf(ip) >= 0) return true
     else return false
   }
-  isRequestOkay(ip: string, reqType: string ): boolean {
+  isQueryType(reqType: string, reqParams: any[]) {
+    try {
+      let queryTypes = ['eth_getBalance', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_gasPrice', 'eth_feeHistory', 'eth_getTransactionCount', 'eth_getCode', 'eth_estimateGas']
+      if (queryTypes.indexOf(reqType) >= 0) return true
+      if (reqType === 'eth_call' && reqParams[0].data.indexOf('0x70a08231') >= 0) {
+        if(config.verbose) console.log('ERC20 balance query detected. Request okay')
+        return true
+      }
+      return false
+    } catch (e) {
+      return false
+    }
+  }
+  isRequestOkay(ip: string, reqType: string, reqParams: any[] ): boolean {
     const now = Date.now()
     const oneMinute = 60 * 1000
 
@@ -191,33 +192,24 @@ class RequestersList {
       return false
     }
 
-    this.addAllRequest(ip)
-
-    if (reqType === 'eth_getBalance' || reqType === 'eth_call' || reqType === 'eth_blockNumber') {
+    if (this.isQueryType(reqType, reqParams)) {
       return true
     }
 
     let heavyReqHistory = this.heavyRequests.get(ip)
-    let allReqHistory = this.allRequests.get(ip)
 
-    if (!heavyReqHistory || !allReqHistory) {
-      if (reqType !== 'eth_getBalance' && reqType !== 'eth_call' && reqType !== 'eth_blockNumber') {
+    // no heavy requests for this ip yet, allow this request
+    if (!heavyReqHistory) {
+      if (!this.isQueryType(reqType, reqParams)) {
         this.addHeavyRequest(ip)
       }
       return true
     }
 
-    if (allReqHistory && allReqHistory.length >= 61) {
-      if (now - allReqHistory[allReqHistory.length - 61] < oneMinute) {
+    if (heavyReqHistory && heavyReqHistory.length >= 61) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (true) console.log(`Ban this ip`)
         this.addToBlacklist(ip)
-        return false
-      }
-    }
-
-    if (allReqHistory && allReqHistory.length >= 30) {
-      if (now - allReqHistory[allReqHistory.length - 30] < oneMinute) {
-        if (true) console.log(`Your last all req is less than 60s ago`, allReqHistory.length, Math.round((now - allReqHistory[allReqHistory.length - 30]) / 1000), 'seconds')
         return false
       }
     }
@@ -230,14 +222,14 @@ class RequestersList {
     }
 
     if (true) console.log(`We allow ip ${ip} because num of req in history is less than 10 or last request is older than 60s`, heavyReqHistory.length)
-    if (reqType !== 'eth_getBalance' && reqType !== 'eth_call' && reqType !== 'eth_blockNumber') {
+    if (!this.isQueryType(reqType, reqParams)) {
       this.addHeavyRequest(ip)
     }
     return true
   }
 }
 
-const requestersList = new RequestersList(blackList.ips)
+const requestersList = new RequestersList(blackList)
 
 app.use((req: any, res: any, next: Function) => {
   if (!config.rateLimit) {
@@ -249,7 +241,8 @@ app.use((req: any, res: any, next: Function) => {
     ip = ip.substr(7)
   }
 
-  if (!requestersList.isRequestOkay(ip, req.body.method)) {
+  let reqParams = req.body.params
+  if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
     res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
     return
   }
