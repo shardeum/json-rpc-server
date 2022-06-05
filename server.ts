@@ -1,4 +1,5 @@
 const jayson = require('jayson');
+import { Account, Address, BN, bufferToHex, isValidAddress, toBuffer } from 'ethereumjs-util'
 const fs = require('fs')
 const url = require('url')
 const cors = require('cors');
@@ -8,7 +9,7 @@ const express = require('express')
 import { ObjectFlags } from 'typescript';
 import {methods, verbose} from './api'
 import { logData, logTicket, logEventEmitter, apiPefLogger } from './logger';
-import {changeNode, setConsensorNode, updateNodeList} from './utils'
+import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
 const config = require("./config.json")
 const blackList = require("./blacklist.json")
 const whiteList = require("./whitelist.json")
@@ -28,10 +29,10 @@ if(myArgs.length > 0) {
 
 //maybe catch unhandled exceptions?
 process.on('uncaughtException', (err) => {
-    console.log('uncaughtException:' + err)
+  console.log('uncaughtException:' + err)
 })
 process.on('unhandledRejection', (err) => {
-    console.log('unhandledRejection:' + err)
+  console.log('unhandledRejection:' + err)
 })
 
 app.set("trust proxy", true);
@@ -93,28 +94,40 @@ class RequestersList {
     let self = this
     setInterval(() => {
       self.clearOldIps()
-    }, 20 * 1000)
+    }, 60 * 1000)
     setInterval(() => {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
   }
   addToBlacklist(ip: string) {
     this.bannedIps.push({ip, timestamp: Date.now()})
-    // fs.writeFile('blacklist.json', JSON.stringify(this.bannedIps.map(data => data.ip)), (err: any) => {
-    //   console.log(`Added ip ${ip} to banned list`)
-    // })
+    fs.readFile('blacklist.json', function (err: any, currentDataStr: string) {
+      const ipList = JSON.parse(currentDataStr)
+      if (ipList.indexOf(ip) >= 0) return
+      let newIpList = [...ipList, ip]
+      console.log(`Added ip ${ip} to banned list`)
+      fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
+    })
   }
 
   clearOldIps() {
     const now = Date.now()
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
+      console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
+      for (let j=0; j < reqHistory.length; j++) {
+        if (j > 0) {
+          console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
+        }
+      }
+    }
+    for (let [ip, reqHistory] of this.heavyRequests) {
       let i = 0
       for (; i < reqHistory.length; i++) {
         if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
       }
       if (i > 0) reqHistory.splice(0, i - 1) // oldest item is at index 0
-      console.log('reqHistory after clearing heavy request history', reqHistory.length)
+      //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
     // unban the ip after 1 hour
@@ -139,7 +152,17 @@ class RequestersList {
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
     txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
+    for (let i = 0; i < txRecords.length; i++) {
+      let txRecord: any = txRecords[i]
+      if (txRecord.count >= 20) {
+        if (whiteList.indexOf(txRecord.ip) === -1) {
+          console.log('ban this ip due to continuously heavy requests')
+          this.addToBlacklist(txRecord.ip)
+        }
+      }
+    }
     console.log('Total num of txs injected by IPs', txRecords)
+    this.totalTxTracker = {}
   }
   addHeavyRequest(ip: string) {
     if (this.requestTracker[ip]) {
@@ -191,7 +214,7 @@ class RequestersList {
     if (whiteList.indexOf(ip) >= 0) return true
 
     if (this.isIpBanned(ip)) {
-      console.log(`This ip ${ip} is banned.`)
+      console.log(`This ip ${ip} is banned.`, reqType, reqParams)
       return false
     }
 
@@ -203,17 +226,35 @@ class RequestersList {
     this.addHeavyRequest(ip)
     let heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (heavyReqHistory && heavyReqHistory.length >= 61) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
+    if (!heavyReqHistory) return true
+    if (heavyReqHistory.length >= 20) {
+      if (now - heavyReqHistory[heavyReqHistory.length - 20] < oneMinute) {
         if (true) console.log(`Ban this ip ${ip}`)
         this.addToBlacklist(ip)
         return false
       }
     }
+    console.log('heavy req history', heavyReqHistory.length);
 
-    if (heavyReqHistory && heavyReqHistory.length >= 10) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
-        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+    if (reqType === 'eth_sendRawTransaction') {
+      try {
+        const transaction = getTransactionObj({ raw: reqParams[0]})
+        let readableTx = {
+          from: transaction.getSenderAddress().toString(),
+          to: transaction.to ? transaction.to.toString() : '',
+          value: transaction.value.toString(),
+          data: bufferToHex(transaction.data),
+        }
+        console.log('tx from spammer', readableTx)
+        if (readableTx.to === '0x2879dc124811f5e06e99271da9d68f212f675203') return false
+      } catch(e) {
+        console.log('Error while get tx obj', e)
+      }
+    }
+    if (heavyReqHistory.length >= 6) {
+
+      if (now - heavyReqHistory[heavyReqHistory.length - 6] < oneMinute) {
+        if(true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 6]) / 1000), 'seconds')
         return false
       }
     }
@@ -234,7 +275,7 @@ app.use((req: any, res: any, next: Function) => {
   if (ip.substr(0, 7) == '::ffff:') {
     ip = ip.substr(7)
   }
-  console.log('IP is ', ip)
+  //console.log('IP is ', ip)
 
   let reqParams = req.body.params
   if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
@@ -289,10 +330,10 @@ logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
 
 app.use(server.middleware());
 updateNodeList().then(success => {
-    setConsensorNode()
-    setInterval(updateNodeList, 10000)
-    app.listen(port, (err: any) => {
-        if (err) console.log('Unable to start JSON RPC Server', err)
-        console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
-    });
+  setConsensorNode()
+  setInterval(updateNodeList, 10000)
+  app.listen(port, (err: any) => {
+    if (err) console.log('Unable to start JSON RPC Server', err)
+    console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+  });
 })
