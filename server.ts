@@ -247,7 +247,6 @@ class RequestersList {
     this.addHeavyRequest(ip)
     let heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (!heavyReqHistory) return true
     if (heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (true) console.log(`Ban this ip ${ip}`)
