@@ -1,4 +1,5 @@
 const jayson = require('jayson');
+const fs = require('fs')
 const url = require('url')
 const cors = require('cors');
 const connect = require('connect');
@@ -77,7 +78,7 @@ app.get('/api-stats', (req: any, res: any) => {
 class RequestersList {
   heavyRequests: Map<string, number[]>
   allRequests: Map<string, number[]>
-  bannedIps: string[]
+  bannedIps: any[]
   requestTracker: any
   allRequestTracker: any
   totalTxTracker: any
@@ -87,7 +88,9 @@ class RequestersList {
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
-    this.bannedIps = blackList
+    this.bannedIps = blackList.map((ip: string) => {
+      return {ip, timestamp: Date.now()}
+    })
     let self = this
     setInterval(() => {
       self.clearOldIps()
@@ -96,21 +99,20 @@ class RequestersList {
       self.logMostFrequentIps()
     }, 5 * 60 * 1000)
   }
-  addToBlacklist(ip) {
-    this.bannedIps.push(ip)
+  addToBlacklist(ip: string) {
+    this.bannedIps.push({ip, timestamp: Date.now()})
   }
 
   clearOldIps() {
     const now = Date.now()
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
-      let numOfRecordsToRemove = 0
-      for (let i=0; i < reqHistory.length; i++) {
+      let i = 0
+      for (; i < reqHistory.length; i++) {
         if (now - reqHistory[i] < oneMinute) break // we can stop looping the record array here
-        else if (now - reqHistory[i] > oneMinute) numOfRecordsToRemove++
       }
-      reqHistory.splice(0, numOfRecordsToRemove) // oldest item is at index 0
-      console.log('reqHistory after clearing heavy request history', reqHistory)
+      if (i > 0) reqHistory.splice(0, i - 1) // oldest item is at index 0
+      console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
     for (let [ip, reqHistory] of this.allRequests) {
       let numOfRecordsToRemove = 0
@@ -121,6 +123,11 @@ class RequestersList {
       reqHistory.splice(0, numOfRecordsToRemove) // oldest item is at index 0
       console.log('reqHistory after clearing all request history', reqHistory)
     }
+    // unban the ip after 1 hour
+    this.bannedIps = this.bannedIps.filter((record: any) => {
+      if (now - record.timestamp >= 60 * 60 * 1000) return false
+      else return true
+    })
   }
   logMostFrequentIps() {
     // log and clean successful requests
