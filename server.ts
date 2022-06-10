@@ -13,7 +13,7 @@ import {logData, logTicket, logEventEmitter, apiPefLogger} from './logger';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
 
 const config = require("./config.json")
-const blackList = require("./blacklist.json")
+const blackList = require("./blacklist.json").ips
 const whiteList = require("./whitelist.json")
 
 const app = express()
