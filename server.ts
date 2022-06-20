@@ -13,7 +13,7 @@ import {logData, logTicket, logEventEmitter, apiPefLogger} from './logger';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
 
 const config = require("./config.json")
-const blackList = require("./blacklist.json").ips
+const blackList = require("./blacklist.json")
 const whiteList = require("./whitelist.json")
 
 const app = express()
@@ -82,6 +82,7 @@ app.get('/api-stats', (req: any, res: any) => {
 class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
+  abusedToAddresses: any
   bannedIps: any[]
   requestTracker: any
   allRequestTracker: any
@@ -90,6 +91,7 @@ class RequestersList {
   constructor(blackList: string[] = []) {
     this.heavyRequests = new Map()
     this.heavyAddresses = new Map()
+    this.abusedToAddresses = {}
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -121,11 +123,11 @@ class RequestersList {
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
       console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
-      for (let j = 0; j < reqHistory.length; j++) {
-        if (j > 0) {
-          console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
-        }
-      }
+      // for (let j = 0; j < reqHistory.length; j++) {
+      //   if (j > 0) {
+      //     console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
+      //   }
+      // }
     }
     for (let [ip, reqHistory] of this.heavyRequests) {
       let i = 0
@@ -173,12 +175,28 @@ class RequestersList {
       if (txRecord.count >= 20) {
         if (whiteList.indexOf(txRecord.ip) === -1) {
           console.log('ban this ip due to continuously heavy requests')
-          this.addToBlacklist(txRecord.ip)
+          // this.addToBlacklist(txRecord.ip)
         }
       }
     }
     console.log('Total num of txs injected by IPs', txRecords)
     this.totalTxTracker = {}
+
+    // log abused contract addresses
+    let mostAbusedSorted: any[] = Object.values(this.abusedToAddresses).sort((a: any, b: any) => b.count - a.count)
+    for (let abusedData of mostAbusedSorted) {
+      console.log(`Contract address: ${abusedData.to}. Count: ${abusedData.count}`)
+      console.log(`Most frequent caller addresses:`)
+      let sortedCallers: any[] = Object.values(abusedData.from).sort((a: any, b: any) => b.count - a.count)
+      for (let caller of sortedCallers) {
+        console.log(`    ${caller.from}, count: ${caller.count}`)
+        let sortedIps: any[] = Object.values(caller.ips).sort((a: any, b: any) => b.count - a.count)
+        for (let ip of sortedIps) {
+          console.log(`             ${ip.ip}, count: ${ip.count}`)
+        }
+      }
+      console.log('------------------------------------------------------------')
+    }
   }
 
   addHeavyRequest(ip: string) {
@@ -206,6 +224,49 @@ class RequestersList {
       if (reqHistory) reqHistory.push(Date.now())
     } else {
       this.heavyAddresses.set(address, [Date.now()])
+    }
+  }
+
+  addAbusedAddress(toAddress: string, fromAddress: string, ip: string) {
+    if (this.abusedToAddresses[toAddress]) {
+      this.abusedToAddresses[toAddress].count += 1
+      let fromData = this.abusedToAddresses[toAddress].from[fromAddress]
+      if (fromData) {
+        fromData.count += 1
+        fromData.from = fromAddress
+        if (fromData.ips[ip]) {
+          fromData.ips[ip].count += 1
+        } else {
+          fromData.ips[ip] = {ip, count: 1}
+        }
+      } else {
+        let newFromData: any = {
+          count: 1,
+          from: fromAddress,
+          ips: {}
+        }
+        newFromData.ips[ip] = {
+          count: 1,
+          ip,
+        }
+        this.abusedToAddresses[toAddress].from[fromAddress] = newFromData
+      }
+    } else {
+      this.abusedToAddresses[toAddress] = {
+        to: toAddress,
+        count: 1,
+        from: {},
+      }
+      let newFromData: any = {
+        count: 1,
+        from: fromAddress,
+        ips: {}
+      }
+      newFromData.ips[ip] = {
+        count: 1,
+        ip,
+      }
+      this.abusedToAddresses[toAddress].from[fromAddress] = newFromData
     }
   }
 
@@ -258,7 +319,7 @@ class RequestersList {
 
     if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (true) console.log(`Ban this ip ${ip}`)
+        if (true) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
         this.addToBlacklist(ip)
         return false
       }
@@ -294,6 +355,7 @@ class RequestersList {
         let toAddressHistory = this.heavyAddresses.get(readableTx.to)
         if (toAddressHistory && toAddressHistory.length >= 10) {
           if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
+            this.addAbusedAddress(readableTx.to, readableTx.from, ip)
             if (true) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
             return false
           }
