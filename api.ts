@@ -25,6 +25,10 @@ let lastCycleInfo = {
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
+type InjectResponse = {
+    success: boolean,
+    reason: string
+}
 
 async function getCurrentBlockInfo() {
     if (verbose) console.log('Running getCurrentBlockInfo')
@@ -78,6 +82,8 @@ async function getCurrentBlock() {
         "uncles": []
     }
 }
+
+export const transactions = new Map()
 
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
@@ -473,11 +479,32 @@ export const methods = {
                 raw,
                 timestamp: Date.now()
             }
-            axios.post(`${getBaseUrl()}/inject`, tx)
             const transaction = getTransactionObj(tx)
-            const result = bufferToHex(transaction.hash())
-            if (verbose) console.log('Tx Hash', result)
-            callback(null, result);
+            const txHash = bufferToHex(transaction.hash())
+            axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
+                let injectResult: InjectResponse = response.data
+                if (injectResult) {
+                    transactions.set(txHash, {
+                        injected: true,
+                        accepted: injectResult.success,
+                        reason: injectResult.reason || 'success'
+                    })
+                } else {
+                    transactions.set(txHash, {
+                        injected: false,
+                        accepted: false,
+                        reason: 'Unable to inject transaction into the network'
+                    })
+                }
+            }).catch(e => {
+                transactions.set(txHash, {
+                    injected: false,
+                    accepted: false,
+                    reason: 'Unable to inject transaction into the network'
+                })
+            })
+            if (verbose) console.log('Tx Hash', txHash)
+            callback(null, txHash);
         } catch (e) {
             console.log(`Error while injecting tx to consensor`, e)
         } finally {

@@ -8,7 +8,7 @@ const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
 import {ObjectFlags} from 'typescript';
-import {methods, verbose} from './api'
+import {methods, transactions, verbose} from './api'
 import {logData, logTicket, logEventEmitter, apiPefLogger} from './logger';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
 
@@ -58,6 +58,16 @@ app.get('/api-stats', (req: any, res: any) => {
       logData[key].tAvg = value.tTotal / value.count
     }
     return res.json(logData).status(200)
+  } catch (e) {
+    return res.json({error: "Internal Server Error"}).status(500)
+  }
+})
+
+app.get('/tx/status/:hash', (req: any, res: any) => {
+  try {
+    let transaction = transactions.get(req.params.hash)
+    if (transaction) return res.json(transaction).status(200)
+    else return res.json({error: 'Transaction not found!'})
   } catch (e) {
     return res.json({error: "Internal Server Error"}).status(500)
   }
@@ -319,27 +329,42 @@ class RequestersList {
 
     if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (true) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
-        this.addToBlacklist(ip)
+        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
+        // this.addToBlacklist(ip)
         return false
       }
     }
 
+    let transaction
+    try {
+      if (reqType === 'eth_sendRawTransaction') transaction = getTransactionObj({raw: reqParams[0]})
+    } catch (e) {
+
+    }
+
     if (heavyReqHistory && heavyReqHistory.length >= 10) {
       if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
-        if (true) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+        if (verbose) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+        if (transaction) {
+          console.log('tx rejected', bufferToHex(transaction.hash()))
+          transactions.set(bufferToHex(transaction.hash()), {
+            injected: false,
+            accepted: false,
+            reason: 'Rejected by JSON RPC rate limiting'
+          })
+        }
         return false
       }
     }
 
     if (reqType === 'eth_sendRawTransaction') {
       try {
-        const transaction = getTransactionObj({raw: reqParams[0]})
         let readableTx = {
           from: transaction.getSenderAddress().toString(),
           to: transaction.to ? transaction.to.toString() : '',
           value: transaction.value.toString(),
           data: bufferToHex(transaction.data),
+          hash: bufferToHex(transaction.hash())
         }
         if (readableTx.from) this.addHeavyAddress(readableTx.from)
         if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
@@ -347,7 +372,12 @@ class RequestersList {
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
         if (fromAddressHistory && fromAddressHistory.length >= 10) {
           if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
-            if (true) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+            if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+            transactions.set(readableTx.hash, {
+              injected: false,
+              accepted: false,
+              reason: 'Rejected by JSON RPC rate limiting'
+            })
             return false
           }
         }
@@ -356,7 +386,12 @@ class RequestersList {
         if (toAddressHistory && toAddressHistory.length >= 10) {
           if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
             this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-            if (true) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
+            if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
+            transactions.set(readableTx.hash, {
+              injected: false,
+              accepted: false,
+              reason: 'Rejected by JSON RPC rate limiting'
+            })
             return false
           }
         }
