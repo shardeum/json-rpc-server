@@ -25,9 +25,19 @@ let lastCycleInfo = {
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
+let txStatuses: TxStatus[] = []
+let maxTxCountToStore = 1000
+
 type InjectResponse = {
     success: boolean,
     reason: string
+}
+
+type TxStatus = {
+  txHash: string,
+  injected: boolean,
+  accepted: boolean,
+  reason: string
 }
 
 async function getCurrentBlockInfo() {
@@ -83,7 +93,20 @@ async function getCurrentBlock() {
     }
 }
 
-export const transactions = new Map()
+
+export function recordTxStatus(txStatus: TxStatus) {
+    txStatuses.push(txStatus)
+    if (txStatuses.length > maxTxCountToStore) {
+        forwardTxStatusToExplorer()
+    }
+}
+
+export async function forwardTxStatusToExplorer() {
+    if (!config.recordTxStatus) return
+    if (txStatuses.length === 0) return
+    await axios.post(`http://${config.explorerInfo.externalIp}:${config.explorerInfo.externalPort}/tx/status`, txStatuses)
+    txStatuses = []
+}
 
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
@@ -482,22 +505,26 @@ export const methods = {
             const transaction = getTransactionObj(tx)
             const txHash = bufferToHex(transaction.hash())
             axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
+                if (!config.recordTxStatus) return
                 let injectResult: InjectResponse = response.data
                 if (injectResult) {
-                    transactions.set(txHash, {
+                    recordTxStatus({
+                        txHash,
                         injected: true,
                         accepted: injectResult.success,
                         reason: injectResult.reason || 'success'
                     })
                 } else {
-                    transactions.set(txHash, {
+                    recordTxStatus({
+                        txHash,
                         injected: false,
                         accepted: false,
                         reason: 'Unable to inject transaction into the network'
                     })
                 }
             }).catch(e => {
-                transactions.set(txHash, {
+                if (config.recordTxStatus) recordTxStatus({
+                    txHash,
                     injected: false,
                     accepted: false,
                     reason: 'Unable to inject transaction into the network'

@@ -8,7 +8,7 @@ const connect = require('connect');
 const jsonParser = require('body-parser').json;
 const express = require('express')
 import {ObjectFlags} from 'typescript';
-import {methods, transactions, verbose} from './api'
+import {methods, verbose, recordTxStatus, forwardTxStatusToExplorer} from './api'
 import {logData, logTicket, logEventEmitter, apiPefLogger} from './logger';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList} from './utils'
 
@@ -58,16 +58,6 @@ app.get('/api-stats', (req: any, res: any) => {
       logData[key].tAvg = value.tTotal / value.count
     }
     return res.json(logData).status(200)
-  } catch (e) {
-    return res.json({error: "Internal Server Error"}).status(500)
-  }
-})
-
-app.get('/tx/status/:hash', (req: any, res: any) => {
-  try {
-    let transaction = transactions.get(req.params.hash)
-    if (transaction) return res.json(transaction).status(200)
-    else return res.json({error: 'Transaction not found!'})
   } catch (e) {
     return res.json({error: "Internal Server Error"}).status(500)
   }
@@ -347,7 +337,8 @@ class RequestersList {
         if (verbose) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         if (transaction) {
           console.log('tx rejected', bufferToHex(transaction.hash()))
-          transactions.set(bufferToHex(transaction.hash()), {
+          if (config.recordTxStatus) recordTxStatus({
+            txHash: bufferToHex(transaction.hash()),
             injected: false,
             accepted: false,
             reason: 'Rejected by JSON RPC rate limiting'
@@ -373,7 +364,8 @@ class RequestersList {
         if (fromAddressHistory && fromAddressHistory.length >= 10) {
           if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
             if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
-            transactions.set(readableTx.hash, {
+            if (config.recordTxStatus) recordTxStatus({
+              txHash: bufferToHex(transaction.hash()),
               injected: false,
               accepted: false,
               reason: 'Rejected by JSON RPC rate limiting'
@@ -387,7 +379,8 @@ class RequestersList {
           if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
             this.addAbusedAddress(readableTx.to, readableTx.from, ip)
             if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
-            transactions.set(readableTx.hash, {
+            if (config.recordTxStatus) recordTxStatus({
+              txHash: bufferToHex(transaction.hash()),
               injected: false,
               accepted: false,
               reason: 'Rejected by JSON RPC rate limiting'
@@ -474,6 +467,7 @@ app.use(server.middleware());
 updateNodeList().then(success => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
+  setInterval(forwardTxStatusToExplorer, 10000)
   app.listen(port, (err: any) => {
     if (err) console.log('Unable to start JSON RPC Server', err)
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)

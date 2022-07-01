@@ -6,16 +6,19 @@
     "externalPort": 9001
   },
   "dynamicConsensorNode": true,
-  "useConfigNodeIp" : true,
+  "useConfigNodeIp" : false,
   "askLocalHostForArchiver": true,
   "rotationInterval": 60,
   "archiverIpInfo": {
     "externalIp": "localhost",
     "externalPort": 4000
   },
-  "rateLimit": true,
-  "allowReqPerMinute": 10,
-  "statLog": true,
-  "statLogStdoutInterval": 30,
+  "explorerInfo": {
+    "externalIp": "localhost",
+    "externalPort": 5000
+  },
+  "recordTxStatus": false,
+  "rateLimit": false,
+  "allowReqPerMinute": 5,
   "verbose" : false
 }
