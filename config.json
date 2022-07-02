@@ -13,9 +13,9 @@
     "externalIp": "localhost",
     "externalPort": 4000
   },
-  "explorerInfo": {
+  "explorerRPCDataServerInfo": {
     "externalIp": "localhost",
-    "externalPort": 5000
+    "externalPort": 4445
   },
   "recordTxStatus": false,
   "rateLimit": false,

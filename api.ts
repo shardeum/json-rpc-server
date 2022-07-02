@@ -104,7 +104,8 @@ export function recordTxStatus(txStatus: TxStatus) {
 export async function forwardTxStatusToExplorer() {
     if (!config.recordTxStatus) return
     if (txStatuses.length === 0) return
-    await axios.post(`http://${config.explorerInfo.externalIp}:${config.explorerInfo.externalPort}/tx/status`, txStatuses)
+    const response = await axios.post(`http://${config.explorerRPCDataServerInfo.externalIp}:${config.explorerRPCDataServerInfo.externalPort}/tx/status`, txStatuses)
+    console.log('forward Tx Status To Explorer', response.data)
     txStatuses = []
 }
 
