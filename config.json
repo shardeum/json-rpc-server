@@ -18,7 +18,9 @@
     "externalPort": 4445
   },
   "recordTxStatus": false,
-  "rateLimit": false,
+  "rateLimit": true,
   "allowReqPerMinute": 5,
+  "statLog": true,
+  "statLogStdoutInterval": 30,
   "verbose" : false
 }
