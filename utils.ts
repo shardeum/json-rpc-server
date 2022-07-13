@@ -166,9 +166,10 @@ export function sleep(ms: number) {
 
 export async function getAccount(addressStr: any) {
     try {
-        if (verbose) console.log(`${getBaseUrl()}/account/${addressStr}`)
+        const url = getBaseUrl();
+        if (verbose) console.log(`${url}/account/${addressStr}`)
         // let res = await axios.get(`${getBaseUrl()}/account/${addressStr}`)
-        let res = await requestWithRetry('get', `${getBaseUrl()}/account/${addressStr}`)
+        let res = await requestWithRetry('get', `${url}/account/${addressStr}`)
         return res.data.account
     } catch (e) {
         // console.log('getAccount error', e)
