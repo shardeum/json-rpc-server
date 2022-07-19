@@ -446,19 +446,6 @@ export const methods = {
             logEventEmitter.emit('fn_end',ticket,performance.now())
         }
     },
-    eth_sign: async function (args: any, callback: any) {
-        const api_name = 'eth_sign'
-        const ticket = crypto.createHash('sha1')
-            .update(api_name + Math.random() + Date.now())
-            .digest('hex');
-        logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
-        if (verbose) {
-            console.log('Running eth_sign', args)
-        }
-        let result = "0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b"
-        callback(null, result);
-        logEventEmitter.emit('fn_end',ticket,performance.now())
-    },
     eth_signTransaction: async function (args: any, callback: any) {
         const api_name = 'eth_signTransaction'
         const ticket = crypto.createHash('sha1')
