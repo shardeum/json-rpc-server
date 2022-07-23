@@ -3,4 +3,7 @@ api.js
 logger.js
 server.js
 utils.js
-
+*.sqlite3
+log.sqlite3
+log.sqlite3-*
+log/
