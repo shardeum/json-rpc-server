@@ -6,13 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node server.ts",
-    "compile": "tsc -p ."
+    "compile": "tsc -p .",
+    "clean-log": "rm -rf ./log"
   },
   "author": "thantsintoe",
   "license": "ISC",
   "dependencies": {
     "@ethereumjs/tx": "^3.4.0",
     "axios": "^0.24.0",
+    "better-sqlite3": "^7.6.2",
     "body-parser": "^1.19.0",
     "connect": "^3.7.0",
     "cors": "^2.8.5",
@@ -24,5 +26,8 @@
     "pm2": "^5.2.0",
     "typescript": "^4.5.2",
     "web3": "^1.6.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.5.0"
   }
 }

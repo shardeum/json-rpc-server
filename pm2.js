@@ -1,6 +1,6 @@
 const pm2 = require('pm2')
 const count = parseInt(process.argv[2])
-const config = require("./config.json")
+const config = require("./config")
 
 const startingPort = config.port ?? 8080
 

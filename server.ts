@@ -4,12 +4,15 @@ const url = require('url')
 const cors = require('cors');
 const connect = require('connect');
 const express = require('express')
-import {ObjectFlags} from 'typescript';
 import {methods, verbose, recordTxStatus, forwardTxStatusToExplorer} from './api'
 import {apiPerfLogData, apiPefLogger, setupLogEvents} from './logger';
+import injectIP from './middlewares/injectIP';
+import { setupDatabase } from './storage/sqliteStorage';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList, RequestersList} from './utils'
+const logRoute = require('./routes/log')
 
-const config = require("./config.json")
+const config = require("./config")
+
 const blackList = require("./blacklist.json")
 
 const app = express()
@@ -83,14 +86,15 @@ app.use((req: any, res: any, next: Function) => {
 
 if (config.statLog) {
   // profile performance every 30min
-  setupLogEvents()
   setInterval(() => {
     apiPefLogger()
   }, 60000 * config.statLogStdoutInterval);
 }
 
-
+app.use('/log',logRoute);
+app.use(injectIP);
 app.use(server.middleware());
+
 updateNodeList().then(success => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
@@ -98,5 +102,7 @@ updateNodeList().then(success => {
   app.listen(port, (err: any) => {
     if (err) console.log('Unable to start JSON RPC Server', err)
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+    setupDatabase()
+    setupLogEvents()
   });
 })

@@ -8,10 +8,11 @@ import {
     getBaseUrl,
     requestWithRetry,
     waitRandomSecond,
+    TxStatusCode,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from "./logger";
-const config = require("./config.json")
+const config = require("./config")
 
 export let verbose = config.verbose
 
@@ -25,7 +26,7 @@ let lastCycleInfo = {
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
-let txStatuses: TxStatus[] = []
+export let txStatuses: TxStatus[] = []
 let maxTxCountToStore = 1000
 
 type InjectResponse = {
@@ -33,10 +34,22 @@ type InjectResponse = {
     reason: string
 }
 
-type TxStatus = {
+export type TxStatus = {
   txHash: string,
+  raw: string,
   injected: boolean,
   accepted: boolean,
+  reason: string,
+  ip?: string
+}
+export type DetailedTxStatus = {
+    ip?: string,
+  txHash: string,
+  type: string,
+  to: string,
+  from: string,
+  injected: boolean,
+  accepted: TxStatusCode.BAD_TX | TxStatusCode.SUCCESS | TxStatusCode.BUSY | TxStatusCode.OTHER_FAILURE,
   reason: string
 }
 
@@ -96,8 +109,10 @@ async function getCurrentBlock() {
 
 export function recordTxStatus(txStatus: TxStatus) {
     txStatuses.push(txStatus)
-    if (txStatuses.length > maxTxCountToStore) {
+    if ((txStatuses.length > maxTxCountToStore) && config.recordTxStatus) {
+        logEventEmitter.emit('tx_insert_db',txStatuses)
         forwardTxStatusToExplorer()
+        txStatuses = []
     }
 }
 
@@ -106,7 +121,6 @@ export async function forwardTxStatusToExplorer() {
     if (txStatuses.length === 0) return
     const response = await axios.post(`http://${config.explorerRPCDataServerInfo.externalIp}:${config.explorerRPCDataServerInfo.externalPort}/tx/status`, txStatuses)
     console.log('forward Tx Status To Explorer', response.data)
-    txStatuses = []
 }
 
 export const methods = {
@@ -498,24 +512,30 @@ export const methods = {
                 if (injectResult) {
                     recordTxStatus({
                         txHash,
+                        raw,
                         injected: true,
                         accepted: injectResult.success,
-                        reason: injectResult.reason || 'success'
+                        reason: injectResult.reason || '',
+                        ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
                     })
                 } else {
                     recordTxStatus({
                         txHash,
+                        raw,
                         injected: false,
                         accepted: false,
-                        reason: 'Unable to inject transaction into the network'
+                        reason: 'Unable to inject transaction into the network',
+                        ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
                     })
                 }
             }).catch(e => {
                 if (config.recordTxStatus) recordTxStatus({
                     txHash,
+                    raw,
                     injected: false,
                     accepted: false,
-                    reason: 'Unable to inject transaction into the network'
+                    reason: 'Unable to inject transaction into the network',
+                    ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
                 })
             })
             if (verbose) console.log('Tx Hash', txHash)

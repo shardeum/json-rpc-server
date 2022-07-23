@@ -4,7 +4,7 @@ import { recordTxStatus } from './api';
 const whiteList = require("./whitelist.json")
 const EventEmitter = require('events');
 const axios = require("axios");
-const config = require("./config.json")
+const config = require("./config")
 const fs = require('fs')
 export let node = {
     ip: 'localhost',
@@ -439,6 +439,8 @@ export class RequestersList {
           console.log('tx rejected', bufferToHex(transaction.hash()))
           if (config.recordTxStatus) recordTxStatus({
             txHash: bufferToHex(transaction.hash()),
+            ip: ip,
+            raw: '',
             injected: false,
             accepted: false,
             reason: 'Rejected by JSON RPC rate limiting'
@@ -466,6 +468,8 @@ export class RequestersList {
             if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
             if (config.recordTxStatus) recordTxStatus({
               txHash: bufferToHex(transaction.hash()),
+              raw: reqParams[0],
+                ip: ip,
               injected: false,
               accepted: false,
               reason: 'Rejected by JSON RPC rate limiting'
@@ -481,6 +485,8 @@ export class RequestersList {
             if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
             if (config.recordTxStatus) recordTxStatus({
               txHash: bufferToHex(transaction.hash()),
+            ip: ip,
+              raw: reqParams[0],
               injected: false,
               accepted: false,
               reason: 'Rejected by JSON RPC rate limiting'
@@ -495,4 +501,45 @@ export class RequestersList {
     if (heavyReqHistory && config.verbose) console.log(`We allow ip ${ip}`)
     return true
   }
+}
+
+export async function getTransactionReceipt(hash: string){
+    let txHash = hash
+    let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
+    let result = res.data.account ? res.data.account.readableReceipt : null
+    if (result) {
+        if (!result.to || result.to == '') result.to = null
+        if (result.logs == null) result.logs = []
+        if (result.status == 0) result.status = '0x0'
+        if (result.status == 1) result.status = '0x1'
+    }
+    return result
+}
+
+export enum TxStatusCode {
+    BAD_TX = 0,
+   SUCCESS = 1,
+   BUSY = 2,
+   OTHER_FAILURE = 3,
+}
+export function getReasonEnumCode(reason: string){
+    const _REASONS = new Map();
+    _REASONS.set('Maximum load exceeded.'.toLowerCase(),TxStatusCode.BUSY)
+    _REASONS.set('Not ready to accept transactions, shard calculations pending'.toLowerCase(),TxStatusCode.BUSY)
+    _REASONS.set('Network conditions to allow transactions are not met.'.toLowerCase(),TxStatusCode.BUSY)
+    _REASONS.set('Network conditions to allow app init via set'.toLowerCase(),TxStatusCode.BUSY)
+
+    _REASONS.set('Transaction timestamp cannot be determined.'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Transaction Expired'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Dev key is not defined on the server!'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Invalid signature'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Transaction is not valid. Cannot get txObj.'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Transaction is not signed or signature is not valid.'.toLowerCase(),TxStatusCode.BAD_TX)
+    _REASONS.set('Cannot derive sender address from tx'.toLowerCase(),TxStatusCode.BAD_TX)
+
+    _REASONS.set('Transaction queued, poll for results.'.toLowerCase(),TxStatusCode.SUCCESS)
+
+    const code = _REASONS.get(reason.toLowerCase())
+
+    return code ? code : TxStatusCode.OTHER_FAILURE
 }

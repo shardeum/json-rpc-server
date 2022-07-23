@@ -17,7 +17,7 @@
     "externalIp": "localhost",
     "externalPort": 4445
   },
-  "recordTxStatus": false,
+  "recordTxStatus": true,
   "rateLimit": false,
   "allowReqPerMinute": 5,
   "statLog": true,
