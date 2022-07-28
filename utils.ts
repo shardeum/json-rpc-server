@@ -101,6 +101,10 @@ export function getBaseUrl() {
     return `http://${node.ip}:${node.port}`
 }
 
+export function getArchiverUrl() {
+  return `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
+}
+
 export function changeNode(ip: string, port: number) {
     node.ip = ip
     node.port = port

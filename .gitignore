@@ -7,3 +7,8 @@ utils.js
 log.sqlite3
 log.sqlite3-*
 log/
+config.js
+middlewares/injectIP.js
+routes/log.js
+storage/sqliteStorage.js
+

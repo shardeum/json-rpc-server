@@ -6,6 +6,7 @@ import {
     intStringToHex,
     sleep,
     getBaseUrl,
+    getArchiverUrl,
     requestWithRetry,
     waitRandomSecond,
     TxStatusCode,
@@ -670,9 +671,16 @@ export const methods = {
                         console.log('tx', txHash, result)
                         console.log('Awaiting tx data for txHash', txHash)
                     }
-                    await sleep(2000)
-                    retry += 1
-                    continue
+                    if (config.queryFromArchiver) {
+                        let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                        // console.log('res', res)
+                        result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
+                    }
+                    if (result === null) {
+                        await sleep(2000)
+                        retry += 1
+                        continue
+                    }
                 }
                 success = true
             } catch (e) {
@@ -744,6 +752,11 @@ export const methods = {
             let txHash = args[0]
             let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
+            if (!result && config.queryFromArchiver) {
+                let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                // console.log('res', res)
+                result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
+            }
             if (result) {
                 if (!result.to || result.to == '') result.to = null
                 if (result.logs == null) result.logs = []

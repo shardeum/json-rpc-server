@@ -14,6 +14,7 @@ type Config = {
     externalIp: string,
     externalPort:number 
   },
+  queryFromArchiver: boolean,
   explorerRPCDataServerInfo: {
     externalIp: string,
     externalPort:number 
@@ -41,6 +42,7 @@ const CONFIG: Config = {
     externalIp: "localhost",
     externalPort: 4000
   },
+  queryFromArchiver: true,
   explorerRPCDataServerInfo: {
     externalIp: "localhost",
     externalPort: 4445
