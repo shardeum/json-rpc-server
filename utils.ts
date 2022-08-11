@@ -24,8 +24,10 @@ export async function updateNodeList() {
         }
     }
 
-    const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
-    const nodes = res.data.nodeList
+    // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
+    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`, {},-1)
+
+    const nodes = res.data.nodeList // <-
     if (nodes.length > 0) {
         nodeList = [...nodes]
         if (verbose) console.log('Nodelist is updated')
@@ -38,11 +40,14 @@ export async function waitRandomSecond() {
     await sleep(second * 1000)
 }
 
-export async function requestWithRetry(method: string, url: string, data: any = {}) {
+// nRetry negative number will retry infinitely
+export async function requestWithRetry(method: string, url: string, data: any = {}, nRetry: number = 5) {
     let retry = 0 
-    let maxRetry = 5 //set this to 0 with for load testing rpc server
+    const IS_INFINITY: boolean = (nRetry < 0)
+    let maxRetry = nRetry //set this to 0 with for load testing rpc server
+
     let success = false
-    while (!success && retry <= maxRetry) {
+    while ((retry <= maxRetry) || IS_INFINITY) {
         retry++
         try {
             // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
@@ -52,8 +57,8 @@ export async function requestWithRetry(method: string, url: string, data: any = 
                 data
             });
             if (res.status === 200 && !res.data.error) {
-                success = true
-                return res
+                // success = true
+                return res //break
             }
         } catch (e: any) {
             console.log('Error: requestWithRetry', e.message)
@@ -102,6 +107,7 @@ export function getBaseUrl() {
 }
 
 export function getArchiverUrl() {
+    // http://localhost:4000/nodelist
   return `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
 }
 
