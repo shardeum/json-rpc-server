@@ -95,7 +95,7 @@ app.use('/log',logRoute);
 app.use(injectIP);
 app.use(server.middleware());
 
-updateNodeList().then(success => {
+updateNodeList(true).then(success => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
   setInterval(forwardTxStatusToExplorer, 10000)

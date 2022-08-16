@@ -16,7 +16,9 @@ let gotArchiver = false
 let nodeList: any[] = []
 let nextIndex = 0
 
-export async function updateNodeList() {
+// if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
+export async function updateNodeList(tryInfinate: boolean = false) {
+    const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
     if (config.askLocalHostForArchiver === true) {
         if (gotArchiver === false) {
             gotArchiver = true
@@ -25,7 +27,7 @@ export async function updateNodeList() {
     }
 
     // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
-    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`, {},-1)
+    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`, {},nRetry)
 
     const nodes = res.data.nodeList // <-
     if (nodes.length > 0) {
