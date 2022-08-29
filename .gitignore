@@ -8,4 +8,4 @@ log.sqlite3
 log.sqlite3-*
 log/
 config.js
-
+.env

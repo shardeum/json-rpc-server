@@ -4,12 +4,15 @@ const url = require('url')
 const cors = require('cors');
 const connect = require('connect');
 const express = require('express')
+const cookieParser = require('cookie-parser');
 import {methods, verbose, recordTxStatus, forwardTxStatusToExplorer} from './api'
 import {apiPerfLogData, apiPefLogger, setupLogEvents} from './logger';
+import authorize from './middlewares/authorize';
 import injectIP from './middlewares/injectIP';
 import { setupDatabase } from './storage/sqliteStorage';
 import {changeNode, setConsensorNode, getTransactionObj, updateNodeList, RequestersList} from './utils'
 const logRoute = require('./routes/log')
+const authenticate = require('./routes/authenticate')
 
 const config = require("./config")
 
@@ -39,6 +42,7 @@ process.on('unhandledRejection', (err) => {
 app.set("trust proxy", true);
 app.use(cors({methods: ['POST']}));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/api/subscribe', (req: any, res: any) => {
   const query = req.query
@@ -50,17 +54,6 @@ app.get('/api/subscribe', (req: any, res: any) => {
   const port = parseInt(query.port) || 9001
   changeNode(ip, port)
   res.end(`Successfully changed to ${ip}:${port}`)
-})
-
-app.get('/api-stats', (req: any, res: any) => {
-  try {
-    for (const [key, value] of Object.entries(apiPerfLogData)) {
-      apiPerfLogData[key].tAvg = value.tTotal / value.count
-    }
-    return res.json(apiPerfLogData).status(200)
-  } catch (e) {
-    return res.json({error: "Internal Server Error"}).status(500)
-  }
 })
 
 const requestersList = new RequestersList(blackList)
@@ -91,7 +84,8 @@ if (config.statLog) {
   }, 60000 * config.statLogStdoutInterval);
 }
 
-app.use('/log',logRoute);
+app.use('/log',authorize, logRoute);
+app.use('/authenticate',authenticate);
 app.use(injectIP);
 app.use(server.middleware());
 

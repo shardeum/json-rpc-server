@@ -1,6 +1,6 @@
 import { bufferToHex } from "ethereumjs-util";
 import { txStatuses } from "../api";
-import { txStatusSaver } from "../logger";
+import { apiPerfLogData, txStatusSaver } from "../logger";
 import { db } from "../storage/sqliteStorage";
 import { getReasonEnumCode, getTransactionObj, getTransactionReceipt } from "../utils";
 
@@ -8,6 +8,28 @@ const express     = require('express');
 const router      = express.Router();
 const CONFIG      = require('../config');
 
+
+router.route('/api-stats').get((req: any, res: any) => {
+  try {
+    for (const [key, value] of Object.entries(apiPerfLogData)) {
+      apiPerfLogData[key].tAvg = value.tTotal / value.count
+    }
+    return res.json(apiPerfLogData).status(200)
+  } catch (e) {
+    return res.json({error: "Internal Server Error"}).status(500)
+  }
+})
+
+router.route('/api-stats-reset').get((req: any, res: any) => {
+  try{
+    for ( const [key,] of Object.entries(apiPerfLogData)){
+      delete apiPerfLogData[key]
+    }
+    return res.json({status: 'ok'}).status(200)
+  }catch(e){
+    return res.json({error: "Internal Server Error"}).status(500)
+  }
+})
 
 router.route('/txs')
   .get(async function(req:any, res: any) {  
@@ -42,5 +64,6 @@ router.route('/stopTxCapture')
     CONFIG.recordTxStatus = false
       res.send("Transaction status recording disabled").status(200);
   })
+
 
 module.exports = router;
