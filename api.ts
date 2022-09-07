@@ -1,5 +1,5 @@
 import axios from "axios";
-import {bufferToHex} from "ethereumjs-util";
+import {bufferToHex, BN} from "ethereumjs-util";
 import {
     getAccount,
     getTransactionObj,
@@ -29,6 +29,9 @@ const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
 export let txStatuses: TxStatus[] = []
 let maxTxCountToStore = 1000
+let lastTxNonce: any
+let txMemPool: any = {}
+let nonceTracker: any = {}
 
 type InjectResponse = {
     success: boolean,
@@ -115,6 +118,42 @@ export function recordTxStatus(txStatus: TxStatus) {
         forwardTxStatusToExplorer()
         txStatuses = []
     }
+}
+
+function injectAndRecordTx(txHash: string, tx: any, args: any) {
+    let {raw} = tx
+    axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
+        if (!config.recordTxStatus) return
+        let injectResult: InjectResponse = response.data
+        if (injectResult) {
+            recordTxStatus({
+                txHash,
+                raw,
+                injected: true,
+                accepted: injectResult.success,
+                reason: injectResult.reason || '',
+                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
+            })
+        } else {
+            recordTxStatus({
+                txHash,
+                raw,
+                injected: false,
+                accepted: false,
+                reason: 'Unable to inject transaction into the network',
+                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
+            })
+        }
+    }).catch(e => {
+        if (config.recordTxStatus) recordTxStatus({
+            txHash,
+            raw,
+            injected: false,
+            accepted: false,
+            reason: 'Unable to inject transaction into the network',
+            ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
+        })
+    })
 }
 
 export async function forwardTxStatusToExplorer() {
@@ -506,40 +545,48 @@ export const methods = {
                 timestamp: Date.now()
             }
             const transaction = getTransactionObj(tx)
+
+            let isValid = transaction.validate()
             const txHash = bufferToHex(transaction.hash())
-            axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
-                if (!config.recordTxStatus) return
-                let injectResult: InjectResponse = response.data
-                if (injectResult) {
-                    recordTxStatus({
-                        txHash,
-                        raw,
-                        injected: true,
-                        accepted: injectResult.success,
-                        reason: injectResult.reason || '',
-                        ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
-                    })
-                } else {
-                    recordTxStatus({
-                        txHash,
-                        raw,
-                        injected: false,
-                        accepted: false,
-                        reason: 'Unable to inject transaction into the network',
-                        ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
-                    })
+            const currentTxNonce = transaction.nonce.toNumber()
+            const sender = transaction.getSenderAddress().toString()
+
+            if (config.nonceValidate && txMemPool[sender] && txMemPool[sender].length > 0) {
+                let maxIteration = txMemPool[sender].length
+                let count = 0
+                while(count < maxIteration) {
+                    count++
+                    
+                    if (txMemPool[sender][0].nonce < currentTxNonce && txMemPool[sender][0].nonce === nonceTracker[sender] + 1) {
+                        let pendingTx = txMemPool[sender].shift()
+                        console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
+                        injectAndRecordTx(txHash, pendingTx.tx, args)
+                        nonceTracker[sender] = pendingTx.nonce
+                        console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`)
+                        await sleep(500)
+                    }
                 }
-            }).catch(e => {
-                if (config.recordTxStatus) recordTxStatus({
-                    txHash,
-                    raw,
-                    injected: false,
-                    accepted: false,
-                    reason: 'Unable to inject transaction into the network',
-                    ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
-                })
-            })
-            if (verbose) console.log('Tx Hash', txHash)
+            }
+
+            let lastTxNonce = nonceTracker[sender]
+
+            if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
+                console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce);
+                if (txMemPool[sender]) {
+                    txMemPool[sender].push({nonce: currentTxNonce, tx})
+                    txMemPool[sender] = txMemPool[sender].sort((a: any, b:any) => a.nonce - b.nonce)
+                } else {
+                    txMemPool[sender] = [{nonce: currentTxNonce, tx}]
+                }
+                return txHash
+            }
+
+            nonceTracker[sender] = currentTxNonce
+
+            injectAndRecordTx(txHash, tx, args)
+
+            if (verbose) console.log('Tx Hash', txHash, isValid)
+            
             callback(null, txHash);
         } catch (e) {
             console.log(`Error while injecting tx to consensor`, e)
@@ -553,16 +600,19 @@ export const methods = {
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
-        if (verbose) {
+        if (true) {
             console.log('Running eth_call', args)
         }
         let callObj = args[0]
+      //callObj.gasPrice = new BN(0)
         if (!callObj.from) {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
+        console.log('callObj', callObj)
         try {
-            let res = await requestWithRetry('post', `${getBaseUrl()}/contract/call`, callObj)
-            if (verbose) console.log('contract call res.data.result', res.data.result)
+          let baseUrl = getBaseUrl()
+            let res = await requestWithRetry('post', `${baseUrl}/contract/call`, callObj)
+            if (true) console.log('contract call res.data.result', callObj, baseUrl, res.data.result)
             if (res.data == null || res.data.result == null) {
                 //callback(null, errorHexStatus)
                 callback(errorBusy)
@@ -570,7 +620,7 @@ export const methods = {
                 return
             }
             let result = '0x' + res.data.result
-            if (verbose) console.log('eth_call result', result)
+            if (true) console.log('eth_call result from', baseUrl, result)
             callback(null, result);
             logEventEmitter.emit('fn_end',ticket,performance.now())
         } catch (e) {
