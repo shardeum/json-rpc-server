@@ -63,7 +63,7 @@ async function getCurrentBlockInfo() {
 
     try {
         if (verbose) console.log('Querying getCurrentBlockInfo from validator')
-        let res = await requestWithRetry('get', `${getBaseUrl()}/eth_blockNumber`)
+        let res = await requestWithRetry('get', `/eth_blockNumber`)
         let blockNumber = res.data.blockNumber
         let timestamp = Date.now()
         result = {blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp))}
@@ -611,7 +611,7 @@ export const methods = {
         console.log('callObj', callObj)
         try {
           let baseUrl = getBaseUrl()
-            let res = await requestWithRetry('post', `${baseUrl}/contract/call`, callObj)
+            let res = await requestWithRetry('post', `/contract/call`, callObj)
             if (true) console.log('contract call res.data.result', callObj, baseUrl, res.data.result)
             if (res.data == null || res.data.result == null) {
                 //callback(null, errorHexStatus)
@@ -676,7 +676,7 @@ export const methods = {
         }
         let blockNumber = args[0]
         if(blockNumber !== 'latest') blockNumber = parseInt(blockNumber, 16)
-        let res = await requestWithRetry('get', `${getBaseUrl()}/eth_getBlockByNumber?blockNumber=${blockNumber}`)
+        let res = await requestWithRetry('get', `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
         let result = res.data.block
         if (verbose) console.log('BLOCK DETAIL', result)
         callback(null, result);
@@ -714,7 +714,7 @@ export const methods = {
         while (retry < 10 && !success) {
             try {
                 //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-                let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
+                let res = await requestWithRetry('get', `/tx/${txHash}`)
                 result = res.data.account ? res.data.account.readableReceipt : null
                 if (result == null) {
                     if (verbose) {
@@ -800,7 +800,7 @@ export const methods = {
         }
         try {
             let txHash = args[0]
-            let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
+            let res = await requestWithRetry('get', `/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
             if (!result && config.queryFromArchiver) {
                 let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)

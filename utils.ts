@@ -27,12 +27,12 @@ export async function updateNodeList(tryInfinate: boolean = false) {
     }
 
     // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
-    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`, {},nRetry)
+    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/full-nodelist`, {},nRetry, true)
 
     const nodes = res.data.nodeList // <-
     if (nodes.length > 0) {
         nodeList = [...nodes]
-        if (verbose) console.log('Nodelist is updated')
+        if (verbose) console.log('Nodelist is updated', nodeList.length)
     }
 }
 
@@ -43,7 +43,7 @@ export async function waitRandomSecond() {
 }
 
 // nRetry negative number will retry infinitely
-export async function requestWithRetry(method: string, url: string, data: any = {}, nRetry: number = 5) {
+export async function requestWithRetry(method: string, route: string, data: any = {}, nRetry: number = 5, isFullUrl = false) {
     let retry = 0 
     const IS_INFINITY: boolean = (nRetry < 0)
     let maxRetry = nRetry //set this to 0 with for load testing rpc server
@@ -53,10 +53,15 @@ export async function requestWithRetry(method: string, url: string, data: any = 
         retry++
         try {
             // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
+            let url
+            if(!isFullUrl) url = `${getBaseUrl()}${route}`
+            else url = route
+
             const res = await axios({
                 method,
                 url,
-                data
+                data,
+                timeout: 2000
             });
             if (res.status === 200 && !res.data.error) {
                 // success = true
@@ -67,7 +72,7 @@ export async function requestWithRetry(method: string, url: string, data: any = 
         }
         
         if(retry <= maxRetry){
-            if (verbose) console.log('Node is busy...will try again in a few seconds')
+            if (verbose) console.log('Node is busy...will try again to another node in a few seconds')
             await waitRandomSecond()            
         } else {
             if (verbose) console.log('Node is busy...out of retries')
@@ -101,7 +106,7 @@ export function getTransactionObj(tx: any): any {
 }
 
 export function intStringToHex(str: string) {
-    return '0x' + parseInt(str, 10).toString(16)
+    return '0x' + new BN(str).toString(16)
 }
 export function getBaseUrl() {
     setConsensorNode()
@@ -181,10 +186,7 @@ export function sleep(ms: number) {
 
 export async function getAccount(addressStr: any) {
     try {
-        const url = getBaseUrl();
-        if (verbose) console.log(`${url}/account/${addressStr}`)
-        // let res = await axios.get(`${getBaseUrl()}/account/${addressStr}`)
-        let res = await requestWithRetry('get', `${url}/account/${addressStr}`)
+        let res = await requestWithRetry('get', `/account/${addressStr}`)
         return res.data.account
     } catch (e) {
         // console.log('getAccount error', e)
@@ -517,7 +519,7 @@ export class RequestersList {
 
 export async function getTransactionReceipt(hash: string){
     let txHash = hash
-    let res = await requestWithRetry('get', `${getBaseUrl()}/tx/${txHash}`)
+    let res = await requestWithRetry('get', `/tx/${txHash}`)
     let result = res.data.account ? res.data.account.readableReceipt : null
     if (result) {
         if (!result.to || result.to == '') result.to = null
