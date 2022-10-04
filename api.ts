@@ -132,7 +132,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
                 injected: true,
                 accepted: injectResult.success,
                 reason: injectResult.reason || '',
-                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
+                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
             })
         } else {
             recordTxStatus({
@@ -141,7 +141,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
                 injected: false,
                 accepted: false,
                 reason: 'Unable to inject transaction into the network',
-                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware 
+                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
             })
         }
     }).catch(e => {
@@ -165,7 +165,7 @@ export async function forwardTxStatusToExplorer() {
 
 export const methods = {
     web3_clientVersion: async function (args: any, callback: any) {
-        const api_name = 'web3_clientVersion' 
+        const api_name = 'web3_clientVersion'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -183,7 +183,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     web3_sha3: async function (args: any, callback: any) {
-        const api_name = 'web3_sha3' 
+        const api_name = 'web3_sha3'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -198,7 +198,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     net_version: async function (args: any, callback: any) {
-        const api_name = 'net_version' 
+        const api_name = 'net_version'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -212,7 +212,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     net_listening: async function (args: any, callback: any) {
-        const api_name = 'net_listening' 
+        const api_name = 'net_listening'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -225,7 +225,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     net_peerCount: async function (args: any, callback: any) {
-        const api_name = 'net_peerCount' 
+        const api_name = 'net_peerCount'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -238,7 +238,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     eth_protocolVersion: async function (args: any, callback: any) {
-        const api_name = 'eth_protocolVersion' 
+        const api_name = 'eth_protocolVersion'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -251,7 +251,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     eth_syncing: async function (args: any, callback: any) {
-        const api_name = 'eth_syncing' 
+        const api_name = 'eth_syncing'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -264,7 +264,7 @@ export const methods = {
         logEventEmitter.emit('fn_end',ticket,performance.now())
     },
     eth_coinbase: async function (args: any, callback: any) {
-        const api_name = 'eth_coinbase' 
+        const api_name = 'eth_coinbase'
         const ticket = crypto.createHash('sha1')
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
@@ -556,7 +556,7 @@ export const methods = {
                 let count = 0
                 while(count < maxIteration) {
                     count++
-                    
+
                     if (txMemPool[sender][0].nonce < currentTxNonce && txMemPool[sender][0].nonce === nonceTracker[sender] + 1) {
                         let pendingTx = txMemPool[sender].shift()
                         console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
@@ -586,7 +586,7 @@ export const methods = {
             injectAndRecordTx(txHash, tx, args)
 
             if (verbose) console.log('Tx Hash', txHash, isValid)
-            
+
             callback(null, txHash);
         } catch (e) {
             console.log(`Error while injecting tx to consensor`, e)
@@ -1190,5 +1190,38 @@ export const methods = {
         let hexValue = '0x' + parseInt(chainId, 10).toString(16)
         callback(null, hexValue);
         logEventEmitter.emit('fn_end',ticket,performance.now())
+    },
+    eth_getAccessList: async function(args: any, callback: any) {
+        const api_name = 'eth_getAccessList'
+        const ticket = crypto.createHash('sha1')
+            .update(api_name + Math.random() + Date.now())
+            .digest('hex');
+        logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
+        if (true) {
+            console.log('Running eth_getAccessList', args)
+        }
+        let callObj = args[0]
+        if (!callObj.from) {
+            callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
+        }
+        console.log('callObj', callObj)
+
+        try {
+            let baseUrl = getBaseUrl()
+            let res = await requestWithRetry('post', `/contract/accesslist`, callObj)
+            if (verbose) console.log('contract eth_getAccessList res.data', callObj, baseUrl, res.data)
+            if (res.data == null || res.data.accessList == null) {
+                callback(errorBusy)
+                logEventEmitter.emit('fn_end',ticket,performance.now())
+                return
+            }
+            if (verbose) console.log('predicted accessList from', baseUrl, JSON.stringify(res.data.accessList))
+            callback(null, res.data.accessList);
+            logEventEmitter.emit('fn_end',ticket,performance.now())
+        } catch (e) {
+            console.log(`Error while making an eth call`, e)
+            callback(errorBusy)
+            logEventEmitter.emit('fn_end',ticket,performance.now())
+        }
     },
 }
