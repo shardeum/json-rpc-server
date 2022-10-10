@@ -726,7 +726,7 @@ export const methods = {
                     if (config.queryFromArchiver) {
                         console.log('querying eth_getTransactionByHash from archiver');
 
-                        let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                        let res = await axios.get(`${getArchiverUrl()}/txId?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
                         result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
                     }
