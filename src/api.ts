@@ -726,7 +726,7 @@ export const methods = {
                     if (config.queryFromArchiver) {
                         console.log('querying eth_getTransactionByHash from archiver');
 
-                        let res = await axios.get(`${getArchiverUrl()}/txId?accountId=${txHash.substring(2)}`)
+                        res = await axios.get(`${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
                         result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
                     }
@@ -809,11 +809,12 @@ export const methods = {
             if (!result && config.queryFromArchiver) {
                 if (verbose) console.log('querying eth_getTransactionReceipt from archiver');
 
-                let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                res = await axios.get(`${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                 if (verbose) {
                     console.log('url', `${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
                     console.log('res', JSON.stringify(res.data))
                 }
+                
                 // console.log('res', res)
                 result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
             }
