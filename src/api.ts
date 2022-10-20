@@ -761,6 +761,7 @@ export const methods = {
         defaultResult.to = result.to
         defaultResult.nonce = nonce
         defaultResult.contractAddress = result.contractAddress
+        defaultResult.data = result.data
         if (verbose) console.log('Final Tx:', txHash, defaultResult)
         callback(null, defaultResult);
         logEventEmitter.emit('fn_end',ticket,performance.now())
