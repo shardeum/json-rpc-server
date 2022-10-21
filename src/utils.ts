@@ -1,7 +1,7 @@
 const { Transaction, AccessListEIP2930Transaction } = require("@ethereumjs/tx");
 import {Account, Address, BN, bufferToHex, isValidAddress, toBuffer} from 'ethereumjs-util'
 import { recordTxStatus } from './api';
-const whiteList = require("./whitelist.json")
+const whiteList = require("../whitelist.json")
 const EventEmitter = require('events');
 const axios = require("axios");
 const config = require("./config")
@@ -196,6 +196,7 @@ export async function getAccount(addressStr: any) {
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
+  abusedSenders: Set<string>
   abusedToAddresses: any
   bannedIps: any[]
   requestTracker: any
@@ -206,6 +207,7 @@ export class RequestersList {
     this.heavyRequests = new Map()
     this.heavyAddresses = new Map()
     this.abusedToAddresses = {}
+    this.abusedSenders = new Set()
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -230,6 +232,10 @@ export class RequestersList {
       console.log(`Added ip ${ip} to banned list`)
       fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
     })
+  }
+
+  isSenderBlacklisted(address: string) {
+    return this.abusedSenders.has(address.toLocaleLowerCase())
   }
 
   clearOldIps() {
@@ -307,6 +313,11 @@ export class RequestersList {
         let sortedIps: any[] = Object.values(caller.ips).sort((a: any, b: any) => b.count - a.count)
         for (let ip of sortedIps) {
           console.log(`             ${ip.ip}, count: ${ip.count}`)
+
+        }
+        if (caller.count >= 30) {
+          this.abusedSenders.add(caller.from.toLowerCase())
+          console.log(`Caller ${caller.from} is added to abuser list due to sending spam txs to ${abusedData.to}`)
         }
       }
       console.log('------------------------------------------------------------')
@@ -477,6 +488,7 @@ export class RequestersList {
         if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
 
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
+        if (this.isSenderBlacklisted(readableTx.from)) return false
         if (fromAddressHistory && fromAddressHistory.length >= 10) {
           if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
             if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')

@@ -16,7 +16,7 @@ const authenticate = require('./routes/authenticate')
 
 const config = require("./config")
 
-const blackList = require("./blacklist.json")
+const blackList = require("../blacklist.json")
 
 const app = express()
 const server = new jayson.Server(methods);
@@ -71,7 +71,8 @@ app.use((req: any, res: any, next: Function) => {
 
   let reqParams = req.body.params
   if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
-    res.status(503).send('Too many requests from this IP, try again in 60 seconds.')
+    let result = {"jsonrpc":"2.0","id":1,"result":"0x640d66af8aef2a0449f99be5897319c688f631ccbdeed2b4ee6124fbdb465385"}
+    res.json(result)
     return
   }
   next()
