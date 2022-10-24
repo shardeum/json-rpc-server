@@ -601,7 +601,7 @@ export const methods = {
             .update(api_name + Math.random() + Date.now())
             .digest('hex');
         logEventEmitter.emit('fn_start',ticket,api_name,performance.now())
-        if (true) {
+        if (verbose) {
             console.log('Running eth_call', args)
         }
         let callObj = args[0]
@@ -609,11 +609,11 @@ export const methods = {
         if (!callObj.from) {
             callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
         }
-        console.log('callObj', callObj)
+        if (verbose) console.log('callObj', callObj)
         try {
           let baseUrl = getBaseUrl()
             let res = await requestWithRetry('post', `/contract/call`, callObj)
-            if (true) console.log('contract call res.data.result', callObj, baseUrl, res.data.result)
+            if (verbose) console.log('contract call res.data.result', callObj, baseUrl, res.data.result)
             if (res.data == null || res.data.result == null) {
                 //callback(null, errorHexStatus)
                 callback(errorBusy)
@@ -621,7 +621,7 @@ export const methods = {
                 return
             }
             let result = '0x' + res.data.result
-            if (true) console.log('eth_call result from', baseUrl, result)
+            if (verbose) console.log('eth_call result from', baseUrl, result)
             callback(null, result);
             logEventEmitter.emit('fn_end',ticket,performance.now())
         } catch (e) {

@@ -488,7 +488,7 @@ export class RequestersList {
       if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
         if (verbose) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         if (transaction) {
-          console.log('tx rejected', bufferToHex(transaction.hash()))
+          if (verbose) console.log('tx rejected', bufferToHex(transaction.hash()))
           if (config.recordTxStatus) recordTxStatus({
             txHash: bufferToHex(transaction.hash()),
             ip: ip,
