@@ -457,7 +457,7 @@ export class RequestersList {
     if (whiteList.indexOf(ip) >= 0) return true
 
     if (this.isIpBanned(ip)) {
-      console.log(`This ip ${ip} is banned.`, reqType, reqParams)
+      if(verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
       return false
     }
 
