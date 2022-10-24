@@ -66,7 +66,7 @@ const CONFIG: Config = {
   rateLimitOption: {
     limitFromAddress: true,
     limitToAddress: false,
-    banIpAddress: false,
+    banIpAddress: true,
     banSpammerAddress: true,
     allowedTxCountInCheckInterval: 30, // allow 1 txs in every 10s = (checkInterval * 60 / allowedTxCountInCheckInterval)
     spammerCheckInterval: 5, // check spammers and ban them every 5 min
