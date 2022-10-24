@@ -61,7 +61,7 @@ export async function requestWithRetry(method: string, route: string, data: any 
                 method,
                 url,
                 data,
-                timeout: 2000
+                timeout: 5000
             });
             if (res.status === 200 && !res.data.error) {
                 // success = true
