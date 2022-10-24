@@ -15,6 +15,7 @@ let verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
 let nextIndex = 0
+let allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 export async function updateNodeList(tryInfinate: boolean = false) {
@@ -87,9 +88,9 @@ export function getTransactionObj(tx: any): any {
     const serializedInput = toBuffer(tx.raw)
     try {
         transactionObj = Transaction.fromRlpSerializedTx(serializedInput)
-        if (verbose) console.log('Legacy tx parsed:', transactionObj)
+        // if (verbose) console.log('Legacy tx parsed:', transactionObj)
     } catch (e) {
-        if (verbose) console.log('Unable to get legacy transaction obj', e)
+        // if (verbose) console.log('Unable to get legacy transaction obj', e)
     }
     if (!transactionObj) {
         try {
@@ -217,12 +218,18 @@ export class RequestersList {
       return {ip, timestamp: Date.now()}
     })
     let self = this
-    setInterval(() => {
-      self.clearOldIps()
-    }, 60 * 1000)
-    setInterval(() => {
-      self.logMostFrequentIps()
-    }, 5 * 60 * 1000)
+    if(config.rateLimit) {
+      setInterval(() => {
+        self.clearOldIps()
+      }, config.rateLimitOption.releaseFromBlacklistInterval * 3600 * 1000)
+    }
+
+    if (config.rateLimit) {
+      setInterval(() => {
+        self.checkAndBanSpammers()
+      }, config.rateLimitOption.spammerCheckInterval * 60 * 1000)
+    }
+
   }
 
   addToBlacklist(ip: string) {
@@ -238,12 +245,12 @@ export class RequestersList {
 
   addSenderToBacklist(address: string) {
     this.blackListedSenders.add(address.toLowerCase())
-    fs.readFile('spammer.json', function (err: any, currentDataStr: string) {
+    fs.readFile('spammerlist.json', function (err: any, currentDataStr: string) {
       const spammerList = JSON.parse(currentDataStr)
       if (spammerList.indexOf(address) >= 0) return
       let newSpammerList = [...spammerList, address]
       console.log(`Added address ${address} to spammer list`)
-      fs.writeFileSync('spammer.json', JSON.stringify(newSpammerList))
+      fs.writeFileSync('spammerlist.json', JSON.stringify(newSpammerList))
     })
   }
 
@@ -256,11 +263,6 @@ export class RequestersList {
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
       if(verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
-      // for (let j = 0; j < reqHistory.length; j++) {
-      //   if (j > 0) {
-      //     console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
-      //   }
-      // }
     }
     for (let [ip, reqHistory] of this.heavyRequests) {
       let i = 0
@@ -287,17 +289,17 @@ export class RequestersList {
     })
   }
 
-  logMostFrequentIps() {
+  checkAndBanSpammers() {
     // log and clean successful requests
     let records = Object.values(this.requestTracker)
     records = records.sort((a: any, b: any) => b.count - a.count)
-    if (config.verbose) console.log('Most frequent successful IPs:', records)
+    if (config.verbose) console.log('10 most frequent successful IPs:', records.slice(0, 10))
     this.requestTracker = {}
 
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
-    if (config.verbose) console.log('Most frequent all IPs (rejected + successful):', allRecords)
+    if (config.verbose) console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
     this.allRequestTracker = {}
 
     // log total injected tx by ip
@@ -305,10 +307,12 @@ export class RequestersList {
     txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
     for (let i = 0; i < txRecords.length; i++) {
       let txRecord: any = txRecords[i]
-      if (txRecord.count >= 20) {
+      if (txRecord.count >= allowedTxRate) {
         if (whiteList.indexOf(txRecord.ip) === -1) {
-          console.log('ban this ip due to continuously heavy requests', txRecord.ip)
-          this.addToBlacklist(txRecord.ip)
+          if (config.rateLimit && config.rateLimitOption.banIpAddress) {
+            console.log('Banned this ip due to continuously heavy requests', txRecord.ip)
+            this.addToBlacklist(txRecord.ip)
+          }
         }
       }
     }
@@ -325,11 +329,11 @@ export class RequestersList {
         let sortedIps: any[] = Object.values(caller.ips).sort((a: any, b: any) => b.count - a.count)
         for (let ip of sortedIps) {
           console.log(`             ${ip.ip}, count: ${ip.count}`)
-
         }
-        if (caller.count >= 30) {
-          this.addSenderToBacklist(abusedData.from)
-          console.log(`Caller ${caller.from} is added to abuser list due to sending spam txs to ${abusedData.to}`)
+        console.log(1, caller.count, allowedTxRate , config.rateLimit , config.rateLimitOption.banSpammerAddress)
+        if (caller.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
+          this.addSenderToBacklist(caller.from)
+          console.log(`Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`)
         }
       }
       console.log('------------------------------------------------------------')
@@ -338,10 +342,11 @@ export class RequestersList {
     // ban most abuse sender addresses
     let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort((a: any, b: any) => b.count - a.count)
     console.log('Top 10 spamming addresses: ', mostAbusedSendersSorted.slice(0, 10))
-    for (let abusedData of mostAbusedSendersSorted) {
-      if (abusedData.count >= 30) {
-        console.log(`Sender ${abusedData.address} made more than 30 txs in last 5 min (1 tx per 10s)`)
-        this.addSenderToBacklist(abusedData.address)
+    for (let spammerInfo of mostAbusedSendersSorted) {
+      console.log(2, spammerInfo, allowedTxRate , config.rateLimit , config.rateLimitOption.banSpammerAddress)
+      if (spammerInfo.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
+        this.addSenderToBacklist(spammerInfo.address)
+        console.log(`Caller ${spammerInfo.address} is added to spammer list due to sending ${allowedTxRate} txs within 5 min.`)
       }
     }
   }
@@ -375,6 +380,8 @@ export class RequestersList {
   }
 
   addAbusedSender(address: string) {
+    console.log('adding abused sender', address);
+    
     if (this.abusedSenders[address]) {
       this.abusedSenders[address].count += 1
     } else {
@@ -437,9 +444,13 @@ export class RequestersList {
   }
 
   isIpBanned(ip: string) {
-    let bannedIpList = this.bannedIps.map(data => data.ip)
-    if (bannedIpList.indexOf(ip) >= 0) return true
-    else return false
+    if (config.rateLimit && config.rateLimitOption.banIpAddress) {
+      let bannedIpList = this.bannedIps.map(data => data.ip)
+      if (bannedIpList.indexOf(ip) >= 0) return true
+      else return false
+    } else {
+      return false
+    }
   }
 
   isQueryType(reqType: string, reqParams: any[]) {
@@ -479,7 +490,7 @@ export class RequestersList {
     if (heavyReqHistory && heavyReqHistory.length >= 61) {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
-        // this.addToBlacklist(ip)
+        this.addToBlacklist(ip)
         return false
       }
     }
@@ -491,8 +502,8 @@ export class RequestersList {
 
     }
 
-    if (heavyReqHistory && heavyReqHistory.length >= 10) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 10] < oneMinute) {
+    if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin) {
+      if (now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] < oneMinute) {
         if (verbose) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
         if (transaction) {
           if (verbose) console.log('tx rejected', bufferToHex(transaction.hash()))
@@ -523,44 +534,48 @@ export class RequestersList {
 
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
 
-        if (this.isSenderBlacklisted(readableTx.from)) {
-          console.log(`Sender ${readableTx.from} is black listed.`)
+        if (config.rateLimit && config.rateLimitOption.limitFromAddress && this.isSenderBlacklisted(readableTx.from)) {
+          console.log(`Sender ${readableTx.from} is blacklisted.`)
           return false
         }
 
-        if (fromAddressHistory && fromAddressHistory.length >= 10) {
-          if (now - fromAddressHistory[fromAddressHistory.length - 10] < 10 * oneSecond) {
-            if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 10s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
-            if (config.recordTxStatus) recordTxStatus({
-              txHash: bufferToHex(transaction.hash()),
-              raw: reqParams[0],
-              ip: ip,
-              injected: false,
-              accepted: false,
-              reason: 'Rejected by JSON RPC rate limiting'
-            })
-            this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-            this.addAbusedSender(readableTx.from.toLowerCase())
-            return false
+        if (config.rateLimit && config.rateLimitOption.limitFromAddress) {
+          if (fromAddressHistory && fromAddressHistory.length >= 10) {
+            if (now - fromAddressHistory[fromAddressHistory.length - 10] < 10 * oneSecond) {
+              if (verbose) console.log(`Your last tx inject FROM this address ${readableTx.from} is less than 10s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+              if (config.recordTxStatus) recordTxStatus({
+                txHash: bufferToHex(transaction.hash()),
+                raw: reqParams[0],
+                ip: ip,
+                injected: false,
+                accepted: false,
+                reason: 'Rejected by JSON RPC rate limiting'
+              })
+              this.addAbusedAddress(readableTx.to, readableTx.from, ip)
+              this.addAbusedSender(readableTx.from.toLowerCase())
+              return false
+            }
           }
         }
 
-        let toAddressHistory = this.heavyAddresses.get(readableTx.to)
-        if (toAddressHistory && toAddressHistory.length >= 10) {
-          if (now - toAddressHistory[toAddressHistory.length - 10] <  10 * oneSecond) {
-            this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-            if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 10s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
-            if (config.recordTxStatus) {
-              recordTxStatus({
-                txHash: bufferToHex(transaction.hash()),
-                ip: ip,
-                  raw: reqParams[0],
-                  injected: false,
-                  accepted: false,
-                  reason: 'Rejected by JSON RPC rate limiting'
-                })
+        if (config.rateLimit && config.rateLimitOption.limitToAddress) {
+          let toAddressHistory = this.heavyAddresses.get(readableTx.to)
+          if (toAddressHistory && toAddressHistory.length >= 10) {
+            if (now - toAddressHistory[toAddressHistory.length - 10] <  10 * oneSecond) {
+              this.addAbusedAddress(readableTx.to, readableTx.from, ip)
+              if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 10s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
+              if (config.recordTxStatus) {
+                recordTxStatus({
+                  txHash: bufferToHex(transaction.hash()),
+                  ip: ip,
+                    raw: reqParams[0],
+                    injected: false,
+                    accepted: false,
+                    reason: 'Rejected by JSON RPC rate limiting'
+                  })
+              }
+              return false
             }
-            return false
           }
         }
       } catch (e) {

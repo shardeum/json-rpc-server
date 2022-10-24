@@ -22,7 +22,16 @@ type Config = {
   generateTxTimestamp: boolean,
   recordTxStatus: boolean,
   rateLimit: boolean,
-  allowReqPerMinute: number,
+  rateLimitOption: {
+    limitFromAddress: boolean,
+    limitToAddress: boolean,
+    banIpAddress: boolean,
+    banSpammerAddress: boolean,
+    allowedTxCountInCheckInterval: number
+    spammerCheckInterval: number
+    releaseFromBlacklistInterval: number
+    allowedHeavyRequestPerMin: number
+  },
   statLog: boolean,
   statLogStdoutInterval:number,
   passphrase: string,
@@ -54,7 +63,16 @@ const CONFIG: Config = {
   generateTxTimestamp: false,
   recordTxStatus: true,
   rateLimit: true,
-  allowReqPerMinute: 5,
+  rateLimitOption: {
+    limitFromAddress: true,
+    limitToAddress: false,
+    banIpAddress: false,
+    banSpammerAddress: true,
+    allowedTxCountInCheckInterval: 30, // allow 1 txs in every 10s = (checkInterval * 60 / allowedTxCountInCheckInterval)
+    spammerCheckInterval: 5, // check spammers and ban them every 5 min
+    releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
+    allowedHeavyRequestPerMin: 20 // number of eth_call + tx inject allowed within 60s
+  },
   statLog: true,
   statLogStdoutInterval: 30,
   passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes 
