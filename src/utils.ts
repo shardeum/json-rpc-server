@@ -321,7 +321,7 @@ export class RequestersList {
 
         }
         if (caller.count >= 30) {
-          this.abusedSenders.add(caller.from.toLowerCase())
+          this.addSenderToBacklist(abusedData.from)
           console.log(`Caller ${caller.from} is added to abuser list due to sending spam txs to ${abusedData.to}`)
         }
       }
