@@ -204,12 +204,12 @@ export class RequestersList {
   totalTxTracker: any
   blackListedSenders: Set<string>
 
-  constructor(blackList: string[] = []) {
+  constructor(blackList: string[] = [], spammerList: string[] = []) {
     this.heavyRequests = new Map()
     this.heavyAddresses = new Map()
     this.abusedToAddresses = {}
     this.abusedSenders = new Map()
-    this.blackListedSenders = new Set()
+    this.blackListedSenders = new Set(spammerList)
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -238,6 +238,13 @@ export class RequestersList {
 
   addSenderToBacklist(address: string) {
     this.blackListedSenders.add(address.toLowerCase())
+    fs.readFile('spammer.json', function (err: any, currentDataStr: string) {
+      const spammerList = JSON.parse(currentDataStr)
+      if (spammerList.indexOf(address) >= 0) return
+      let newSpammerList = [...spammerList, address]
+      console.log(`Added address ${address} to spammer list`)
+      fs.writeFileSync('spammer.json', JSON.stringify(newSpammerList))
+    })
   }
 
   isSenderBlacklisted(address: string) {
@@ -330,7 +337,7 @@ export class RequestersList {
 
     // ban most abuse sender addresses
     let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort((a: any, b: any) => b.count - a.count)
-    console.log('10 most abused senders: ', mostAbusedSendersSorted.slice(0, 10))
+    console.log('Top 10 spamming addresses: ', mostAbusedSendersSorted.slice(0, 10))
     for (let abusedData of mostAbusedSendersSorted) {
       if (abusedData.count >= 30) {
         console.log(`Sender ${abusedData.address} made more than 30 txs in last 5 min (1 tx per 10s)`)
@@ -533,6 +540,7 @@ export class RequestersList {
               reason: 'Rejected by JSON RPC rate limiting'
             })
             this.addAbusedAddress(readableTx.to, readableTx.from, ip)
+            this.addAbusedSender(readableTx.from.toLowerCase())
             return false
           }
         }

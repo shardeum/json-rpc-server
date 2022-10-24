@@ -17,6 +17,7 @@ const authenticate = require('./routes/authenticate')
 const config = require("./config")
 
 const blackList = require("../blacklist.json")
+const spammerList = require("../spammerlist.json")
 
 const app = express()
 const server = new jayson.Server(methods);
@@ -56,7 +57,7 @@ app.get('/api/subscribe', (req: any, res: any) => {
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
-const requestersList = new RequestersList(blackList)
+const requestersList = new RequestersList(blackList, spammerList)
 
 app.use((req: any, res: any, next: Function) => {
   if (!config.rateLimit) {
