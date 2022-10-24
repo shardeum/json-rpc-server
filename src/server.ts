@@ -71,8 +71,7 @@ app.use((req: any, res: any, next: Function) => {
 
   let reqParams = req.body.params
   if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
-    let result = {"jsonrpc":"2.0","id":1,"result":"0x640d66af8aef2a0449f99be5897319c688f631ccbdeed2b4ee6124fbdb465385"}
-    res.json(result)
+    res.status(503).send('Please try again later.')
     return
   }
   next()

@@ -1,0 +1,17 @@
+{
+  "port": 8080,
+  "chainId": 8080,
+  "nodeIpInfo": {
+    "externalIp": "18.163.238.98",
+    "externalPort": 9009
+  },
+  "dynamicConsensorNode": true,
+  "useConfigNodeIp" : false,
+  "askLocalHostForArchiver": false,
+  "rotationInterval": 1,
+  "archiverIpInfo": {
+    "externalIp": "16.171.63.122",
+    "externalPort": 4000
+  },
+  "verbose" : true
+}

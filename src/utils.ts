@@ -196,18 +196,20 @@ export async function getAccount(addressStr: any) {
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
-  abusedSenders: Set<string>
+  abusedSenders: any
   abusedToAddresses: any
   bannedIps: any[]
   requestTracker: any
   allRequestTracker: any
   totalTxTracker: any
+  blackListedSenders: Set<string>
 
   constructor(blackList: string[] = []) {
     this.heavyRequests = new Map()
     this.heavyAddresses = new Map()
     this.abusedToAddresses = {}
-    this.abusedSenders = new Set()
+    this.abusedSenders = new Map()
+    this.blackListedSenders = new Set()
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -234,8 +236,12 @@ export class RequestersList {
     })
   }
 
+  addSenderToBacklist(address: string) {
+    this.blackListedSenders.add(address.toLowerCase())
+  }
+
   isSenderBlacklisted(address: string) {
-    return this.abusedSenders.has(address.toLocaleLowerCase())
+    return this.blackListedSenders.has(address.toLowerCase())
   }
 
   clearOldIps() {
@@ -294,12 +300,11 @@ export class RequestersList {
       let txRecord: any = txRecords[i]
       if (txRecord.count >= 20) {
         if (whiteList.indexOf(txRecord.ip) === -1) {
-          console.log('ban this ip due to continuously heavy requests')
-          // this.addToBlacklist(txRecord.ip)
+          console.log('ban this ip due to continuously heavy requests', txRecord.ip)
+          this.addToBlacklist(txRecord.ip)
         }
       }
     }
-    console.log('Total num of txs injected by IPs', txRecords)
     this.totalTxTracker = {}
 
     // log abused contract addresses
@@ -321,6 +326,16 @@ export class RequestersList {
         }
       }
       console.log('------------------------------------------------------------')
+    }
+
+    // ban most abuse sender addresses
+    let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort((a: any, b: any) => b.count - a.count)
+    console.log('10 most abused senders: ', mostAbusedSendersSorted.slice(0, 10))
+    for (let abusedData of mostAbusedSendersSorted) {
+      if (abusedData.count >= 30) {
+        console.log(`Sender ${abusedData.address} made more than 30 txs in last 5 min (1 tx per 10s)`)
+        this.addSenderToBacklist(abusedData.address)
+      }
     }
   }
 
@@ -349,6 +364,17 @@ export class RequestersList {
       if (reqHistory) reqHistory.push(Date.now())
     } else {
       this.heavyAddresses.set(address, [Date.now()])
+    }
+  }
+
+  addAbusedSender(address: string) {
+    if (this.abusedSenders[address]) {
+      this.abusedSenders[address].count += 1
+    } else {
+      this.abusedSenders[address] = {
+        address,
+        count: 1
+      }
     }
   }
 
@@ -426,6 +452,7 @@ export class RequestersList {
   isRequestOkay(ip: string, reqType: string, reqParams: any[]): boolean {
     const now = Date.now()
     const oneMinute = 60 * 1000
+    const oneSecond = 1000
 
     if (whiteList.indexOf(ip) >= 0) return true
 
@@ -488,35 +515,43 @@ export class RequestersList {
         if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
 
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
-        if (this.isSenderBlacklisted(readableTx.from)) return false
+
+        if (this.isSenderBlacklisted(readableTx.from)) {
+          console.log(`Sender ${readableTx.from} is black listed.`)
+          return false
+        }
+
         if (fromAddressHistory && fromAddressHistory.length >= 10) {
-          if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
-            if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 60s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+          if (now - fromAddressHistory[fromAddressHistory.length - 10] < 10 * oneSecond) {
+            if (verbose) console.log(`Your last req FROM this address ${readableTx.from} is less than 10s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
             if (config.recordTxStatus) recordTxStatus({
               txHash: bufferToHex(transaction.hash()),
               raw: reqParams[0],
-                ip: ip,
+              ip: ip,
               injected: false,
               accepted: false,
               reason: 'Rejected by JSON RPC rate limiting'
             })
+            this.addAbusedAddress(readableTx.to, readableTx.from, ip)
             return false
           }
         }
 
         let toAddressHistory = this.heavyAddresses.get(readableTx.to)
         if (toAddressHistory && toAddressHistory.length >= 10) {
-          if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
+          if (now - toAddressHistory[toAddressHistory.length - 10] <  10 * oneSecond) {
             this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-            if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 60s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
-            if (config.recordTxStatus) recordTxStatus({
-              txHash: bufferToHex(transaction.hash()),
-            ip: ip,
-              raw: reqParams[0],
-              injected: false,
-              accepted: false,
-              reason: 'Rejected by JSON RPC rate limiting'
-            })
+            if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 10s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
+            if (config.recordTxStatus) {
+              recordTxStatus({
+                txHash: bufferToHex(transaction.hash()),
+                ip: ip,
+                  raw: reqParams[0],
+                  injected: false,
+                  accepted: false,
+                  reason: 'Rejected by JSON RPC rate limiting'
+                })
+            }
             return false
           }
         }

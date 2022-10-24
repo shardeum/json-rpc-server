@@ -19,6 +19,7 @@ type Config = {
     externalIp: string,
     externalPort:number 
   },
+  generateTxTimestamp: boolean,
   recordTxStatus: boolean,
   rateLimit: boolean,
   allowReqPerMinute: number,
@@ -50,8 +51,9 @@ const CONFIG: Config = {
     externalIp: "localhost",
     externalPort: 4445
   },
+  generateTxTimestamp: false,
   recordTxStatus: true,
-  rateLimit: false,
+  rateLimit: true,
   allowReqPerMinute: 5,
   statLog: true,
   statLogStdoutInterval: 30,

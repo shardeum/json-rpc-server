@@ -13,6 +13,7 @@ import {
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from "./logger";
+import { isConstructorDeclaration } from "typescript";
 const config = require("./config")
 
 export let verbose = config.verbose
@@ -540,10 +541,10 @@ export const methods = {
         }
         try {
             let raw = args[0]
-            let tx = {
-                raw,
-                timestamp: Date.now()
+            let tx: any = {
+                raw
             }
+            if (config.generateTxTimestamp) tx.timestamp = now
             const transaction = getTransactionObj(tx)
 
             let isValid = transaction.validate()
@@ -722,6 +723,8 @@ export const methods = {
                         console.log('Awaiting tx data for txHash', txHash)
                     }
                     if (config.queryFromArchiver) {
+                        console.log('querying eth_getTransactionByHash from archiver');
+                        
                         let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
                         result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
@@ -803,7 +806,11 @@ export const methods = {
             let res = await requestWithRetry('get', `/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
             if (!result && config.queryFromArchiver) {
+                console.log('querying eth_getTransactionReceipt from archiver');
+
                 let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                console.log('url', `${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                console.log('res', JSON.stringify(res.data))
                 // console.log('res', res)
                 result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
             }
