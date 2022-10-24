@@ -806,11 +806,13 @@ export const methods = {
             let res = await requestWithRetry('get', `/tx/${txHash}`)
             let result = res.data.account ? res.data.account.readableReceipt : null
             if (!result && config.queryFromArchiver) {
-                console.log('querying eth_getTransactionReceipt from archiver');
+                if (verbose) console.log('querying eth_getTransactionReceipt from archiver');
 
                 let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
-                console.log('url', `${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
-                console.log('res', JSON.stringify(res.data))
+                if (verbose) {
+                    console.log('url', `${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                    console.log('res', JSON.stringify(res.data))
+                }
                 // console.log('res', res)
                 result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
             }

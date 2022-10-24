@@ -248,7 +248,7 @@ export class RequestersList {
     const now = Date.now()
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
-      console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
+      if(verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
       // for (let j = 0; j < reqHistory.length; j++) {
       //   if (j > 0) {
       //     console.log('time delta between reqs', reqHistory[j] - reqHistory[j - 1], 'ms')
