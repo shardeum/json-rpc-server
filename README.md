@@ -10,7 +10,8 @@ These api are protected preventing general public to wiping out debug data to au
 
 `/log/api-stats-reset` this endpoint trigger the reseting of data that hold api perf stats.
 
-`/log/txs` this endpoint return the txs it has been made through rpc server 
+`/log/txs` this endpoint return the txs it has been made through rpc server. This endpoint support dynmaic pagination. i.e `/log/txs?max=30&page=9`.
+Default values are `1000` for `max` and `0` for page.
 
 `/log/cleanLogDB` this endpoint wipe the db holding the tx data
 
