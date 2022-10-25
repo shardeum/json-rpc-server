@@ -61,7 +61,7 @@ const CONFIG: Config = {
     externalIp: "localhost",
     externalPort: 4445
   },
-  generateTxTimestamp: false,
+  generateTxTimestamp: true,
   recordTxStatus: true,
   rateLimit: true,
   rateLimitOption: {
