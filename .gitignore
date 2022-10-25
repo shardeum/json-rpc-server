@@ -9,3 +9,4 @@ log.sqlite3-*
 log/
 config.js
 .env
+dist/
