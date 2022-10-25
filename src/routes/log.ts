@@ -33,9 +33,15 @@ router.route('/api-stats-reset').get((req: any, res: any) => {
 
 router.route('/txs')
   .get(async function(req:any, res: any) {  
-
     try{
-      const txs = db.prepare('SELECT * FROM transactions').all();
+      // this is a very bad security practice !
+      // Not enough input sanitization :(
+      // Exposed Primary keys :(
+      // Should be ok though as long as this endpoint is private and only for debug
+      const page = (typeof parseInt(req.query.page) === 'number') ? req.query.page : 0
+      const max = (typeof parseInt(req.query.max) === 'number') ? req.query.max : 1000      
+      const cursor:number = page * max;
+      const txs = db.prepare(`SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}`).all();
       res.send({length: txs.length, txs: txs}).status(200);
     }catch(e:any){
       res.send(e).status(500);

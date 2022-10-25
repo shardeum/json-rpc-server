@@ -152,11 +152,11 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
       const prepareBulkInsertSQL = (txs: DetailedTxStatus[]) => {
         // items order {txHash, injected, accepted, reason, type, to, from, ip, timestamp}
         const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[0]
-        let placeholders = `'${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+        let placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
         let sql = 'INSERT OR REPLACE INTO transactions VALUES (' + placeholders + ')';
         for (let i = 1; i < txs.length; i++) {
           const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[i]
-          placeholders = `'${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+          placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
           sql = sql + `, (${placeholders})`;
         }
         return sql
@@ -172,7 +172,7 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
     // construct string to be a valid sql string, NOTE> insert value needs to be in order
     const prepareSQL = ({txHash, injected, accepted, reason, type, to, from, ip, timestamp}: DetailedTxStatus) => {
         return `INSERT OR REPLACE INTO transactions` +
-                ` VALUES ('${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}')`
+                ` VALUES (NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}')`
     }
     
     for await(const tx of txs) {
