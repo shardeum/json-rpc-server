@@ -16,7 +16,7 @@ async function init() {
 async function createTable(){
   await db.exec(
     'CREATE TABLE IF NOT EXISTS transactions ' +
-    '(`hash` VARCHAR NOT NULL UNIQUE PRIMARY KEY, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL,`reason` VARCHAR, `ip` VARCHAR)'
+    '(`hash` VARCHAR NOT NULL UNIQUE PRIMARY KEY, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL,`reason` VARCHAR, `ip` VARCHAR, `timestamp` BIGINT)'
   );
 };
 

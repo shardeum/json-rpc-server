@@ -67,7 +67,7 @@ function createTable() {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, exports.db.exec('CREATE TABLE IF NOT EXISTS transactions ' +
-                        '(`hash` VARCHAR NOT NULL UNIQUE PRIMARY KEY, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL,`reason` VARCHAR, `ip` VARCHAR)')];
+                        '(`hash` VARCHAR NOT NULL UNIQUE PRIMARY KEY, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL,`reason` VARCHAR, `ip` VARCHAR, `timestamp` BIGINT)')];
                 case 1:
                     _a.sent();
                     return [2 /*return*/];

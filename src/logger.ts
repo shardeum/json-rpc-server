@@ -126,11 +126,12 @@ export function setupLogEvents () {
 
                 txStatus.accepted = getReasonEnumCode(txStatus.reason);
 
-                detailedList.push( {
+                detailedList.push({
                   ...txStatus,
                   type: type,
                   to: bufferToHex(tx.to),
-                  from: bufferToHex(tx.getSenderAddress())
+                  from: bufferToHex(tx.getSenderAddress()),
+                  timestamp: txStatus.timestamp,
                 })
               }catch(e){
                 continue
@@ -145,10 +146,33 @@ export function setupLogEvents () {
 export async function txStatusSaver(_txs: DetailedTxStatus[]) {
     const txs = _txs;
 
+    const bulkInsertTxs = true
+    if (bulkInsertTxs) {
+      if (txs.length === 0) return
+      const prepareBulkInsertSQL = (txs: DetailedTxStatus[]) => {
+        // items order {txHash, injected, accepted, reason, type, to, from, ip, timestamp}
+        const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[0]
+        let placeholders = `'${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+        let sql = 'INSERT OR REPLACE INTO transactions VALUES (' + placeholders + ')';
+        for (let i = 1; i < txs.length; i++) {
+          const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[i]
+          placeholders = `'${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+          sql = sql + `, (${placeholders})`;
+        }
+        return sql
+      }
+      try {
+        await db.exec(prepareBulkInsertSQL(txs))
+      } catch (e) {
+        console.log(e)
+      }
+      return
+    }
+
     // construct string to be a valid sql string, NOTE> insert value needs to be in order
-    const prepareSQL = ({txHash, injected, accepted, reason, type, to, from, ip}: DetailedTxStatus) => {
-        return `INSERT INTO transactions` +
-                ` VALUES ('${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}')`
+    const prepareSQL = ({txHash, injected, accepted, reason, type, to, from, ip, timestamp}: DetailedTxStatus) => {
+        return `INSERT OR REPLACE INTO transactions` +
+                ` VALUES ('${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}')`
     }
     
     for await(const tx of txs) {

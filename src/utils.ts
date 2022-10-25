@@ -521,7 +521,8 @@ export class RequestersList {
             raw: '',
             injected: false,
             accepted: false,
-            reason: 'Rejected by JSON RPC rate limiting'
+            reason: 'Rejected by JSON RPC rate limiting',
+            timestamp: now
           })
         }
         return false
@@ -557,7 +558,8 @@ export class RequestersList {
                 ip: ip,
                 injected: false,
                 accepted: false,
-                reason: 'Rejected by JSON RPC rate limiting'
+                reason: 'Rejected by JSON RPC rate limiting',
+                timestamp: now
               })
               this.addAbusedAddress(readableTx.to, readableTx.from, ip)
               this.addAbusedSender(readableTx.from.toLowerCase())
@@ -579,7 +581,8 @@ export class RequestersList {
                     raw: reqParams[0],
                     injected: false,
                     accepted: false,
-                    reason: 'Rejected by JSON RPC rate limiting'
+                    reason: 'Rejected by JSON RPC rate limiting',
+                    timestamp: now
                   })
               }
               return false

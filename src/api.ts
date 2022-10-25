@@ -29,7 +29,7 @@ let lastCycleInfo = {
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
 export let txStatuses: TxStatus[] = []
-let maxTxCountToStore = 1000
+let maxTxCountToStore = 10
 let lastTxNonce: any
 let txMemPool: any = {}
 let nonceTracker: any = {}
@@ -45,7 +45,8 @@ export type TxStatus = {
   injected: boolean,
   accepted: boolean,
   reason: string,
-  ip?: string
+  timestamp: number // if timestamp is not provided in the tx, maybe Date.now()
+  ip?: string,
 }
 export type DetailedTxStatus = {
     ip?: string,
@@ -55,7 +56,8 @@ export type DetailedTxStatus = {
   from: string,
   injected: boolean,
   accepted: TxStatusCode.BAD_TX | TxStatusCode.SUCCESS | TxStatusCode.BUSY | TxStatusCode.OTHER_FAILURE,
-  reason: string
+  reason: string,
+  timestamp: string,
 }
 
 async function getCurrentBlockInfo() {
@@ -133,7 +135,8 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
                 injected: true,
                 accepted: injectResult.success,
                 reason: injectResult.reason || '',
-                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
+                timestamp: tx.timestamp || Date.now(),
+                ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
             })
         } else {
             recordTxStatus({
@@ -142,6 +145,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
                 injected: false,
                 accepted: false,
                 reason: 'Unable to inject transaction into the network',
+                timestamp: tx.timestamp || Date.now(),
                 ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
             })
         }
@@ -152,6 +156,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             injected: false,
             accepted: false,
             reason: 'Unable to inject transaction into the network',
+            timestamp: tx.timestamp || Date.now(),
             ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
         })
     })
