@@ -31,6 +31,7 @@ type Config = {
     spammerCheckInterval: number
     releaseFromBlacklistInterval: number
     allowedHeavyRequestPerMin: number
+    softReject: boolean
   },
   statLog: boolean,
   statLogStdoutInterval:number,
@@ -64,6 +65,7 @@ const CONFIG: Config = {
   recordTxStatus: true,
   rateLimit: true,
   rateLimitOption: {
+    softReject: true,
     limitFromAddress: true,
     limitToAddress: false,
     banIpAddress: true,

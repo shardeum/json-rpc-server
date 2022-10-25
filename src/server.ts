@@ -10,7 +10,7 @@ import {apiPerfLogData, apiPefLogger, setupLogEvents} from './logger';
 import authorize from './middlewares/authorize';
 import injectIP from './middlewares/injectIP';
 import { setupDatabase } from './storage/sqliteStorage';
-import {changeNode, setConsensorNode, getTransactionObj, updateNodeList, RequestersList} from './utils'
+import {changeNode, setConsensorNode, getTransactionObj, updateNodeList, RequestersList, sleep} from './utils'
 const logRoute = require('./routes/log')
 const authenticate = require('./routes/authenticate')
 
@@ -59,7 +59,7 @@ app.get('/api/subscribe', (req: any, res: any) => {
 
 const requestersList = new RequestersList(blackList, spammerList)
 
-app.use((req: any, res: any, next: Function) => {
+app.use(async (req: any, res: any, next: Function) => {
   if (!config.rateLimit) {
     next()
     return
@@ -72,8 +72,15 @@ app.use((req: any, res: any, next: Function) => {
 
   let reqParams = req.body.params
   if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
-    res.status(503).send('Please try again later.')
-    return
+    if (config.rateLimitOption.softReject) {
+      let randomSleepTime = 10 + Math.floor(Math.random() * 10)
+      await sleep(randomSleepTime * 1000)
+      res.status(503).send('Network is currently busy. Please try again later.')
+      return
+    } else {
+      res.status(503).send('Rejected by rate-limiting')
+      return
+    }
   }
   next()
 })
