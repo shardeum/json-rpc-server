@@ -45,7 +45,7 @@ export async function waitRandomSecond() {
 
 // nRetry negative number will retry infinitely
 export async function requestWithRetry(method: string, route: string, data: any = {}, nRetry: number = 5, isFullUrl = false) {
-    let retry = 0 
+    let retry = 0
     const IS_INFINITY: boolean = (nRetry < 0)
     let maxRetry = nRetry //set this to 0 with for load testing rpc server
 
@@ -71,10 +71,10 @@ export async function requestWithRetry(method: string, route: string, data: any 
         } catch (e: any) {
             console.log('Error: requestWithRetry', e.message)
         }
-        
+
         if(retry <= maxRetry){
             if (verbose) console.log('Node is busy...will try again to another node in a few seconds')
-            await waitRandomSecond()            
+            await waitRandomSecond()
         } else {
             if (verbose) console.log('Node is busy...out of retries')
         }
@@ -165,7 +165,7 @@ export function getRandomConsensorNode() {
 
 /**
  * Round robin selection of next consensor index.
- * @returns 
+ * @returns
  */
 export function getNextConsensorNode() {
     if (nodeList.length > 0) {
@@ -294,13 +294,11 @@ export class RequestersList {
     let records = Object.values(this.requestTracker)
     records = records.sort((a: any, b: any) => b.count - a.count)
     if (config.verbose) console.log('10 most frequent successful IPs:', records.slice(0, 10))
-    this.requestTracker = {}
 
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
     if (config.verbose) console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
-    this.allRequestTracker = {}
 
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
@@ -316,7 +314,6 @@ export class RequestersList {
         }
       }
     }
-    this.totalTxTracker = {}
 
     // log abused contract addresses
     let mostAbusedSorted: any[] = Object.values(this.abusedToAddresses).sort((a: any, b: any) => b.count - a.count)
@@ -330,7 +327,6 @@ export class RequestersList {
         for (let ip of sortedIps) {
           console.log(`             ${ip.ip}, count: ${ip.count}`)
         }
-        console.log(1, caller.count, allowedTxRate , config.rateLimit , config.rateLimitOption.banSpammerAddress)
         if (caller.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
           this.addSenderToBacklist(caller.from)
           console.log(`Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`)
@@ -341,14 +337,26 @@ export class RequestersList {
 
     // ban most abuse sender addresses
     let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort((a: any, b: any) => b.count - a.count)
-    console.log('Top 10 spamming addresses: ', mostAbusedSendersSorted.slice(0, 10))
+    console.log('Top 10 spammer addresses: ', mostAbusedSendersSorted.slice(0, 10))
     for (let spammerInfo of mostAbusedSendersSorted) {
-      console.log(2, spammerInfo, allowedTxRate , config.rateLimit , config.rateLimitOption.banSpammerAddress)
       if (spammerInfo.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
         this.addSenderToBacklist(spammerInfo.address)
-        console.log(`Caller ${spammerInfo.address} is added to spammer list due to sending ${allowedTxRate} txs within 5 min.`)
+        console.log(`Caller ${spammerInfo.address} is added to spammer list due to sending more than ${allowedTxRate} txs within 5 min.`)
       }
     }
+    console.log('Resetting rate-limit collector...')
+    this.resetCollectors()
+  }
+
+  // clear things up for next collection
+  resetCollectors() {
+    this.requestTracker = {}
+    this.allRequestTracker = {}
+    this.totalTxTracker = {}
+    this.heavyRequests = new Map()
+    this.heavyAddresses = new Map()
+    this.abusedSenders = new Map()
+    this.abusedToAddresses = new Map()
   }
 
   addHeavyRequest(ip: string) {
@@ -381,7 +389,7 @@ export class RequestersList {
 
   addAbusedSender(address: string) {
     console.log('adding abused sender', address);
-    
+
     if (this.abusedSenders[address]) {
       this.abusedSenders[address].count += 1
     } else {
@@ -542,7 +550,7 @@ export class RequestersList {
         if (config.rateLimit && config.rateLimitOption.limitFromAddress) {
           if (fromAddressHistory && fromAddressHistory.length >= 10) {
             if (now - fromAddressHistory[fromAddressHistory.length - 10] < 10 * oneSecond) {
-              if (verbose) console.log(`Your last tx inject FROM this address ${readableTx.from} is less than 10s ago`, `total requests: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+              if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 10s`, `total txs: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
               if (config.recordTxStatus) recordTxStatus({
                 txHash: bufferToHex(transaction.hash()),
                 raw: reqParams[0],

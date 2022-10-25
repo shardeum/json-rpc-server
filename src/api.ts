@@ -547,7 +547,6 @@ export const methods = {
             if (config.generateTxTimestamp) tx.timestamp = now
             const transaction = getTransactionObj(tx)
 
-            let isValid = transaction.validate()
             const txHash = bufferToHex(transaction.hash())
             const currentTxNonce = transaction.nonce.toNumber()
             const sender = transaction.getSenderAddress().toString()
@@ -579,14 +578,11 @@ export const methods = {
                 } else {
                     txMemPool[sender] = [{nonce: currentTxNonce, tx}]
                 }
+                nonceTracker[sender] = currentTxNonce
                 return txHash
             }
 
-            nonceTracker[sender] = currentTxNonce
-
             injectAndRecordTx(txHash, tx, args)
-
-            if (verbose) console.log('Tx Hash', txHash, isValid)
 
             callback(null, txHash);
         } catch (e) {
@@ -724,7 +720,7 @@ export const methods = {
                     }
                     if (config.queryFromArchiver) {
                         console.log('querying eth_getTransactionByHash from archiver');
-                        
+
                         let res = await axios.get(`${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
                         result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
