@@ -29,7 +29,7 @@ let lastCycleInfo = {
 const errorCode: number = 500 //server internal error
 const errorBusy = {code: errorCode, message: 'Busy or error'};
 export let txStatuses: TxStatus[] = []
-let maxTxCountToStore = 10
+let maxTxCountToStore = 1000
 let lastTxNonce: any
 let txMemPool: any = {}
 let nonceTracker: any = {}
