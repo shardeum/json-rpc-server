@@ -39,6 +39,7 @@ export async function updateNodeList(tryInfinate: boolean = false) {
 
 export async function waitRandomSecond() {
     let second = Math.floor(Math.random() * 5) + 1
+    console.log(`Waiting ${second} second`)
     if (verbose) console.log(`Waiting ${second} second`)
     await sleep(second * 1000)
 }

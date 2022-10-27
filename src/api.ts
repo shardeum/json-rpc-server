@@ -728,7 +728,7 @@ export const methods = {
 
                         res = await axios.get(`${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
-                        result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
+                        result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
                     }
                     if (result === null) {
                         await sleep(2000)
@@ -812,12 +812,12 @@ export const methods = {
 
                 res = await axios.get(`${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                 if (verbose) {
-                    console.log('url', `${getArchiverUrl()}/account?accountId=${txHash.substring(2)}`)
+                    console.log('url', `${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                     console.log('res', JSON.stringify(res.data))
                 }
                 
                 // console.log('res', res)
-                result = res.data.accounts ? res.data.accounts.data.readableReceipt : null
+                result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
             }
             if (result) {
                 if (!result.to || result.to == '') result.to = null
