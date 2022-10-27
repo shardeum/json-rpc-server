@@ -475,7 +475,18 @@ export class RequestersList {
     }
   }
 
-  isRequestOkay(ip: string, reqType: string, reqParams: any[]): boolean {
+  async checkFaucetAccount(address: string) {
+    try {
+      const url = `${config.faucetServerUrl}/faucet-claims/count?address=${address}`
+      const res = await axios.get(url)
+      if (res.data && res.data.count > 0) return true
+      else return false
+    } catch (e) {
+      return false
+    }
+  }
+
+  async isRequestOkay(ip: string, reqType: string, reqParams: any[]): Promise<boolean> {
     const now = Date.now()
     const oneMinute = 60 * 1000
     const oneSecond = 1000
@@ -544,14 +555,14 @@ export class RequestersList {
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
 
         if (config.rateLimit && config.rateLimitOption.limitFromAddress && this.isSenderBlacklisted(readableTx.from)) {
-          console.log(`Sender ${readableTx.from} is blacklisted.`)
+          if (verbose) console.log(`Sender ${readableTx.from} is blacklisted.`)
           return false
         }
 
         if (config.rateLimit && config.rateLimitOption.limitFromAddress) {
           if (fromAddressHistory && fromAddressHistory.length >= 10) {
-            if (now - fromAddressHistory[fromAddressHistory.length - 10] < 10 * oneSecond) {
-              if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 10s`, `total txs: ${fromAddressHistory.length}, `, Math.round((now - fromAddressHistory[fromAddressHistory.length - 10]) / 1000), 'seconds')
+            if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
+              if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 60s`)
               if (config.recordTxStatus) recordTxStatus({
                 txHash: bufferToHex(transaction.hash()),
                 raw: reqParams[0],
@@ -571,10 +582,19 @@ export class RequestersList {
         if (config.rateLimit && config.rateLimitOption.limitToAddress) {
           let toAddressHistory = this.heavyAddresses.get(readableTx.to)
           if (toAddressHistory && toAddressHistory.length >= 10) {
-            if (now - toAddressHistory[toAddressHistory.length - 10] <  10 * oneSecond) {
+            if (now - toAddressHistory[toAddressHistory.length - 10] <  oneMinute) {
               this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-              if (verbose) console.log(`Your last req TO this address ${readableTx.to} is less than 10s ago`, `total requests: ${toAddressHistory.length}, `, Math.round((now - toAddressHistory[toAddressHistory.length - 10]) / 1000), 'seconds')
-              if (config.recordTxStatus) {
+              if (verbose) console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
+
+              if (config.rateLimitOption.allowFaucetAccount) {
+                const isFaucetAccount = await this.checkFaucetAccount(readableTx.from.toLowerCase())
+                if (isFaucetAccount) {
+                  console.log(`Allow address ${readableTx.from} to an abused contract because it is a faucet account`)
+                  return true
+                }
+              }
+
+              if (config.recordTxStats) {
                 recordTxStatus({
                   txHash: bufferToHex(transaction.hash()),
                   ip: ip,

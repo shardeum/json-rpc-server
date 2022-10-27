@@ -71,7 +71,8 @@ app.use(async (req: any, res: any, next: Function) => {
   //console.log('IP is ', ip)
 
   let reqParams = req.body.params
-  if (!requestersList.isRequestOkay(ip, req.body.method, reqParams)) {
+  const isRequestOkay = await requestersList.isRequestOkay(ip, req.body.method, reqParams)
+  if (!isRequestOkay) {
     if (config.rateLimitOption.softReject) {
       let randomSleepTime = 10 + Math.floor(Math.random() * 10)
       await sleep(randomSleepTime * 1000)

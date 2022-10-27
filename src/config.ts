@@ -4,7 +4,7 @@ type Config = {
   chainId: number,
   nodeIpInfo: {
     externalIp:"" ,
-    externalPort: number 
+    externalPort: number
   },
   dynamicConsensorNode: boolean,
   useConfigNodeIp : boolean,
@@ -12,12 +12,13 @@ type Config = {
   rotationInterval: number,
   archiverIpInfo: {
     externalIp: string,
-    externalPort:number 
+    externalPort:number
   },
+  faucetServerUrl: string
   queryFromArchiver: boolean,
   explorerRPCDataServerInfo: {
     externalIp: string,
-    externalPort:number 
+    externalPort:number
   },
   generateTxTimestamp: boolean,
   recordTxStatus: boolean,
@@ -27,6 +28,7 @@ type Config = {
     limitToAddress: boolean,
     banIpAddress: boolean,
     banSpammerAddress: boolean,
+    allowFaucetAccount: boolean,
     allowedTxCountInCheckInterval: number
     spammerCheckInterval: number
     releaseFromBlacklistInterval: number
@@ -56,6 +58,7 @@ const CONFIG: Config = {
     externalIp: "localhost",
     externalPort: 4000
   },
+  faucetServerUrl: "https://faucet.liberty10.shardeum.org",
   queryFromArchiver: true,
   explorerRPCDataServerInfo: {
     externalIp: "localhost",
@@ -67,18 +70,19 @@ const CONFIG: Config = {
   rateLimitOption: {
     softReject: true,
     limitFromAddress: true,
-    limitToAddress: false,
-    banIpAddress: true,
+    limitToAddress: true,
+    banIpAddress: false,
     banSpammerAddress: true,
-    allowedTxCountInCheckInterval: 30, // allow 1 txs in every 10s = (checkInterval * 60 / allowedTxCountInCheckInterval)
-    spammerCheckInterval: 5, // check spammers and ban them every 5 min
+    allowFaucetAccount: true,
+    allowedTxCountInCheckInterval: 10, // allow 1 txs in every 12s = (checkInterval * 60 / allowedTxCountInCheckInterval)
+    spammerCheckInterval: 2, // check spammers and ban them every 2 min
     releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
     allowedHeavyRequestPerMin: 20 // number of eth_call + tx inject allowed within 60s
   },
   statLog: true,
   statLogStdoutInterval: 30,
-  passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes 
-  secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P',  // this is the private key that rpc server will used to sign jwt token 
+  passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes
+  secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P',  // this is the private key that rpc server will used to sign jwt token
   nonceValidate: false,
   verbose : false
 }
