@@ -475,12 +475,15 @@ export class RequestersList {
     }
   }
 
-  async checkFaucetAccount(address: string) {
+  async checkFaucetAccount(address: string, allowPlatform: string | null = null) {
     try {
       const url = `${config.faucetServerUrl}/faucet-claims/count?address=${address}`
       const res = await axios.get(url)
-      if (res.data && res.data.count > 0) return true
-      else return false
+      if (res.data && res.data.count > 0) {
+        if (!allowPlatform) return true
+        if (res.data.groupBy[allowPlatform] > 0) return true
+        return false
+      } else return false
     } catch (e) {
       return false
     }
@@ -587,7 +590,7 @@ export class RequestersList {
               if (verbose) console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
 
               if (config.rateLimitOption.allowFaucetAccount) {
-                const isFaucetAccount = await this.checkFaucetAccount(readableTx.from.toLowerCase())
+                const isFaucetAccount = await this.checkFaucetAccount(readableTx.from.toLowerCase(), 'discord')
                 if (isFaucetAccount) {
                   console.log(`Allow address ${readableTx.from} to an abused contract because it is a faucet account`)
                   return true
