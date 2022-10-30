@@ -717,8 +717,8 @@ export const methods = {
             try {
                 //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
                 let res
-                // let res = await requestWithRetry('get', `/tx/${txHash}`)
-                // result = res.data.account ? res.data.account.readableReceipt : null
+                res = await requestWithRetry('get', `/tx/${txHash}`)
+                result = res.data.account ? res.data.account.readableReceipt : null
                 if (result == null) {
                     if (verbose) {
                         console.log('tx', txHash, result)
@@ -823,8 +823,8 @@ export const methods = {
             let res
             let result
             let txHash = args[0]
-            // let res = await requestWithRetry('get', `/tx/${txHash}`)
-            // let result = res.data.account ? res.data.account.readableReceipt : null
+            res = await requestWithRetry('get', `/tx/${txHash}`)
+            result = res.data.account ? res.data.account.readableReceipt : null
             if (!result && config.queryFromArchiver) {
                 if (verbose) console.log('querying eth_getTransactionReceipt from archiver');
 

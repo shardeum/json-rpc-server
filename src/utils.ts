@@ -32,6 +32,11 @@ export async function updateNodeList(tryInfinate: boolean = false) {
 
     const nodes = res.data.nodeList // <-
     if (nodes.length > 0) {
+        if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
+            nodes.forEach((node: any) => {
+              node.ip = config.archiverIpInfo.externalIp
+            });
+        }
         nodeList = [...nodes]
         if (verbose) console.log('Nodelist is updated', nodeList.length)
     }
