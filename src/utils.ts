@@ -477,7 +477,7 @@ export class RequestersList {
 
   async checkFaucetAccount(address: string, allowPlatform: string | null = null) {
     try {
-      const url = `${config.faucetServerUrl}/faucet-claims/count?address=${address}`
+      const url = `${config.faucetServerUrl}/faucet-claims/count?address=${address}&groupBy=platform`
       const res = await axios.get(url)
       if (res.data && res.data.count > 0) {
         if (!allowPlatform) return true
