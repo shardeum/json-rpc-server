@@ -14,7 +14,7 @@ import {
 import crypto from 'crypto'
 import { logEventEmitter } from "./logger";
 import { isConstructorDeclaration } from "typescript";
-const config = require("./config")
+const config = require("./config") as Config
 
 export let verbose = config.verbose
 
@@ -716,8 +716,9 @@ export const methods = {
         while (retry < 10 && !success) {
             try {
                 //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
-                let res = await requestWithRetry('get', `/tx/${txHash}`)
-                result = res.data.account ? res.data.account.readableReceipt : null
+                let res
+                // let res = await requestWithRetry('get', `/tx/${txHash}`)
+                // result = res.data.account ? res.data.account.readableReceipt : null
                 if (result == null) {
                     if (verbose) {
                         console.log('tx', txHash, result)
@@ -729,6 +730,21 @@ export const methods = {
                         res = await axios.get(`${getArchiverUrl()}/transaction?accountId=${txHash.substring(2)}`)
                         // console.log('res', res)
                         result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
+                    }
+                    if (config.queryFromExplorer) {
+                        if (verbose) console.log('querying eth_getTransactionReceipt from explorer');
+                        const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+
+                        res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
+                        if (verbose) {
+                            console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`)
+                            console.log('res', JSON.stringify(res.data))
+                        }
+                        result = res.data.transactions
+                            ? res.data.transactions[0]
+                                ? res.data.transactions[0].wrappedEVMAccount.readableReceipt
+                                : null
+                            : null;
                     }
                     if (result === null) {
                         await sleep(2000)
@@ -804,9 +820,11 @@ export const methods = {
             console.log('Running getTransactionReceipt', args)
         }
         try {
+            let res
+            let result
             let txHash = args[0]
-            let res = await requestWithRetry('get', `/tx/${txHash}`)
-            let result = res.data.account ? res.data.account.readableReceipt : null
+            // let res = await requestWithRetry('get', `/tx/${txHash}`)
+            // let result = res.data.account ? res.data.account.readableReceipt : null
             if (!result && config.queryFromArchiver) {
                 if (verbose) console.log('querying eth_getTransactionReceipt from archiver');
 
@@ -816,9 +834,23 @@ export const methods = {
                     console.log('res', JSON.stringify(res.data))
                 }
                 
-                // console.log('res', res)
                 result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
+            } else if (!result && config.queryFromExplorer) {
+                if (verbose) console.log('querying eth_getTransactionReceipt from explorer');
+                const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+
+                res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
+                if (verbose) {
+                    console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`)
+                    console.log('res', JSON.stringify(res.data))
+                }
+                result = res.data.transactions
+                    ? res.data.transactions[0]
+                        ? res.data.transactions[0].wrappedEVMAccount.readableReceipt
+                        : null
+                    : null;
             }
+            console.log('url', `${config.explorerInfo.ip}:${config.explorerInfo.port}/api/transaction?txHash=${txHash}`)
             if (result) {
                 if (!result.to || result.to == '') result.to = null
                 if (result.logs == null) result.logs = []
