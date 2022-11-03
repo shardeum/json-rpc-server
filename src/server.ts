@@ -6,7 +6,7 @@ const connect = require('connect');
 const express = require('express')
 const cookieParser = require('cookie-parser');
 import {methods, verbose, recordTxStatus, forwardTxStatusToExplorer} from './api'
-import {apiPerfLogData, apiPefLogger, setupLogEvents} from './logger';
+import {apiPerfLogData, setupLogEvents} from './logger';
 import authorize from './middlewares/authorize';
 import injectIP from './middlewares/injectIP';
 import { setupDatabase } from './storage/sqliteStorage';
@@ -85,13 +85,6 @@ app.use(async (req: any, res: any, next: Function) => {
   }
   next()
 })
-
-if (config.statLog) {
-  // profile performance every 30min
-  setInterval(() => {
-    apiPefLogger()
-  }, 60000 * config.statLogStdoutInterval);
-}
 
 app.use('/log',authorize, logRoute);
 app.use('/authenticate',authenticate);

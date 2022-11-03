@@ -1,6 +1,4 @@
-import { bufferToHex } from "ethereumjs-util";
-import { txStatuses } from "../api";
-import { apiPerfLogData, txStatusSaver } from "../logger";
+import { apiPerfLogData, saveInterfaceStat, txStatusSaver } from "../logger";
 import { db } from "../storage/sqliteStorage";
 import { getReasonEnumCode, getTransactionObj, getTransactionReceipt } from "../utils";
 
@@ -9,26 +7,56 @@ const router      = express.Router();
 const CONFIG      = require('../config');
 
 
-router.route('/api-stats').get((req: any, res: any) => {
+router.route('/api-stats').get(async(req: any, res: any) => {
   try {
-    for (const [key, value] of Object.entries(apiPerfLogData)) {
-      apiPerfLogData[key].tAvg = value.tTotal / value.count
+    const start = req.query.start  || 1
+    const end = req.query.end  || Date.now() + 1000
+    console.log(start,end);
+
+    const raw = await db.prepare(`SELECT * FROM interface_stats WHERE timestamp BETWEEN ${start} AND ${end}`).all();
+
+    const stats:any = {}
+    for(const entry of raw){
+        if(stats[entry.api_name]){
+            stats[entry.api_name].tFinals.push(entry.tfinal)
+        }
+        else{
+            stats[entry.api_name] = {
+                tMax: 0,
+                tMin: 0,
+                tAvg: 0,
+                tTotal: 0,
+                tFinals : [entry.tfinal]
+            }
+        }
     }
-    return res.json(apiPerfLogData).status(200)
+
+    for(const api_name in stats){
+
+        stats[api_name].tFinals.sort();
+        const length = stats[api_name].tFinals.length
+        const index = length > 0 ? length - 1 : 0 
+        stats[api_name].tMax = stats[api_name].tFinals[index] 
+        stats[api_name].tMin = stats[api_name].tFinals[0]
+        for(const tfinal of stats[api_name].tFinals){
+           stats[api_name].tTotal += tfinal
+        }
+        stats[api_name].tAvg = stats[api_name].tTotal/stats[api_name].tFinals.length
+        delete stats[api_name].tFinals
+    }
+    return res.json(stats).status(200)
   } catch (e) {
-    return res.json({error: "Internal Server Error"}).status(500)
+    return res.json(e).status(500)
   }
 })
 
-router.route('/api-stats-reset').get((req: any, res: any) => {
-  try{
-    for ( const [key,] of Object.entries(apiPerfLogData)){
-      delete apiPerfLogData[key]
+router.route('/cleanStatDB').get(async(req: any, res: any) => {
+    try{
+      await db.exec('DELETE FROM interface_stats')
+      res.send({success: true}).status(200);
+    }catch(e:any){
+      res.send(e).status(500);
     }
-    return res.json({status: 'ok'}).status(200)
-  }catch(e){
-    return res.json({error: "Internal Server Error"}).status(500)
-  }
 })
 
 router.route('/txs')
@@ -38,8 +66,8 @@ router.route('/txs')
       // Not enough input sanitization :(
       // Exposed Primary keys :(
       // Should be ok though as long as this endpoint is private and only for debug
-      const page = (typeof parseInt(req.query.page) === 'number') ? req.query.page : 0
-      const max = (typeof parseInt(req.query.max) === 'number') ? req.query.max : 1000      
+      const page = req.query.page || 0
+      const max = req.query.max || 1000      
       const cursor:number = page * max;
       const txs = db.prepare(`SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}`).all();
       res.send({length: txs.length, txs: txs}).status(200);
