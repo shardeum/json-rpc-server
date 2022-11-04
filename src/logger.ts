@@ -57,7 +57,7 @@ export function setupLogEvents () {
         })
 
         logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
-          const timestamp = Date.now();
+          const timestamp = Date.now()
 
           if (!apiPerfLogTicket.hasOwnProperty(ticket)) return
 

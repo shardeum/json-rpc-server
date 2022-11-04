@@ -6,7 +6,7 @@
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
 
-`/log/api-stats` this endpint emit the rpc interface call counts and avg tps along with a few a other information
+`/log/api-stats` this endpint emit the rpc interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy)
 
 `/log/api-stats-reset` this endpoint trigger the reseting of data that hold api perf stats.
 

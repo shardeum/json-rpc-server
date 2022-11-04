@@ -9,9 +9,12 @@ const CONFIG      = require('../config');
 
 router.route('/api-stats').get(async(req: any, res: any) => {
   try {
-    const start = req.query.start  || 1
-    const end = req.query.end  || Date.now() + 1000
-    console.log(start,end);
+    const timeInputProcessor = (timestamp: string) => {
+      const t = timestamp.includes('-') ? timestamp : parseInt(timestamp);
+      return new Date(t).getTime();
+    }
+    const start = req.query.start ? timeInputProcessor(req.query.start) : 1 
+    const end = req.query.end ? timeInputProcessor(req.query.end) : Date.now()
 
     const raw = await db.prepare(`SELECT * FROM interface_stats WHERE timestamp BETWEEN ${start} AND ${end}`).all();
 
@@ -32,19 +35,27 @@ router.route('/api-stats').get(async(req: any, res: any) => {
     }
 
     for(const api_name in stats){
-
         stats[api_name].tFinals.sort();
         const length = stats[api_name].tFinals.length
         const index = length > 0 ? length - 1 : 0 
         stats[api_name].tMax = stats[api_name].tFinals[index] 
         stats[api_name].tMin = stats[api_name].tFinals[0]
+        stats[api_name].count = length
+
         for(const tfinal of stats[api_name].tFinals){
            stats[api_name].tTotal += tfinal
         }
         stats[api_name].tAvg = stats[api_name].tTotal/stats[api_name].tFinals.length
         delete stats[api_name].tFinals
     }
-    return res.json(stats).status(200)
+    const info = {
+      date: { 
+        start: new Date(start).toString(),
+        end: new Date(end).toString()
+      },
+      stats: stats
+    }
+    return res.json(info).status(200)
   } catch (e) {
     return res.json(e).status(500)
   }
