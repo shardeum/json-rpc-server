@@ -125,40 +125,49 @@ export function recordTxStatus(txStatus: TxStatus) {
 
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
     let {raw} = tx
-    axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
-        if (!config.recordTxStatus) return
-        let injectResult: InjectResponse = response.data
-        if (injectResult) {
-            recordTxStatus({
-                txHash,
-                raw,
-                injected: true,
-                accepted: injectResult.success,
-                reason: injectResult.reason || '',
-                timestamp: tx.timestamp || Date.now(),
-                ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
-            })
-        } else {
-            recordTxStatus({
-                txHash,
-                raw,
-                injected: false,
-                accepted: false,
-                reason: 'Unable to inject transaction into the network',
-                timestamp: tx.timestamp || Date.now(),
-                ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
-            })
-        }
-    }).catch(e => {
-        if (config.recordTxStatus) recordTxStatus({
-            txHash,
-            raw,
-            injected: false,
-            accepted: false,
-            reason: 'Unable to inject transaction into the network',
-            timestamp: tx.timestamp || Date.now(),
-            ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
-        })
+    return new Promise((resolve, reject) => {
+        axios.post(`${getBaseUrl()}/inject`, tx).then((response ) => {
+            let injectResult: InjectResponse = response.data
+            console.log('inject tx result',txHash, response.data)
+              if (!config.recordTxStatus) {
+                return resolve(injectResult ? injectResult.success : false)
+              }
+              
+              if (injectResult) {
+                  recordTxStatus({
+                      txHash,
+                      raw,
+                      injected: true,
+                      accepted: injectResult.success,
+                      reason: injectResult.reason || '',
+                      timestamp: tx.timestamp || Date.now(),
+                      ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
+                  })
+                  resolve(injectResult.success)
+              } else {
+                  recordTxStatus({
+                      txHash,
+                      raw,
+                      injected: false,
+                      accepted: false,
+                      reason: 'Unable to inject transaction into the network',
+                      timestamp: tx.timestamp || Date.now(),
+                      ip: args[1000] // this index slot is reserved for ip, check injectIP middleware
+                  })
+                  reject('Unable to inject transaction into the network')
+              }
+          }).catch(e => {
+              if (config.recordTxStatus) recordTxStatus({
+                  txHash,
+                  raw,
+                  injected: false,
+                  accepted: false,
+                  reason: 'Unable to inject transaction into the network',
+                  timestamp: tx.timestamp || Date.now(),
+                  ip: args[1000] // this index slot is reserved for ip, check injectIP middleware l
+              })
+              reject('Unable to inject transaction into the network')
+          })
     })
 }
 
@@ -587,9 +596,15 @@ export const methods = {
                 return txHash
             }
 
-            injectAndRecordTx(txHash, tx, args)
-
-            callback(null, txHash);
+            injectAndRecordTx(txHash, tx, args).then(success => {
+                if (success === true) {
+                    callback(null, txHash)
+                } else {
+                    callback('Transaction inject error', null)
+                }
+            }).catch(e => {
+                callback(e, null)
+            })
         } catch (e) {
             console.log(`Error while injecting tx to consensor`, e)
         } finally {
