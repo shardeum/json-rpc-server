@@ -599,14 +599,16 @@ export const methods = {
             injectAndRecordTx(txHash, tx, args).then(success => {
                 if (success === true) {
                     callback(null, txHash)
-                } else {
-                    callback('Transaction inject error', null)
+                }
+                if(success !== true && config.adaptiveRejection){
+                    callback({message: "Tx injection failure"}, null)
                 }
             }).catch(e => {
                 callback(e, null)
             })
         } catch (e) {
             console.log(`Error while injecting tx to consensor`, e)
+            callback({message: e}, null)
         } finally {
             logEventEmitter.emit('fn_end',ticket,performance.now())
         }
