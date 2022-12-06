@@ -15,6 +15,7 @@ type Config = {
     externalPort:number
   },
   faucetServerUrl: string
+  queryFromValidator: boolean,
   queryFromArchiver: boolean,
   explorerInfo: {
     ip: string,
@@ -70,12 +71,13 @@ const CONFIG: Config = {
     externalPort: 4000
   },
   faucetServerUrl: "https://faucet.liberty10.shardeum.org",
-  queryFromArchiver: true,
+  queryFromValidator: false,
+  queryFromArchiver: false,
   explorerInfo: {
     ip: "localhost",
     port: 6001
   },
-  queryFromExplorer: false,
+  queryFromExplorer: true,
   explorerRPCDataServerInfo: {
     externalIp: "localhost",
     externalPort: 4445
