@@ -21,6 +21,7 @@ type Config = {
     ip: string,
     port:number 
   },
+  explorerUrl: string,
   queryFromExplorer: boolean,
   explorerRPCDataServerInfo: {
     externalIp: string,
@@ -77,6 +78,7 @@ const CONFIG: Config = {
     ip: "localhost",
     port: 6001
   },
+  explorerUrl: "https://explorer-liberty10.shardeum.org",
   queryFromExplorer: true,
   explorerRPCDataServerInfo: {
     externalIp: "localhost",
@@ -84,7 +86,7 @@ const CONFIG: Config = {
   },
   generateTxTimestamp: true,
   recordTxStatus: true,
-  rateLimit: false,
+  rateLimit: true,
   rateLimitOption: {
     softReject: true,
     limitFromAddress: true,

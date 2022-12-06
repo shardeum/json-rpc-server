@@ -751,8 +751,9 @@ export const methods = {
                         result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
                     }
                     if (config.queryFromExplorer) {
-                        if (verbose) console.log('querying eth_getTransactionReceipt from explorer');
-                        const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+                       console.log('querying eth_getTransactionReceipt from explorer', txHash);
+                        // const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+                        const explorerUrl = config.explorerUrl
 
                         res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
                         if (verbose) {
@@ -857,8 +858,9 @@ export const methods = {
                 
                 result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
             } else if (!result && config.queryFromExplorer) {
-                if (verbose) console.log('querying eth_getTransactionReceipt from explorer');
-                const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+                console.log('querying eth_getTransactionReceipt from explorer', txHash);
+                // const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
+                const explorerUrl = config.explorerUrl
 
                 res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
                 if (verbose) {
