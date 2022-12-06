@@ -57,6 +57,10 @@ app.get('/api/subscribe', (req: any, res: any) => {
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
+app.get("/api/health", (req: any, res: any) => {
+  return res.json({ healthy: true }).status(200);
+});
+
 const requestersList = new RequestersList(blackList, spammerList)
 
 app.use(async (req: any, res: any, next: Function) => {
