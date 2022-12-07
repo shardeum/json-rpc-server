@@ -751,7 +751,7 @@ export const methods = {
                         result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
                     }
                     if (config.queryFromExplorer) {
-                       console.log('querying eth_getTransactionReceipt from explorer', txHash);
+                       console.log('querying eth_getTransactionByHash from explorer', txHash);
                         // const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
                         const explorerUrl = config.explorerUrl
 
