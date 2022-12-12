@@ -77,7 +77,7 @@ const CONFIG: Config = {
   },
   generateTxTimestamp: true,
   recordTxStatus: true,
-  rateLimit: true,
+  rateLimit: false,
   rateLimitOption: {
     softReject: true,
     limitFromAddress: true,
