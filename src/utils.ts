@@ -1,14 +1,14 @@
-const { Transaction, AccessListEIP2930Transaction } = require("@ethereumjs/tx");
-import {Account, Address, BN, bufferToHex, isValidAddress, toBuffer} from 'ethereumjs-util'
-import { recordTxStatus } from './api';
-const whiteList = require("../whitelist.json")
-const EventEmitter = require('events');
-const axios = require("axios");
-const config = require("./config")
+const { Transaction, AccessListEIP2930Transaction } = require('@ethereumjs/tx')
+import { Account, Address, BN, bufferToHex, isValidAddress, toBuffer } from 'ethereumjs-util'
+import { recordTxStatus } from './api'
+const whiteList = require('../whitelist.json')
+const EventEmitter = require('events')
+const axios = require('axios')
+const config = require('./config')
 const fs = require('fs')
 export let node = {
-    ip: 'localhost',
-    port: 9001
+  ip: 'localhost',
+  port: 9001,
 }
 
 let verbose = config.verbose
@@ -19,129 +19,141 @@ let allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 export async function updateNodeList(tryInfinate: boolean = false) {
-    const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
-    if (config.askLocalHostForArchiver === true) {
-        if (gotArchiver === false) {
-            gotArchiver = true
-            //TODO query a localhost (or other) node or a valid archiver IP
-        }
+  const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
+  if (config.askLocalHostForArchiver === true) {
+    if (gotArchiver === false) {
+      gotArchiver = true
+      //TODO query a localhost (or other) node or a valid archiver IP
     }
+  }
 
-    // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
-    const res = await requestWithRetry('GET',`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/full-nodelist`, {},nRetry, true)
+  // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
+  const res = await requestWithRetry(
+    'GET',
+    `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/full-nodelist`,
+    {},
+    nRetry,
+    true
+  )
 
-    const nodes = res.data.nodeList // <-
-    if (nodes.length > 0) {
-        if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
-            nodes.forEach((node: any) => {
-              node.ip = config.archiverIpInfo.externalIp
-            });
-        }
-        nodeList = [...nodes]
-        if (verbose) console.log('Nodelist is updated', nodeList.length)
+  const nodes = res.data.nodeList // <-
+  if (nodes.length > 0) {
+    if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
+      nodes.forEach((node: any) => {
+        node.ip = config.archiverIpInfo.externalIp
+      })
     }
+    nodeList = [...nodes]
+    if (verbose) console.log('Nodelist is updated', nodeList.length)
+  }
 }
 
 export async function waitRandomSecond() {
-    let second = Math.floor(Math.random() * 5) + 1
-    console.log(`Waiting ${second} second`)
-    if (verbose) console.log(`Waiting ${second} second`)
-    await sleep(second * 1000)
+  let second = Math.floor(Math.random() * 5) + 1
+  console.log(`Waiting ${second} second`)
+  if (verbose) console.log(`Waiting ${second} second`)
+  await sleep(second * 1000)
 }
 
 // nRetry negative number will retry infinitely
-export async function requestWithRetry(method: string, route: string, data: any = {}, nRetry: number = 5, isFullUrl = false) {
-    let retry = 0
-    const IS_INFINITY: boolean = (nRetry < 0)
-    let maxRetry = nRetry //set this to 0 with for load testing rpc server
+export async function requestWithRetry(
+  method: string,
+  route: string,
+  data: any = {},
+  nRetry: number = 5,
+  isFullUrl = false
+) {
+  let retry = 0
+  const IS_INFINITY: boolean = nRetry < 0
+  let maxRetry = nRetry //set this to 0 with for load testing rpc server
 
-    let success = false
-    while ((retry <= maxRetry) || IS_INFINITY) {
-        retry++
-        try {
-            // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
-            let url
-            if(!isFullUrl) url = `${getBaseUrl()}${route}`
-            else url = route
+  let success = false
+  while (retry <= maxRetry || IS_INFINITY) {
+    retry++
+    try {
+      // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
+      let url
+      if (!isFullUrl) url = `${getBaseUrl()}${route}`
+      else url = route
 
-            const res = await axios({
-                method,
-                url,
-                data,
-                timeout: 5000
-            });
-            if (res.status === 200 && !res.data.error) {
-                // success = true
-                return res //break
-            }
-        } catch (e: any) {
-            console.log('Error: requestWithRetry', e.message)
-        }
-
-        if(retry <= maxRetry){
-            if (verbose) console.log('Node is busy...will try again to another node in a few seconds')
-            await waitRandomSecond()
-        } else {
-            if (verbose) console.log('Node is busy...out of retries')
-        }
+      const res = await axios({
+        method,
+        url,
+        data,
+        timeout: 5000,
+      })
+      if (res.status === 200 && !res.data.error) {
+        // success = true
+        return res //break
+      }
+    } catch (e: any) {
+      console.log('Error: requestWithRetry', e.message)
     }
-    return { data: null }
+
+    if (retry <= maxRetry) {
+      if (verbose) console.log('Node is busy...will try again to another node in a few seconds')
+      await waitRandomSecond()
+    } else {
+      if (verbose) console.log('Node is busy...out of retries')
+    }
+  }
+  return { data: null }
 }
 
 export function getTransactionObj(tx: any): any {
-    if (!tx.raw) throw Error('No raw tx found.')
-    let transactionObj
-    const serializedInput = toBuffer(tx.raw)
+  if (!tx.raw) throw Error('No raw tx found.')
+  let transactionObj
+  const serializedInput = toBuffer(tx.raw)
+  try {
+    transactionObj = Transaction.fromRlpSerializedTx(serializedInput)
+    // if (verbose) console.log('Legacy tx parsed:', transactionObj)
+  } catch (e) {
+    // if (verbose) console.log('Unable to get legacy transaction obj', e)
+  }
+  if (!transactionObj) {
     try {
-        transactionObj = Transaction.fromRlpSerializedTx(serializedInput)
-        // if (verbose) console.log('Legacy tx parsed:', transactionObj)
+      transactionObj = AccessListEIP2930Transaction.fromRlpSerializedTx(serializedInput)
+      if (verbose) console.log('EIP2930 tx parsed:', transactionObj)
     } catch (e) {
-        // if (verbose) console.log('Unable to get legacy transaction obj', e)
+      console.log('Unable to get EIP2930 transaction obj', e)
     }
-    if (!transactionObj) {
-        try {
-            transactionObj = AccessListEIP2930Transaction.fromRlpSerializedTx(serializedInput)
-            if (verbose) console.log('EIP2930 tx parsed:', transactionObj)
-        } catch (e) {
-            console.log('Unable to get EIP2930 transaction obj', e)
-        }
-    }
+  }
 
-    if (transactionObj) {
-        return transactionObj
-    } else throw Error('tx obj fail')
+  if (transactionObj) {
+    return transactionObj
+  } else throw Error('tx obj fail')
 }
 
 export function intStringToHex(str: string) {
-    return '0x' + new BN(str).toString(16)
+  return '0x' + new BN(str).toString(16)
 }
 export function getBaseUrl() {
-    setConsensorNode()
-    return `http://${node.ip}:${node.port}`
+  setConsensorNode()
+  return `http://${node.ip}:${node.port}`
 }
 
 export function getArchiverUrl() {
-    // http://localhost:4000/nodelist
+  // http://localhost:4000/nodelist
   return `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
 }
 
 export function changeNode(ip: string, port: number) {
-    node.ip = ip
-    node.port = port
-    if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
+  node.ip = ip
+  node.port = port
+  if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
 }
 
 function rotateConsensorNode() {
-    let consensor: any = getNextConsensorNode()//getRandomConsensorNode()
-    if (consensor) {
-        let nodeIp = consensor.ip
-        //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
-        //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
-        if (config.useConfigNodeIp === true) {
-            nodeIp = config.nodeIpInfo.externalIp
-        }
-        changeNode(nodeIp, consensor.port)
+  let consensor: any = getNextConsensorNode() //getRandomConsensorNode()
+  if (consensor) {
+    let nodeIp = consensor.ip
+    //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
+    //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
+    if (config.useConfigNodeIp === true) {
+      nodeIp = config.nodeIpInfo.externalIp
     }
+    changeNode(nodeIp, consensor.port)
+  }
 }
 
 // export function apiStatCollector(methodName: any, args: string[]) {
@@ -155,18 +167,18 @@ function rotateConsensorNode() {
 
 // this is the main function to be called every RPC request
 export function setConsensorNode() {
-    if (config.dynamicConsensorNode) {
-        rotateConsensorNode()
-    } else {
-        changeNode(config.nodeIpInfo.externalIp, config.nodeIpInfo.externalPort)
-    }
+  if (config.dynamicConsensorNode) {
+    rotateConsensorNode()
+  } else {
+    changeNode(config.nodeIpInfo.externalIp, config.nodeIpInfo.externalPort)
+  }
 }
 
 export function getRandomConsensorNode() {
-    if (nodeList.length > 0) {
-        let randomIndex = Math.floor(Math.random() * nodeList.length)
-        return nodeList[randomIndex]
-    }
+  if (nodeList.length > 0) {
+    let randomIndex = Math.floor(Math.random() * nodeList.length)
+    return nodeList[randomIndex]
+  }
 }
 
 /**
@@ -174,30 +186,30 @@ export function getRandomConsensorNode() {
  * @returns
  */
 export function getNextConsensorNode() {
-    if (nodeList.length > 0) {
-        nextIndex++
-        if(nextIndex >= nodeList.length){
-            nextIndex = 0
-        }
-        return nodeList[nextIndex]
+  if (nodeList.length > 0) {
+    nextIndex++
+    if (nextIndex >= nodeList.length) {
+      nextIndex = 0
     }
+    return nodeList[nextIndex]
+  }
 }
 
 export function sleep(ms: number) {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve(true)
-        }, ms)
-    })
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true)
+    }, ms)
+  })
 }
 
 export async function getAccount(addressStr: any) {
-    try {
-        let res = await requestWithRetry('get', `/account/${addressStr}`)
-        return res.data.account
-    } catch (e) {
-        // console.log('getAccount error', e)
-    }
+  try {
+    let res = await requestWithRetry('get', `/account/${addressStr}`)
+    return res.data.account
+  } catch (e) {
+    // console.log('getAccount error', e)
+  }
 }
 
 export class RequestersList {
@@ -221,10 +233,10 @@ export class RequestersList {
     this.allRequestTracker = {}
     this.totalTxTracker = {}
     this.bannedIps = blackList.map((ip: string) => {
-      return {ip, timestamp: Date.now()}
+      return { ip, timestamp: Date.now() }
     })
     let self = this
-    if(config.rateLimit) {
+    if (config.rateLimit) {
       setInterval(() => {
         self.clearOldIps()
       }, config.rateLimitOption.releaseFromBlacklistInterval * 3600 * 1000)
@@ -235,11 +247,10 @@ export class RequestersList {
         self.checkAndBanSpammers()
       }, config.rateLimitOption.spammerCheckInterval * 60 * 1000)
     }
-
   }
 
   addToBlacklist(ip: string) {
-    this.bannedIps.push({ip, timestamp: Date.now()})
+    this.bannedIps.push({ ip, timestamp: Date.now() })
     fs.readFile('blacklist.json', function (err: any, currentDataStr: string) {
       const ipList = JSON.parse(currentDataStr)
       if (ipList.indexOf(ip) >= 0) return
@@ -268,7 +279,7 @@ export class RequestersList {
     const now = Date.now()
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
-      if(verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
+      if (verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
     }
     for (let [ip, reqHistory] of this.heavyRequests) {
       let i = 0
@@ -304,7 +315,8 @@ export class RequestersList {
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
-    if (config.verbose) console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
+    if (config.verbose)
+      console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
 
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
@@ -322,7 +334,9 @@ export class RequestersList {
     }
 
     // log abused contract addresses
-    let mostAbusedSorted: any[] = Object.values(this.abusedToAddresses).sort((a: any, b: any) => b.count - a.count)
+    let mostAbusedSorted: any[] = Object.values(this.abusedToAddresses).sort(
+      (a: any, b: any) => b.count - a.count
+    )
     for (let abusedData of mostAbusedSorted) {
       console.log(`Contract address: ${abusedData.to}. Count: ${abusedData.count}`)
       console.log(`Most frequent caller addresses:`)
@@ -335,19 +349,25 @@ export class RequestersList {
         }
         if (caller.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
           this.addSenderToBacklist(caller.from)
-          console.log(`Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`)
+          console.log(
+            `Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`
+          )
         }
       }
       console.log('------------------------------------------------------------')
     }
 
     // ban most abuse sender addresses
-    let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort((a: any, b: any) => b.count - a.count)
+    let mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort(
+      (a: any, b: any) => b.count - a.count
+    )
     console.log('Top 10 spammer addresses: ', mostAbusedSendersSorted.slice(0, 10))
     for (let spammerInfo of mostAbusedSendersSorted) {
       if (spammerInfo.count > allowedTxRate && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
         this.addSenderToBacklist(spammerInfo.address)
-        console.log(`Caller ${spammerInfo.address} is added to spammer list due to sending more than ${allowedTxRate} txs within 5 min.`)
+        console.log(
+          `Caller ${spammerInfo.address} is added to spammer list due to sending more than ${allowedTxRate} txs within 5 min.`
+        )
       }
     }
     console.log('Resetting rate-limit collector...')
@@ -369,12 +389,12 @@ export class RequestersList {
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
-      this.requestTracker[ip] = {ip, count: 1}
+      this.requestTracker[ip] = { ip, count: 1 }
     }
     if (this.totalTxTracker[ip]) {
       this.totalTxTracker[ip].count += 1
     } else {
-      this.totalTxTracker[ip] = {ip, count: 1}
+      this.totalTxTracker[ip] = { ip, count: 1 }
     }
     if (this.heavyRequests.get(ip)) {
       let reqHistory = this.heavyRequests.get(ip)
@@ -394,14 +414,14 @@ export class RequestersList {
   }
 
   addAbusedSender(address: string) {
-    console.log('adding abused sender', address);
+    console.log('adding abused sender', address)
 
     if (this.abusedSenders[address]) {
       this.abusedSenders[address].count += 1
     } else {
       this.abusedSenders[address] = {
         address,
-        count: 1
+        count: 1,
       }
     }
   }
@@ -416,13 +436,13 @@ export class RequestersList {
         if (fromData.ips[ip]) {
           fromData.ips[ip].count += 1
         } else {
-          fromData.ips[ip] = {ip, count: 1}
+          fromData.ips[ip] = { ip, count: 1 }
         }
       } else {
         let newFromData: any = {
           count: 1,
           from: fromAddress,
-          ips: {}
+          ips: {},
         }
         newFromData.ips[ip] = {
           count: 1,
@@ -439,7 +459,7 @@ export class RequestersList {
       let newFromData: any = {
         count: 1,
         from: fromAddress,
-        ips: {}
+        ips: {},
       }
       newFromData.ips[ip] = {
         count: 1,
@@ -453,13 +473,13 @@ export class RequestersList {
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
     } else {
-      this.allRequestTracker[ip] = {ip, count: 1}
+      this.allRequestTracker[ip] = { ip, count: 1 }
     }
   }
 
   isIpBanned(ip: string) {
     if (config.rateLimit && config.rateLimitOption.banIpAddress) {
-      let bannedIpList = this.bannedIps.map(data => data.ip)
+      let bannedIpList = this.bannedIps.map((data) => data.ip)
       if (bannedIpList.indexOf(ip) >= 0) return true
       else return false
     } else {
@@ -503,7 +523,7 @@ export class RequestersList {
     if (whiteList.indexOf(ip) >= 0) return true
 
     if (this.isIpBanned(ip)) {
-      if(verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
+      if (verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
       return false
     }
 
@@ -525,25 +545,33 @@ export class RequestersList {
 
     let transaction
     try {
-      if (reqType === 'eth_sendRawTransaction') transaction = getTransactionObj({raw: reqParams[0]})
-    } catch (e) {
-
-    }
+      if (reqType === 'eth_sendRawTransaction') transaction = getTransactionObj({ raw: reqParams[0] })
+    } catch (e) {}
 
     if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin) {
-      if (now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] < oneMinute) {
-        if (verbose) console.log(`Your last heavy req is less than 60s ago`, `total requests: ${heavyReqHistory.length}, `, Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000), 'seconds')
+      if (
+        now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] <
+        oneMinute
+      ) {
+        if (verbose)
+          console.log(
+            `Your last heavy req is less than 60s ago`,
+            `total requests: ${heavyReqHistory.length}, `,
+            Math.round((now - heavyReqHistory[heavyReqHistory.length - 10]) / 1000),
+            'seconds'
+          )
         if (transaction) {
           if (verbose) console.log('tx rejected', bufferToHex(transaction.hash()))
-          if (config.recordTxStatus) recordTxStatus({
-            txHash: bufferToHex(transaction.hash()),
-            ip: ip,
-            raw: '',
-            injected: false,
-            accepted: false,
-            reason: 'Rejected by JSON RPC rate limiting',
-            timestamp: now
-          })
+          if (config.recordTxStatus)
+            recordTxStatus({
+              txHash: bufferToHex(transaction.hash()),
+              ip: ip,
+              raw: '',
+              injected: false,
+              accepted: false,
+              reason: 'Rejected by JSON RPC rate limiting',
+              timestamp: now,
+            })
         }
         return false
       }
@@ -556,14 +584,18 @@ export class RequestersList {
           to: transaction.to ? transaction.to.toString() : '',
           value: transaction.value.toString(),
           data: bufferToHex(transaction.data),
-          hash: bufferToHex(transaction.hash())
+          hash: bufferToHex(transaction.hash()),
         }
         if (readableTx.from) this.addHeavyAddress(readableTx.from)
         if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
 
         let fromAddressHistory = this.heavyAddresses.get(readableTx.from)
 
-        if (config.rateLimit && config.rateLimitOption.limitFromAddress && this.isSenderBlacklisted(readableTx.from)) {
+        if (
+          config.rateLimit &&
+          config.rateLimitOption.limitFromAddress &&
+          this.isSenderBlacklisted(readableTx.from)
+        ) {
           if (verbose) console.log(`Sender ${readableTx.from} is blacklisted.`)
           return false
         }
@@ -572,15 +604,16 @@ export class RequestersList {
           if (fromAddressHistory && fromAddressHistory.length >= 10) {
             if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
               if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 60s`)
-              if (config.recordTxStatus) recordTxStatus({
-                txHash: bufferToHex(transaction.hash()),
-                raw: reqParams[0],
-                ip: ip,
-                injected: false,
-                accepted: false,
-                reason: 'Rejected by JSON RPC rate limiting',
-                timestamp: now
-              })
+              if (config.recordTxStatus)
+                recordTxStatus({
+                  txHash: bufferToHex(transaction.hash()),
+                  raw: reqParams[0],
+                  ip: ip,
+                  injected: false,
+                  accepted: false,
+                  reason: 'Rejected by JSON RPC rate limiting',
+                  timestamp: now,
+                })
               this.addAbusedAddress(readableTx.to, readableTx.from, ip)
               this.addAbusedSender(readableTx.from.toLowerCase())
               return false
@@ -591,14 +624,20 @@ export class RequestersList {
         if (config.rateLimit && config.rateLimitOption.limitToAddress) {
           let toAddressHistory = this.heavyAddresses.get(readableTx.to)
           if (toAddressHistory && toAddressHistory.length >= 10) {
-            if (now - toAddressHistory[toAddressHistory.length - 10] <  oneMinute) {
+            if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
               this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-              if (verbose) console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
+              if (verbose)
+                console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
 
               if (config.rateLimitOption.allowFaucetAccount) {
-                const isFaucetAccount = await this.checkFaucetAccount(readableTx.from.toLowerCase(), 'discord')
+                const isFaucetAccount = await this.checkFaucetAccount(
+                  readableTx.from.toLowerCase(),
+                  'discord'
+                )
                 if (isFaucetAccount) {
-                  console.log(`Allow address ${readableTx.from} to an abused contract because it is a faucet account`)
+                  console.log(
+                    `Allow address ${readableTx.from} to an abused contract because it is a faucet account`
+                  )
                   return true
                 }
               }
@@ -607,12 +646,12 @@ export class RequestersList {
                 recordTxStatus({
                   txHash: bufferToHex(transaction.hash()),
                   ip: ip,
-                    raw: reqParams[0],
-                    injected: false,
-                    accepted: false,
-                    reason: 'Rejected by JSON RPC rate limiting',
-                    timestamp: now
-                  })
+                  raw: reqParams[0],
+                  injected: false,
+                  accepted: false,
+                  reason: 'Rejected by JSON RPC rate limiting',
+                  timestamp: now,
+                })
               }
               return false
             }
@@ -627,43 +666,46 @@ export class RequestersList {
   }
 }
 
-export async function getTransactionReceipt(hash: string){
-    let txHash = hash
-    let res = await requestWithRetry('get', `/tx/${txHash}`)
-    let result = res.data.account ? res.data.account.readableReceipt : null
-    if (result) {
-        if (!result.to || result.to == '') result.to = null
-        if (result.logs == null) result.logs = []
-        if (result.status == 0) result.status = '0x0'
-        if (result.status == 1) result.status = '0x1'
-    }
-    return result
+export async function getTransactionReceipt(hash: string) {
+  let txHash = hash
+  let res = await requestWithRetry('get', `/tx/${txHash}`)
+  let result = res.data.account ? res.data.account.readableReceipt : null
+  if (result) {
+    if (!result.to || result.to == '') result.to = null
+    if (result.logs == null) result.logs = []
+    if (result.status == 0) result.status = '0x0'
+    if (result.status == 1) result.status = '0x1'
+  }
+  return result
 }
 
 export enum TxStatusCode {
-    BAD_TX = 0,
-   SUCCESS = 1,
-   BUSY = 2,
-   OTHER_FAILURE = 3,
+  BAD_TX = 0,
+  SUCCESS = 1,
+  BUSY = 2,
+  OTHER_FAILURE = 3,
 }
-export function getReasonEnumCode(reason: string){
-    const _REASONS = new Map();
-    _REASONS.set('Maximum load exceeded.'.toLowerCase(),TxStatusCode.BUSY)
-    _REASONS.set('Not ready to accept transactions, shard calculations pending'.toLowerCase(),TxStatusCode.BUSY)
-    _REASONS.set('Network conditions to allow transactions are not met.'.toLowerCase(),TxStatusCode.BUSY)
-    _REASONS.set('Network conditions to allow app init via set'.toLowerCase(),TxStatusCode.BUSY)
+export function getReasonEnumCode(reason: string) {
+  const _REASONS = new Map()
+  _REASONS.set('Maximum load exceeded.'.toLowerCase(), TxStatusCode.BUSY)
+  _REASONS.set(
+    'Not ready to accept transactions, shard calculations pending'.toLowerCase(),
+    TxStatusCode.BUSY
+  )
+  _REASONS.set('Network conditions to allow transactions are not met.'.toLowerCase(), TxStatusCode.BUSY)
+  _REASONS.set('Network conditions to allow app init via set'.toLowerCase(), TxStatusCode.BUSY)
 
-    _REASONS.set('Transaction timestamp cannot be determined.'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Transaction Expired'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Dev key is not defined on the server!'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Invalid signature'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Transaction is not valid. Cannot get txObj.'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Transaction is not signed or signature is not valid.'.toLowerCase(),TxStatusCode.BAD_TX)
-    _REASONS.set('Cannot derive sender address from tx'.toLowerCase(),TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction timestamp cannot be determined.'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction Expired'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Dev key is not defined on the server!'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Invalid signature'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction is not valid. Cannot get txObj.'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction is not signed or signature is not valid.'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Cannot derive sender address from tx'.toLowerCase(), TxStatusCode.BAD_TX)
 
-    _REASONS.set('Transaction queued, poll for results.'.toLowerCase(),TxStatusCode.SUCCESS)
+  _REASONS.set('Transaction queued, poll for results.'.toLowerCase(), TxStatusCode.SUCCESS)
 
-    const code = _REASONS.get(reason.toLowerCase())
+  const code = _REASONS.get(reason.toLowerCase())
 
-    return code ? code : TxStatusCode.OTHER_FAILURE
+  return code ? code : TxStatusCode.OTHER_FAILURE
 }

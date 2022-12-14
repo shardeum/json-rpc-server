@@ -15,7 +15,6 @@ Default values are `1000` for `max` and `0` for page.
 
 `/log/cleanLogDB` this endpoint wipe the db holding the tx data
 
-`/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database. 
+`/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database.
 
 `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database
-
