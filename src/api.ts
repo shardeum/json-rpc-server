@@ -771,11 +771,18 @@ export const methods = {
     }
     while (retry < 10 && !success) {
       try {
-        //let res = await axios.get(`${getBaseUrl()}/tx/${txHash}`)
         let res
         if (config.queryFromValidator) {
           res = await requestWithRetry('get', `/tx/${txHash}`)
           result = res.data.account ? res.data.account.readableReceipt : null
+          if (result && result.readableReceipt){
+            result = result.readableReceipt
+          } else if (result && result.appData && result.appData.data){   
+            result = result.appData.data.readableReceipt
+          } 
+          if(!result && res.data && res.data.error){
+            if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
+          }
         }
         if (result == null) {
           if (verbose) {
@@ -790,7 +797,7 @@ export const methods = {
             result = res.data.transactions ? res.data.transactions.data.readableReceipt : null
           }
           if (config.queryFromExplorer) {
-            console.log('querying eth_getTransactionByHash from explorer', txHash)
+            if (verbose) console.log('querying eth_getTransactionByHash from explorer', txHash)
             // const explorerUrl = `http://${config.explorerInfo.ip}:${config.explorerInfo.port}`
             const explorerUrl = config.explorerUrl
 
@@ -888,6 +895,14 @@ export const methods = {
       if (config.queryFromValidator) {
         res = await requestWithRetry('get', `/tx/${txHash}`)
         result = res.data.account ? res.data.account.readableReceipt : null
+        if (result && result.readableReceipt){
+          result = result.readableReceipt
+        } else if (result && result.appData && result.appData.data){   
+          result = result.appData.data.readableReceipt
+        } 
+        if(!result && res.data && res.data.error){
+          if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
+        }
       }
       if (!result && config.queryFromArchiver) {
         if (verbose) console.log('querying eth_getTransactionReceipt from archiver')

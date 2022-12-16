@@ -2,7 +2,7 @@ type Config = {
   port: number
   chainId: number
   nodeIpInfo: {
-    externalIp: ''
+    externalIp:string ,
     externalPort: number
   }
   dynamicConsensorNode: boolean
