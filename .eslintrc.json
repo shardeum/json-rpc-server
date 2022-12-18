@@ -1,4 +1,21 @@
 {
-  "plugins": [],
-  "extends": ["prettier"]
+ "root": true,
+ "parser": "@typescript-eslint/parser",
+ "env": {
+  //"browser": true,
+  "node": true
+},
+ "plugins": [
+   "@typescript-eslint",
+   "security",
+   "xss"
+ ],
+ "extends": [
+   //"eslint:recommended",
+   //"plugin:@typescript-eslint/eslint-recommended",
+   //"plugin:@typescript-eslint/recommended",
+   //"plugin:security/recommended",
+   "plugin:no-unsanitized/DOM",
+   "prettier"
+ ]
 }
