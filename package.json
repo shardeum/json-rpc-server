@@ -4,6 +4,7 @@
   "description": "JSON RPC server for shardium platform",
   "main": "server.js",
   "scripts": {
+    "lint": "eslint ./**/*.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run compile && node dist/server.js",
     "compile": "tsc -p .",

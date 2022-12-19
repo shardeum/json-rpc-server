@@ -14,7 +14,7 @@
    //"eslint:recommended",
    //"plugin:@typescript-eslint/eslint-recommended",
    //"plugin:@typescript-eslint/recommended",
-   //"plugin:security/recommended",
+   "plugin:security/recommended",
    "plugin:no-unsanitized/DOM",
    "prettier"
  ]

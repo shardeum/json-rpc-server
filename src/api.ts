@@ -571,6 +571,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
   eth_sendRawTransaction: async function (args: any, callback: any) {
+    // This function works on trusted data. We are sending data out
+    // As such, we can ignore Generic Object Injection Sink
+    // we need to ensure any arguments sent to this function are trusted
+    /* eslint-disable security/detect-object-injection */
     const api_name = 'eth_sendRawTransaction'
     const ticket = crypto
       .createHash('sha1')

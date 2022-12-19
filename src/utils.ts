@@ -177,7 +177,7 @@ export function setConsensorNode() {
 export function getRandomConsensorNode() {
   if (nodeList.length > 0) {
     let randomIndex = Math.floor(Math.random() * nodeList.length)
-    return nodeList[randomIndex]
+    return nodeList[randomIndex] // eslint-disable-line security/detect-object-injection
   }
 }
 
@@ -191,7 +191,7 @@ export function getNextConsensorNode() {
     if (nextIndex >= nodeList.length) {
       nextIndex = 0
     }
-    return nodeList[nextIndex]
+    return nodeList[nextIndex] // eslint-disable-line security/detect-object-injection
   }
 }
 
@@ -276,6 +276,7 @@ export class RequestersList {
   }
 
   clearOldIps() {
+    /* eslint-disable security/detect-object-injection */
     const now = Date.now()
     const oneMinute = 60 * 1000
     for (let [ip, reqHistory] of this.heavyRequests) {
@@ -304,6 +305,7 @@ export class RequestersList {
       if (now - record.timestamp >= 60 * 60 * 1000) return false
       else return true
     })
+    /* eslint-enable security/detect-object-injection */
   }
 
   checkAndBanSpammers() {
@@ -322,7 +324,7 @@ export class RequestersList {
     let txRecords = Object.values(this.totalTxTracker)
     txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
     for (let i = 0; i < txRecords.length; i++) {
-      let txRecord: any = txRecords[i]
+      let txRecord: any = txRecords[i] // eslint-disable-line security/detect-object-injection
       if (txRecord.count >= allowedTxRate) {
         if (whiteList.indexOf(txRecord.ip) === -1) {
           if (config.rateLimit && config.rateLimitOption.banIpAddress) {
@@ -386,6 +388,7 @@ export class RequestersList {
   }
 
   addHeavyRequest(ip: string) {
+    /*eslint-disable security/detect-object-injection */
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
@@ -402,6 +405,7 @@ export class RequestersList {
     } else {
       this.heavyRequests.set(ip, [Date.now()])
     }
+    /* eslint-enable security/detect-object-injection */
   }
 
   addHeavyAddress(address: string) {
@@ -414,6 +418,7 @@ export class RequestersList {
   }
 
   addAbusedSender(address: string) {
+    /*eslint-disable security/detect-object-injection */
     console.log('adding abused sender', address)
 
     if (this.abusedSenders[address]) {
@@ -424,9 +429,11 @@ export class RequestersList {
         count: 1,
       }
     }
+    /*eslint-enable security/detect-object-injection */
   }
 
   addAbusedAddress(toAddress: string, fromAddress: string, ip: string) {
+    /*eslint-disable security/detect-object-injection */
     if (this.abusedToAddresses[toAddress]) {
       this.abusedToAddresses[toAddress].count += 1
       let fromData = this.abusedToAddresses[toAddress].from[fromAddress]
@@ -467,14 +474,17 @@ export class RequestersList {
       }
       this.abusedToAddresses[toAddress].from[fromAddress] = newFromData
     }
+    /*eslint-enable security/detect-object-injection */
   }
 
   addAllRequest(ip: string) {
+    /*eslint-disable security/detect-object-injection */
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
     } else {
       this.allRequestTracker[ip] = { ip, count: 1 }
     }
+    /*eslint-enable security/detect-object-injection */
   }
 
   isIpBanned(ip: string) {
@@ -507,7 +517,7 @@ export class RequestersList {
       const res = await axios.get(url)
       if (res.data && res.data.count > 0) {
         if (!allowPlatform) return true
-        if (res.data.groupBy[allowPlatform] > 0) return true
+        if (res.data.groupBy[allowPlatform] > 0) return true //eslint-disable-line security/detect-object-injection
         return false
       } else return false
     } catch (e) {

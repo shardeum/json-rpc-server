@@ -35,7 +35,7 @@ export async function saveInterfaceStat() {
   let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}'`
   let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
   for (let i = 1; i < apiPerfLogData.length; i++) {
-    const { api_name, tfinal, timestamp } = apiPerfLogData[i]
+    const { api_name, tfinal, timestamp } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
     placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}'`
     sql = sql + `, (${placeholders})`
   }
@@ -46,9 +46,10 @@ export async function saveInterfaceStat() {
 }
 
 export function setupLogEvents() {
+  /* eslint-disable security/detect-object-injection */
   if (config.statLog) {
     logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
-      apiPerfLogTicket[ticket] = {
+      apiPerfLogTicket[ticket] = { 
         api_name: api_name,
         start_timer: start_timer,
       }
@@ -112,6 +113,7 @@ export function setupLogEvents() {
       txStatusSaver(detailedList)
     })
   }
+  /* eslint-enable security/detect-object-injection */
 }
 
 // this function save recorded transaction to sqlite with its tx type
@@ -127,7 +129,7 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
       let placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
       let sql = 'INSERT OR REPLACE INTO transactions VALUES (' + placeholders + ')'
       for (let i = 1; i < txs.length; i++) {
-        const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[i]
+        const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[i] // eslint-disable-line security/detect-object-injection
         placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
         sql = sql + `, (${placeholders})`
       }
