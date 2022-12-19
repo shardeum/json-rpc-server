@@ -584,49 +584,60 @@ export const methods = {
       console.log('Running sendRawTransaction', args)
     }
     try {
-      const raw = args[0]
-      const tx: any = {
-        raw,
-      }
-      if (config.generateTxTimestamp) tx.timestamp = now
-      const transaction = getTransactionObj(tx)
+      let isInternalTx = args[1]
+      let tx: any
+      let txHash = ''
 
-      const txHash = bufferToHex(transaction.hash())
-      const currentTxNonce = transaction.nonce.toNumber()
-      const sender = transaction.getSenderAddress().toString()
+      if (isInternalTx == null) {
+        console.log('We are processing an internal tx')
+        tx = args[0]
+        txHash = ''
+        const sender = ''
+      } else {
+        let raw = args[0]
+        tx = {
+          raw,
+        }
+        if (config.generateTxTimestamp) tx.timestamp = now
+        const transaction = getTransactionObj(tx)
 
-      if (config.nonceValidate && txMemPool[sender] && txMemPool[sender].length > 0) {
-        const maxIteration = txMemPool[sender].length
-        let count = 0
-        while (count < maxIteration) {
-          count++
+        txHash = bufferToHex(transaction.hash())
+        const currentTxNonce = transaction.nonce.toNumber()
+        const sender = transaction.getSenderAddress().toString()
 
-          if (
-            txMemPool[sender][0].nonce < currentTxNonce &&
-            txMemPool[sender][0].nonce === nonceTracker[sender] + 1
-          ) {
-            const pendingTx = txMemPool[sender].shift()
-            console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
-            injectAndRecordTx(txHash, pendingTx.tx, args)
-            nonceTracker[sender] = pendingTx.nonce
-            console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`)
-            await sleep(500)
+        if (config.nonceValidate && txMemPool[sender] && txMemPool[sender].length > 0) {
+          let maxIteration = txMemPool[sender].length
+          let count = 0
+          while (count < maxIteration) {
+            count++
+
+            if (
+              txMemPool[sender][0].nonce < currentTxNonce &&
+              txMemPool[sender][0].nonce === nonceTracker[sender] + 1
+            ) {
+              let pendingTx = txMemPool[sender].shift()
+              console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
+              injectAndRecordTx(txHash, pendingTx.tx, args)
+              nonceTracker[sender] = pendingTx.nonce
+              console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`)
+              await sleep(500)
+            }
           }
         }
-      }
 
-      const lastTxNonce = nonceTracker[sender]
+        let lastTxNonce = nonceTracker[sender]
 
-      if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
-        console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
-        if (txMemPool[sender]) {
-          txMemPool[sender].push({ nonce: currentTxNonce, tx })
-          txMemPool[sender] = txMemPool[sender].sort((a: any, b: any) => a.nonce - b.nonce)
-        } else {
-          txMemPool[sender] = [{ nonce: currentTxNonce, tx }]
+        if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
+          console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
+          if (txMemPool[sender]) {
+            txMemPool[sender].push({ nonce: currentTxNonce, tx })
+            txMemPool[sender] = txMemPool[sender].sort((a: any, b: any) => a.nonce - b.nonce)
+          } else {
+            txMemPool[sender] = [{ nonce: currentTxNonce, tx }]
+          }
+          nonceTracker[sender] = currentTxNonce
+          return txHash
         }
-        nonceTracker[sender] = currentTxNonce
-        return txHash
       }
 
       injectAndRecordTx(txHash, tx, args)
@@ -636,6 +647,44 @@ export const methods = {
           }
           if (success !== true && config.adaptiveRejection) {
             callback({ message: 'Tx injection failure' }, null)
+          }
+        })
+        .catch((e) => {
+          callback(e, null)
+        })
+    } catch (e) {
+      console.log(`Error while injecting tx to consensor`, e)
+      callback({ message: e }, null)
+    } finally {
+      logEventEmitter.emit('fn_end', ticket, performance.now())
+    }
+  },
+  eth_sendInternalTransaction: async function (args: any, callback: any) {
+    const api_name = 'eth_sendInternalTransaction'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+    let now = Date.now()
+    if (verbose) {
+      console.log('Sending internal tx to /inject endpoint', new Date(now), now)
+      console.log('Running eth_sendInternalTransaction', args)
+    }
+    try {
+      let internalTx = args[0]
+
+      if (config.generateTxTimestamp && internalTx.timestamp == null) internalTx.timestamp = now
+
+      const txHash = ''
+
+      injectAndRecordTx(txHash, internalTx, args)
+        .then((success) => {
+          if (success === true) {
+            callback(null, txHash)
+          }
+          if (success !== true && config.adaptiveRejection) {
+            callback({ message: 'Internal tx injection failure' }, null)
           }
         })
         .catch((e) => {
@@ -778,9 +827,9 @@ export const methods = {
           result = res.data.account ? res.data.account.readableReceipt : null
           if (result && result.readableReceipt){
             result = result.readableReceipt
-          } else if (result && result.appData && result.appData.data){   
+          } else if (result && result.appData && result.appData.data){
             result = result.appData.data.readableReceipt
-          } 
+          }
           if(!result && res.data && res.data.error){
             if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
           }
@@ -901,9 +950,9 @@ export const methods = {
         result = res.data.account ? res.data.account.readableReceipt : null
         if (result && result.readableReceipt){
           result = result.readableReceipt
-        } else if (result && result.appData && result.appData.data){   
+        } else if (result && result.appData && result.appData.data){
           result = result.appData.data.readableReceipt
-        } 
+        }
         if(!result && res.data && res.data.error){
           if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
         }
