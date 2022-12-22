@@ -763,7 +763,7 @@ export const methods = {
       input: '0x68656c6c6f21',
       nonce: '0x15', // 21
       to: '0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb',
-      transactionIndex: '0x41', // 65
+      transactionIndex: '0x1', // 1
       value: '0xf3dbb76162000', // 4290000000000000
       v: '0x25', // 37
       r: '0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea',
@@ -830,7 +830,6 @@ export const methods = {
       callback(errorBusy)
       return
     }
-    if (!result.to) result.to = '0x' + '0'.repeat(42)
     if (result.value === '0') {
       result.value = '0x0'
     }
@@ -844,6 +843,10 @@ export const methods = {
     defaultResult.nonce = nonce
     defaultResult.contractAddress = result.contractAddress
     defaultResult.data = result.data
+    defaultResult.blockHash = result.blockHash
+    defaultResult.blockNumber = result.blockNumber
+    defaultResult.value = result.value
+    defaultResult.gas = result.gasUsed
     if (verbose) console.log('Final Tx:', txHash, defaultResult)
     callback(null, defaultResult)
     logEventEmitter.emit('fn_end', ticket, performance.now())
