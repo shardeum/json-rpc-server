@@ -4,6 +4,7 @@ import fs from 'fs'
 export let db: any
 
 async function init() {
+  /* eslint-disable security/detect-non-literal-fs-filename */
   const dir = './log'
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir)
@@ -11,6 +12,7 @@ async function init() {
   db = new Database(`${dir}/log.sqlite3`)
   await db.pragma('journal_mode = WAL')
   console.log('Database initialized.')
+  /* eslint-enable security/detect-non-literal-fs-filename */
 }
 
 async function createTables() {

@@ -1,39 +1,35 @@
-const jayson = require('jayson')
-
-const url = require('url')
-const cors = require('cors')
-const connect = require('connect')
-const express = require('express')
-const cookieParser = require('cookie-parser')
-import { methods, verbose, recordTxStatus, forwardTxStatusToExplorer } from './api'
-import { apiPerfLogData, setupLogEvents } from './logger'
+import jayson from 'jayson'
+import cors from 'cors'
+import express from 'express'
+import cookieParser from 'cookie-parser'
+import { methods, forwardTxStatusToExplorer } from './api'
+import { setupLogEvents } from './logger'
 import authorize from './middlewares/authorize'
 import injectIP from './middlewares/injectIP'
 import { setupDatabase } from './storage/sqliteStorage'
 import {
   changeNode,
   setConsensorNode,
-  getTransactionObj,
   updateNodeList,
   RequestersList,
   sleep,
 } from './utils'
-const logRoute = require('./routes/log')
-const authenticate = require('./routes/authenticate')
+import {router as logRoute} from './routes/log'
+import {router as authenticate} from './routes/authenticate'
 
-const config = require('./config')
+import {CONFIG as config} from './config'
 
-const blackList = require('../blacklist.json')
-const spammerList = require('../spammerlist.json')
+import blackList from '../blacklist.json'
+import spammerList from '../spammerlist.json'
 
 const app = express()
 const server = new jayson.Server(methods)
 let port = config.port //8080
-let chainId = config.chainId //8080
+const chainId = config.chainId //8080
 
 const myArgs = process.argv.slice(2)
 if (myArgs.length > 0) {
-  port = myArgs[0]
+  port = parseInt(myArgs[0])
   config.port = port
   console.log(`json-rpc-server port console override to:${port}`)
 }
@@ -80,11 +76,11 @@ app.use(async (req: any, res: any, next: Function) => {
   }
   //console.log('IP is ', ip)
 
-  let reqParams = req.body.params
+  const reqParams = req.body.params
   const isRequestOkay = await requestersList.isRequestOkay(ip, req.body.method, reqParams)
   if (!isRequestOkay) {
     if (config.rateLimitOption.softReject) {
-      let randomSleepTime = 10 + Math.floor(Math.random() * 10)
+      const randomSleepTime = 10 + Math.floor(Math.random() * 10)
       await sleep(randomSleepTime * 1000)
       res.status(503).send('Network is currently busy. Please try again later.')
       return
@@ -101,7 +97,7 @@ app.use('/authenticate', authenticate)
 app.use(injectIP)
 app.use(server.middleware())
 
-updateNodeList(true).then((success) => {
+updateNodeList(true).then(() => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
   setInterval(forwardTxStatusToExplorer, 10000)

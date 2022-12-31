@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { bufferToHex, BN } from 'ethereumjs-util'
+import { bufferToHex } from 'ethereumjs-util'
 import {
   getAccount,
   getTransactionObj,
@@ -8,31 +8,28 @@ import {
   getBaseUrl,
   getArchiverUrl,
   requestWithRetry,
-  waitRandomSecond,
   TxStatusCode,
+  RequestMethod,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import { isConstructorDeclaration } from 'typescript'
-const config = require('./config') as Config
+import {CONFIG as config} from './config' 
 
-export let verbose = config.verbose
+export const verbose = config.verbose
 
-let lastQueryTimestamp: number = 0
-let lastCycleCounter: string = '0x0'
+const lastCycleCounter = '0x0'
 let lastCycleInfo = {
   blockNumber: lastCycleCounter,
   timestamp: '0x0',
 }
 
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
-const errorCode: number = 500 //server internal error
+const errorCode = 500 //server internal error
 const errorBusy = { code: errorCode, message: 'Busy or error' }
 export let txStatuses: TxStatus[] = []
-let maxTxCountToStore = 1000
-let lastTxNonce: any
-let txMemPool: any = {}
-let nonceTracker: any = {}
+const maxTxCountToStore = 1000
+const txMemPool: any = {}
+const nonceTracker: any = {}
 
 type InjectResponse = {
   success: boolean
@@ -66,9 +63,9 @@ async function getCurrentBlockInfo() {
 
   try {
     if (verbose) console.log('Querying getCurrentBlockInfo from validator')
-    let res = await requestWithRetry('get', `/eth_blockNumber`)
-    let blockNumber = res.data.blockNumber
-    let timestamp = Date.now()
+    const res = await requestWithRetry(RequestMethod.Get, `/eth_blockNumber`)
+    const blockNumber = res.data.blockNumber
+    const timestamp = Date.now()
     result = { blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp)) }
     lastCycleInfo = result
     return result
@@ -82,7 +79,7 @@ async function getCurrentBlock() {
   let blockNumber = '0'
   let timestamp = '0x55ba467c'
   try {
-    let result = await getCurrentBlockInfo()
+    const result = await getCurrentBlockInfo()
     blockNumber = result.blockNumber
     timestamp = result.timestamp
   } catch (e) {
@@ -124,12 +121,12 @@ export function recordTxStatus(txStatus: TxStatus) {
 }
 
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
-  let { raw } = tx
+  const { raw } = tx
   return new Promise((resolve, reject) => {
     axios
       .post(`${getBaseUrl()}/inject`, tx)
       .then((response) => {
-        let injectResult: InjectResponse = response.data
+        const injectResult: InjectResponse = response.data
         console.log('inject tx result', txHash, response.data)
         if (!config.recordTxStatus) {
           return resolve(injectResult ? injectResult.success : false)
@@ -159,7 +156,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
           reject('Unable to inject transaction into the network')
         }
       })
-      .catch((e) => {
+      .catch(() => {
         if (config.recordTxStatus)
           recordTxStatus({
             txHash,
@@ -200,7 +197,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getCurrentBlockInfo', args)
     }
-    let result = 'Mist/v0.9.3/darwin/go1.4.1'
+    const result = 'Mist/v0.9.3/darwin/go1.4.1'
     callback(null, result)
 
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -216,7 +213,7 @@ export const methods = {
     if (verbose) {
       console.log('Running web3_sha', args)
     }
-    let result = '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad'
+    const result = '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad'
     callback(null, result)
 
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -232,7 +229,7 @@ export const methods = {
     if (verbose) {
       console.log('Running net_version', args)
     }
-    let chainId = config.chainId
+    const chainId = config.chainId
     callback(null, chainId)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -246,7 +243,7 @@ export const methods = {
     if (verbose) {
       console.log('Running net_listening', args)
     }
-    let result = true
+    const result = true
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -260,7 +257,7 @@ export const methods = {
     if (verbose) {
       console.log('Running net_peerCount', args)
     }
-    let result = '0x2'
+    const result = '0x2'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -274,7 +271,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_protocolVersion', args)
     }
-    let result = '54'
+    const result = '54'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -288,7 +285,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_syncing', args)
     }
-    let result = 'false'
+    const result = 'false'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -302,7 +299,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_coinbase', args)
     }
-    let result = ''
+    const result = ''
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -316,7 +313,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_mining', args)
     }
-    let result = true
+    const result = true
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -330,7 +327,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_hashrate', args)
     }
-    let result = '0x38a'
+    const result = '0x38a'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -344,7 +341,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_gasPrice', args)
     }
-    let result = '0x1dfd14000'
+    const result = '0x1dfd14000'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -358,7 +355,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_accounts', args)
     }
-    let result = ['0x407d73d8a49eeb85d32cf465507dd71d507100c1']
+    const result = ['0x407d73d8a49eeb85d32cf465507dd71d507100c1']
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -372,7 +369,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_blockNumber', args)
     }
-    let { blockNumber } = await getCurrentBlockInfo()
+    const { blockNumber } = await getCurrentBlockInfo()
     if (verbose) console.log('BLOCK NUMBER', blockNumber, parseInt(blockNumber, 16))
     if (blockNumber == null) {
       callback(null, '0x0')
@@ -394,13 +391,13 @@ export const methods = {
     }
     let balance = '0x0'
     try {
-      let address = args[0]
+      const address = args[0]
       if (verbose) console.log('address', address)
       if (verbose) console.log('ETH balance', typeof balance, balance)
-      let account = await getAccount(address)
+      const account = await getAccount(address)
       if (verbose) console.log('account', account)
       if (verbose) console.log('Shardium balance', typeof account.balance, account.balance)
-      let SHD = intStringToHex(account.balance)
+      const SHD = intStringToHex(account.balance)
       if (verbose) console.log('SHD', typeof SHD, SHD)
       balance = intStringToHex(account.balance)
     } catch (e) {
@@ -420,7 +417,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_getStorageAt', args)
     }
-    let result = '0x00000000000000000000000000000000000000000000000000000000000004d2'
+    const result = '0x00000000000000000000000000000000000000000000000000000000000004d2'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -435,10 +432,10 @@ export const methods = {
       console.log('Running getTransactionCount', args)
     }
     try {
-      let address = args[0]
-      let account = await getAccount(address)
+      const address = args[0]
+      const account = await getAccount(address)
       if (account) {
-        let nonce = parseInt(account.nonce)
+        const nonce = parseInt(account.nonce)
         let result = '0x' + nonce.toString(16)
         if (result === '0x') result = '0x0'
         if (verbose) {
@@ -466,7 +463,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getBlockTransactionCountByHash', args)
     }
-    let result = '0xb'
+    const result = '0xb'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -480,7 +477,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getBlockTransactionCountByNumber', args)
     }
-    let result = '0xa'
+    const result = '0xa'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -494,7 +491,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleCountByBlockHash', args)
     }
-    let result = '0x1'
+    const result = '0x1'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -508,7 +505,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUnbleCountByBlockNumber', args)
     }
-    let result = '0x1'
+    const result = '0x1'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -531,7 +528,7 @@ export const methods = {
         callback(null, account.codeHash)
         return
       }
-      let result = '0x0'
+      const result = '0x0'
       if (verbose) console.log('eth_getCode result', result)
       callback(null, result)
     } catch (e) {
@@ -550,7 +547,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_signTransaction', args)
     }
-    let result =
+    const result =
       '0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -566,7 +563,7 @@ export const methods = {
     if (verbose) {
       console.log('Running sendTransaction', args)
     }
-    let result = '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
+    const result = '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -581,14 +578,14 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    let now = Date.now()
+    const now = Date.now()
     if (verbose) {
       console.log('Sending raw tx to /inject endpoint', new Date(now), now)
       console.log('Running sendRawTransaction', args)
     }
     try {
-      let raw = args[0]
-      let tx: any = {
+      const raw = args[0]
+      const tx: any = {
         raw,
       }
       if (config.generateTxTimestamp) tx.timestamp = now
@@ -599,7 +596,7 @@ export const methods = {
       const sender = transaction.getSenderAddress().toString()
 
       if (config.nonceValidate && txMemPool[sender] && txMemPool[sender].length > 0) {
-        let maxIteration = txMemPool[sender].length
+        const maxIteration = txMemPool[sender].length
         let count = 0
         while (count < maxIteration) {
           count++
@@ -608,7 +605,7 @@ export const methods = {
             txMemPool[sender][0].nonce < currentTxNonce &&
             txMemPool[sender][0].nonce === nonceTracker[sender] + 1
           ) {
-            let pendingTx = txMemPool[sender].shift()
+            const pendingTx = txMemPool[sender].shift()
             console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
             injectAndRecordTx(txHash, pendingTx.tx, args)
             nonceTracker[sender] = pendingTx.nonce
@@ -618,7 +615,7 @@ export const methods = {
         }
       }
 
-      let lastTxNonce = nonceTracker[sender]
+      const lastTxNonce = nonceTracker[sender]
 
       if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
         console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
@@ -661,15 +658,15 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_call', args)
     }
-    let callObj = args[0]
+    const callObj = args[0]
     //callObj.gasPrice = new BN(0)
     if (!callObj.from) {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
     }
     if (verbose) console.log('callObj', callObj)
     try {
-      let baseUrl = getBaseUrl()
-      let res = await requestWithRetry('post', `/contract/call`, callObj)
+      const baseUrl = getBaseUrl()
+      const res = await requestWithRetry(RequestMethod.Post, `/contract/call`, callObj)
       if (verbose) console.log('contract call res.data.result', callObj, baseUrl, res.data.result)
       if (res.data == null || res.data.result == null) {
         //callback(null, errorHexStatus)
@@ -677,7 +674,7 @@ export const methods = {
         logEventEmitter.emit('fn_end', ticket, performance.now())
         return
       }
-      let result = '0x' + res.data.result
+      const result = '0x' + res.data.result
       if (verbose) console.log('eth_call result from', baseUrl, result)
       callback(null, result)
       logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -698,7 +695,7 @@ export const methods = {
     if (verbose) {
       console.log('Running estimateGas', args)
     }
-    let result = '0x1C9C380' // 30 M gas
+    const result = '0x1C9C380' // 30 M gas
     try {
       //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
       //   const gasUsed = res.data.result
@@ -721,7 +718,7 @@ export const methods = {
       console.log('Running getBlockByHash', args)
     }
     //getCurrentBlock handles errors, no try catch needed
-    let result = await getCurrentBlock()
+    const result = await getCurrentBlock()
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -737,8 +734,8 @@ export const methods = {
     }
     let blockNumber = args[0]
     if (blockNumber !== 'latest') blockNumber = parseInt(blockNumber, 16)
-    let res = await requestWithRetry('get', `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
-    let result = res.data.block
+    const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
+    const result = res.data.block
     if (verbose) console.log('BLOCK DETAIL', result)
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -753,11 +750,11 @@ export const methods = {
     if (verbose) {
       console.log('Running getTransactionByHash', args)
     }
-    let txHash = args[0]
+    const txHash = args[0]
     let retry = 0
     let success = false
     let result
-    let defaultResult: any = {
+    const defaultResult: any = {
       blockHash: '0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2',
       blockNumber: '0x5daf3b', // 6139707
       from: '0xa7d9ddbe1f17865597fbd27ec712455208b6b76d',
@@ -777,7 +774,7 @@ export const methods = {
       try {
         let res
         if (config.queryFromValidator) {
-          res = await requestWithRetry('get', `/tx/${txHash}`)
+          res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
           result = res.data.account ? res.data.account.readableReceipt : null
           if (result && result.readableReceipt){
             result = result.readableReceipt
@@ -840,7 +837,7 @@ export const methods = {
 
     if (verbose) console.log('result.from', result.from)
 
-    let nonce = parseInt(result.nonce, 16)
+    const nonce = parseInt(result.nonce, 16)
     defaultResult.hash = result.transactionHash
     defaultResult.from = result.from
     defaultResult.to = result.to
@@ -865,7 +862,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getTransactionByBlockHashAndIndex', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -879,7 +876,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getTransactionByBlockNumberAndIndex', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -890,7 +887,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    let now = Date.now()
+    const now = Date.now()
     if (verbose) {
       console.log('Getting tx receipt', new Date(now), now)
       console.log('Running getTransactionReceipt', args)
@@ -898,9 +895,9 @@ export const methods = {
     try {
       let res
       let result
-      let txHash = args[0]
+      const txHash = args[0]
       if (config.queryFromValidator) {
-        res = await requestWithRetry('get', `/tx/${txHash}`)
+        res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
         result = res.data.account ? res.data.account.readableReceipt : null
         if (result && result.readableReceipt){
           result = result.readableReceipt
@@ -964,7 +961,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockHashAndIndex', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -978,7 +975,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockNumberAndIndex', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -992,7 +989,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getCompilers', args)
     }
-    let result = ['solidity', 'lll', 'serpent']
+    const result = ['solidity', 'lll', 'serpent']
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1006,7 +1003,7 @@ export const methods = {
     if (verbose) {
       console.log('Running compileSolidity', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1019,7 +1016,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1032,7 +1029,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1045,7 +1042,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = '0x1'
+    const result = '0x1'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1059,7 +1056,7 @@ export const methods = {
     if (verbose) {
       console.log('Running newPendingTransactionFilter', args)
     }
-    let result = '0x1'
+    const result = '0x1'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1072,7 +1069,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = true
+    const result = true
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1085,7 +1082,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1098,7 +1095,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1112,7 +1109,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getLogs', args)
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1125,7 +1122,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1138,7 +1135,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1151,7 +1148,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1164,7 +1161,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1177,7 +1174,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1190,7 +1187,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1203,7 +1200,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1216,7 +1213,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1229,7 +1226,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1242,7 +1239,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1255,7 +1252,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1268,7 +1265,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1281,7 +1278,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1294,7 +1291,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1307,7 +1304,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1320,7 +1317,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1333,7 +1330,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
     }
-    let result = 'test'
+    const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1347,8 +1344,8 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_chainId', args)
     }
-    let chainId = `${config.chainId}`
-    let hexValue = '0x' + parseInt(chainId, 10).toString(16)
+    const chainId = `${config.chainId}`
+    const hexValue = '0x' + parseInt(chainId, 10).toString(16)
     callback(null, hexValue)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
@@ -1362,15 +1359,15 @@ export const methods = {
     if (true) {
       console.log('Running eth_getAccessList', args)
     }
-    let callObj = args[0]
+    const callObj = args[0]
     if (!callObj.from) {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
     }
     console.log('callObj', callObj)
 
     try {
-      let baseUrl = getBaseUrl()
-      let res = await requestWithRetry('post', `/contract/accesslist`, callObj)
+      const baseUrl = getBaseUrl()
+      const res = await requestWithRetry(RequestMethod.Post, `/contract/accesslist`, callObj)
       if (verbose) console.log('contract eth_getAccessList res.data', callObj, baseUrl, res.data)
       if (res.data == null || res.data.accessList == null) {
         callback(errorBusy)

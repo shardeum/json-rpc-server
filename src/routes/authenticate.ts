@@ -1,7 +1,7 @@
 import * as jwt from 'jsonwebtoken'
-const express = require('express')
-const router = express.Router()
-const CONFIG = require('../config')
+import express from 'express'
+export const router = express.Router()
+import {CONFIG} from '../config'
 
 router.route('/:passphrase').get(async function (req: any, res: any) {
   const { passphrase } = req.params
@@ -19,5 +19,3 @@ router.route('/:passphrase').get(async function (req: any, res: any) {
   }
   res.send({ message: 'wrong passphrase' }).status(400)
 })
-
-module.exports = router

@@ -51,7 +51,7 @@ type Config = {
   verbose: boolean
 }
 
-const CONFIG: Config = {
+export const CONFIG: Config = {
   port: 8080,
   chainId: 8080,
   nodeIpInfo: {
@@ -97,5 +97,3 @@ const CONFIG: Config = {
   adaptiveRejection: true,
   verbose: false,
 }
-
-module.exports = CONFIG

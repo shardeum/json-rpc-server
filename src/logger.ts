@@ -1,10 +1,10 @@
 import { bufferToHex } from 'ethereumjs-util'
-import { DetailedTxStatus, TxStatus, txStatuses, verbose } from './api'
+import { DetailedTxStatus, TxStatus } from './api'
 import { db } from './storage/sqliteStorage'
 import { getReasonEnumCode, getTransactionObj } from './utils'
 
-const EventEmitter = require('events')
-const config = require('./config')
+import EventEmitter from 'events'
+import { CONFIG as config } from './config'
 
 type ApiPerfLogData = {
   tfinal: number

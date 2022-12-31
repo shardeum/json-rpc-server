@@ -1,10 +1,7 @@
-import { apiPerfLogData, saveInterfaceStat, txStatusSaver } from '../logger'
 import { db } from '../storage/sqliteStorage'
-import { getReasonEnumCode, getTransactionObj, getTransactionReceipt } from '../utils'
-
-const express = require('express')
-const router = express.Router()
-const CONFIG = require('../config')
+import express from 'express'
+export const router = express.Router()
+import { CONFIG } from '../config'
 
 router.route('/api-stats').get(async (req: any, res: any) => {
   try {
@@ -35,6 +32,7 @@ router.route('/api-stats').get(async (req: any, res: any) => {
     }
 
     for (const api_name in stats) {
+      /* eslint-disable security/detect-object-injection */
       stats[api_name].tFinals.sort()
       const length = stats[api_name].tFinals.length
       const index = length > 0 ? length - 1 : 0
@@ -47,6 +45,7 @@ router.route('/api-stats').get(async (req: any, res: any) => {
       }
       stats[api_name].tAvg = stats[api_name].tTotal / stats[api_name].tFinals.length
       delete stats[api_name].tFinals
+      /* eslint-enable security/detect-object-injection */
     }
     const info = {
       date: {
@@ -103,5 +102,3 @@ router.route('/stopTxCapture').get(async function (req: any, res: any) {
   CONFIG.recordTxStatus = false
   res.send('Transaction status recording disabled').status(200)
 })
-
-module.exports = router
