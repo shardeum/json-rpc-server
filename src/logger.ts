@@ -51,7 +51,7 @@ export function setupLogEvents() {
     logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
       const timestamp = Date.now()
 
-      if (!apiPerfLogTicket.hasOwnProperty(ticket)) return
+      if (!Object.prototype.hasOwnProperty.call(apiPerfLogTicket, ticket)) return
 
       const { api_name, start_timer } = apiPerfLogTicket[ticket]
       // tfinal is the time it took to complete an api
