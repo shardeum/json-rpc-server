@@ -19,13 +19,6 @@ type ApiPerfLogTicket = {
   }
 }
 
-export const mutedEvents: any = {
-  on: () => {
-    console.log('=> Logging is disabled')
-  },
-  emit: () => {},
-}
-
 export let apiPerfLogData: ApiPerfLogData = []
 export let apiPerfLogTicket: ApiPerfLogTicket = {}
 export const logEventEmitter = new EventEmitter()

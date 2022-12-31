@@ -1,6 +1,7 @@
 import {CONFIG} from '../config'
+import { NextFunction, Request, Response } from 'express'
 
-const injectIP = (req: any, res: any, next: Function) => {
+const injectIP = (req: Request, res: Response, next: NextFunction) => {
   if (req.body.method === 'eth_sendRawTransaction' && CONFIG.recordTxStatus) req.body.params[1000] = req.ip
   next()
   return

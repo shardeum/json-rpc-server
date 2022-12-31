@@ -1,6 +1,6 @@
 import jayson from 'jayson'
 import cors from 'cors'
-import express from 'express'
+import express, { NextFunction } from 'express'
 import cookieParser from 'cookie-parser'
 import { methods, forwardTxStatusToExplorer } from './api'
 import { setupLogEvents } from './logger'
@@ -16,9 +16,8 @@ import {
 } from './utils'
 import {router as logRoute} from './routes/log'
 import {router as authenticate} from './routes/authenticate'
-
+import { Request, Response } from 'express'
 import {CONFIG as config} from './config'
-
 import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
 
@@ -47,25 +46,25 @@ app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
 
-app.get('/api/subscribe', (req: any, res: any) => {
+app.get('/api/subscribe', (req: Request, res: Response) => {
   const query = req.query
-  if (!query || !query.ip || !query.port) {
+  if (!query || !req.ip || !query.port) {
     console.log('Invalid ip or port')
     return res.end('Invalid ip or port')
   }
-  const ip = query.ip || 'localhost'
-  const port = parseInt(query.port) || 9001
+  const ip = req.ip || 'localhost'
+  const port = req.connection.localPort || 9001
   changeNode(ip, port)
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
-app.get('/api/health', (req: any, res: any) => {
+app.get('/api/health', (req: Request, res: Response) => {
   return res.json({ healthy: true }).status(200)
 })
 
 const requestersList = new RequestersList(blackList, spammerList)
 
-app.use(async (req: any, res: any, next: Function) => {
+app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (!config.rateLimit) {
     next()
     return
@@ -101,7 +100,7 @@ updateNodeList(true).then(() => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
   setInterval(forwardTxStatusToExplorer, 10000)
-  app.listen(port, (err: any) => {
+  app.listen(port).on("error", function(err) {
     if (err) console.log('Unable to start JSON RPC Server', err)
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
     setupDatabase()

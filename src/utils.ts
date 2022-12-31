@@ -2,10 +2,9 @@ import { Transaction, AccessListEIP2930Transaction } from '@ethereumjs/tx'
 import { BN, bufferToHex, toBuffer } from 'ethereumjs-util'
 import { recordTxStatus } from './api'
 import whiteList from '../whitelist.json'
-import axios, { AxiosRequestConfig } from 'axios'
+import axios from 'axios'
 import {CONFIG as config} from './config'
 import fs from 'fs'
-import { Method } from 'jayson'
 export const node = {
   ip: 'localhost',
   port: 9001,
@@ -254,8 +253,8 @@ export class RequestersList {
 
   addToBlacklist(ip: string) {
     this.bannedIps.push({ ip, timestamp: Date.now() })
-    fs.readFile('blacklist.json', function (err: any, currentDataStr: string) {
-      const ipList = JSON.parse(currentDataStr)
+    fs.readFile('blacklist.json', function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
+      const ipList = JSON.parse(currentDataStr.toString())
       if (ipList.indexOf(ip) >= 0) return
       const newIpList = [...ipList, ip]
       console.log(`Added ip ${ip} to banned list`)
@@ -265,8 +264,8 @@ export class RequestersList {
 
   addSenderToBacklist(address: string) {
     this.blackListedSenders.add(address.toLowerCase())
-    fs.readFile('spammerlist.json', function (err: any, currentDataStr: string) {
-      const spammerList = JSON.parse(currentDataStr)
+    fs.readFile('spammerlist.json', function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
+      const spammerList = JSON.parse(currentDataStr.toString())
       if (spammerList.indexOf(address) >= 0) return
       const newSpammerList = [...spammerList, address]
       console.log(`Added address ${address} to spammer list`)
@@ -539,7 +538,7 @@ export class RequestersList {
       return false
     }
 
-    if (this.isQueryType(reqType, reqParams)) {
+    if (this.isQueryType(reqType)) {
       return true
     }
 

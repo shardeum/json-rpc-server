@@ -2,8 +2,9 @@ import * as jwt from 'jsonwebtoken'
 import express from 'express'
 export const router = express.Router()
 import {CONFIG} from '../config'
+import { Request, Response } from 'express'
 
-router.route('/:passphrase').get(async function (req: any, res: any) {
+router.route('/:passphrase').get(async function (req: Request, res: Response) {
   const { passphrase } = req.params
   const payload = { user: 'shardeum-dev' }
   if (passphrase === CONFIG.passphrase) {
