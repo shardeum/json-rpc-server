@@ -53,7 +53,7 @@ type Config = {
 
 export const CONFIG: Config = {
   port: 8080,
-  chainId: 8080,
+  chainId: 8081,
   nodeIpInfo: {
     externalIp: '',
     externalPort: 9001,
