@@ -1,12 +1,12 @@
 {
-  "name": "shardium-json-rpc",
+  "name": "shardeum-json-rpc",
   "version": "1.0.0",
-  "description": "JSON RPC server for shardium platform",
-  "main": "server.js",
+  "description": "JSON RPC server for Shardeum",
+  "main": "src/server.js",
   "scripts": {
     "lint": "eslint ./**/*.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run compile && node dist/server.js",
+    "start": "npm run compile && node dist/src/server.js",
     "compile": "tsc -p .",
     "clean-log": "rm -rf ./log"
   },
@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@ethereumjs/tx": "^3.4.0",
+    "@shardus/crypto-utils": "^4.0.4",
     "axios": "^0.24.0",
     "better-sqlite3": "^7.6.2",
     "body-parser": "^1.19.0",

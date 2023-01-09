@@ -95,5 +95,5 @@ export const CONFIG: Config = {
   secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P', // this is the private key that rpc server will used to sign jwt token
   nonceValidate: false,
   adaptiveRejection: true,
-  verbose: false,
+  verbose: true,
 }

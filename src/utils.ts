@@ -5,6 +5,12 @@ import whiteList from '../whitelist.json'
 import axios from 'axios'
 import {CONFIG as config} from './config'
 import fs from 'fs'
+// import crypto from '@shardus/crypto-utils'
+
+const crypto = require('@shardus/crypto-utils')
+
+crypto.init("69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc")
+
 export const node = {
   ip: 'localhost',
   port: 9001,
@@ -675,6 +681,10 @@ export class RequestersList {
     if (heavyReqHistory && config.verbose) console.log(`We allow ip ${ip}`)
     return true
   }
+}
+
+export function calculateInternalTxHash(tx: any) {
+  return crypto.hashObj(tx)
 }
 
 export async function getTransactionReceipt(hash: string) {
