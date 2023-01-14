@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { bufferToHex } from 'ethereumjs-util'
+import { BN, bufferToHex } from 'ethereumjs-util'
 import {
   getAccount,
   getTransactionObj,
@@ -893,7 +893,7 @@ export const methods = {
     defaultResult.data = result.data
     defaultResult.blockHash = result.blockHash
     defaultResult.blockNumber = result.blockNumber
-    defaultResult.value = result.value
+    defaultResult.value = '0x'+result.value
     defaultResult.gas = result.gasUsed
     if (verbose) console.log('Final Tx:', txHash, defaultResult)
     callback(null, defaultResult)
