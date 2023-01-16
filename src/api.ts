@@ -893,7 +893,7 @@ export const methods = {
     defaultResult.data = result.data
     defaultResult.blockHash = result.blockHash
     defaultResult.blockNumber = result.blockNumber
-    defaultResult.value = '0x'+result.value
+    defaultResult.value = result.value.indexOf('0x') === -1 ? '0x' + result.value : result.value
     defaultResult.gas = result.gasUsed
     if (verbose) console.log('Final Tx:', txHash, defaultResult)
     callback(null, defaultResult)
