@@ -1,6 +1,6 @@
 import { Transaction, AccessListEIP2930Transaction } from '@ethereumjs/tx'
 import { BN, bufferToHex, toBuffer } from 'ethereumjs-util'
-import { recordTxStatus } from './api'
+import { recordTxStatus, createRejectTxStatus } from './api'
 import whiteList from '../whitelist.json'
 import axios from 'axios'
 import {CONFIG as config} from './config'
@@ -541,6 +541,10 @@ export class RequestersList {
 
     if (this.isIpBanned(ip)) {
       if (verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
+      if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
+        let transaction = getTransactionObj({ raw: reqParams[0] })
+        createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
+      }
       return false
     }
 
@@ -556,6 +560,10 @@ export class RequestersList {
       if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
         if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
         this.addToBlacklist(ip)
+        if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
+          let transaction = getTransactionObj({ raw: reqParams[0] })
+          createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
+        }
         return false
       }
     }
@@ -614,6 +622,8 @@ export class RequestersList {
           this.isSenderBlacklisted(readableTx.from)
         ) {
           if (verbose) console.log(`Sender ${readableTx.from} is blacklisted.`)
+          if (config.recordTxStatus)
+            createRejectTxStatus(bufferToHex(transaction.hash()), 'Rejected by JSON RPC rate limiting', ip)
           return false
         }
 
@@ -622,15 +632,11 @@ export class RequestersList {
             if (now - fromAddressHistory[fromAddressHistory.length - 10] < oneMinute) {
               if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 60s`)
               if (config.recordTxStatus)
-                recordTxStatus({
-                  txHash: bufferToHex(transaction.hash()),
-                  raw: reqParams[0],
-                  ip: ip,
-                  injected: false,
-                  accepted: false,
-                  reason: 'Rejected by JSON RPC rate limiting',
-                  timestamp: now,
-                })
+                createRejectTxStatus(
+                  bufferToHex(transaction.hash()),
+                  'Rejected by JSON RPC rate limiting',
+                  ip
+                )
               this.addAbusedAddress(readableTx.to, readableTx.from, ip)
               this.addAbusedSender(readableTx.from.toLowerCase())
               return false
@@ -660,15 +666,11 @@ export class RequestersList {
               }
 
               if (config.recordTxStatus) {
-                recordTxStatus({
-                  txHash: bufferToHex(transaction.hash()),
-                  ip: ip,
-                  raw: reqParams[0],
-                  injected: false,
-                  accepted: false,
-                  reason: 'Rejected by JSON RPC rate limiting',
-                  timestamp: now,
-                })
+                createRejectTxStatus(
+                  bufferToHex(transaction.hash()),
+                  'Rejected by JSON RPC rate limiting',
+                  ip
+                )
               }
               return false
             }

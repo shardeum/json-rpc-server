@@ -112,12 +112,22 @@ async function getCurrentBlock() {
   }
 }
 
+export function createRejectTxStatus(txHash: string, reason: string, ip: string) {
+  recordTxStatus({
+    txHash: txHash,
+    ip: ip,
+    raw: '',
+    injected: false,
+    accepted: false,
+    reason: reason,
+    timestamp: Date.now(),
+  })
+}
+
 export function recordTxStatus(txStatus: TxStatus) {
   txStatuses.push(txStatus)
   if (txStatuses.length > maxTxCountToStore && config.recordTxStatus) {
-    logEventEmitter.emit('tx_insert_db', txStatuses)
-    forwardTxStatusToExplorer()
-    txStatuses = []
+    saveTxStatus()
   }
 }
 
@@ -173,12 +183,15 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
   })
 }
 
-export async function forwardTxStatusToExplorer() {
+export async function saveTxStatus() {
   if (!config.recordTxStatus) return
   if (txStatuses.length === 0) return
+  const txStatusesClone = [...txStatuses]
+  txStatuses = []
+  logEventEmitter.emit('tx_insert_db', txStatusesClone)
   const response = await axios.post(
     `http://${config.explorerRPCDataServerInfo.externalIp}:${config.explorerRPCDataServerInfo.externalPort}/tx/status`,
-    txStatuses
+    txStatusesClone
   )
   console.log('forward Tx Status To Explorer', response.data)
 }

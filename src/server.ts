@@ -2,7 +2,7 @@ import jayson from 'jayson'
 import cors from 'cors'
 import express, { NextFunction } from 'express'
 import cookieParser from 'cookie-parser'
-import { methods, forwardTxStatusToExplorer } from './api'
+import { methods, saveTxStatus } from './api'
 import { setupLogEvents } from './logger'
 import authorize from './middlewares/authorize'
 import injectIP from './middlewares/injectIP'
@@ -99,7 +99,7 @@ app.use(server.middleware())
 updateNodeList(true).then(() => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
-  setInterval(forwardTxStatusToExplorer, 10000)
+  setInterval(saveTxStatus, 5000)
   app.listen(port).on("error", function(err) {
     if (err) console.log('Unable to start JSON RPC Server', err)
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
