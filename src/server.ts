@@ -100,8 +100,7 @@ updateNodeList(true).then(() => {
   setConsensorNode()
   setInterval(updateNodeList, 10000)
   setInterval(saveTxStatus, 5000)
-  app.listen(port).on("error", function(err) {
-    if (err) console.log('Unable to start JSON RPC Server', err)
+  app.listen(port, function() {
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
     setupDatabase()
     setupLogEvents()
