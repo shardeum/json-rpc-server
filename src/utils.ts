@@ -40,7 +40,7 @@ export async function updateNodeList(tryInfinate = false) {
   // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
   const res = await requestWithRetry(
     RequestMethod.Get,
-    `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`,
+    `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/full-nodelist?activeOnly=true`,
     {},
     nRetry,
     true
