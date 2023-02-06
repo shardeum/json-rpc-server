@@ -29,6 +29,7 @@ export enum RequestMethod {
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 export async function updateNodeList(tryInfinate = false) {
+  console.time('nodelist_update')
   const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
   if (config.askLocalHostForArchiver === true) {
     if (gotArchiver === false) {
@@ -53,9 +54,32 @@ export async function updateNodeList(tryInfinate = false) {
         node.ip = config.archiverIpInfo.externalIp
       })
     }
-    nodeList = [...nodes]
-    if (verbose) console.log('Nodelist is updated', nodeList.length)
+    let allNodes = [...nodes]
+    let onlineNodes = []
+    let count = 0
+    for (let node of allNodes) {
+      count++
+      try {
+        const res = await axios({
+          method: 'GET',
+          url: `http://${node.ip}:${node.port}/nodeinfo`,
+          timeout: 1000,
+        })
+        if (res.status !== 200) continue
+        if (res.data.nodeInfo && res.data.nodeInfo.status === 'active') {
+          console.log(`No. ${count} this node is ONLINE`, node.ip, node.port)
+          onlineNodes.push(node)
+        }
+      } catch (e) {
+        console.log(`No. ${count} this node is offline`, node.ip, node.port)
+        continue
+      }
+    }
+    nodeList = [...onlineNodes]
+    
+    if (verbose) console.log(`Nodelist is updated. All nodes ${allNodes.length}, online nodes ${onlineNodes.length}`)
   }
+  console.timeEnd('nodelist_update')
 }
 
 export async function waitRandomSecond() {
