@@ -240,7 +240,7 @@ export const methods = {
     if (verbose) {
       console.log('Running net_version', args)
     }
-    const chainId = config.chainId
+    const chainId = config.chainId.toString()
     callback(null, chainId)
     logEventEmitter.emit('fn_end', ticket, performance.now())
   },
