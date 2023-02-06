@@ -45,14 +45,15 @@ type Config = {
    * Disabling this may cause stuck tx inside dapp such as metamask, because rpc server does not let the app know if tx is reject by validator.
    */
   adaptiveRejection: boolean
+  filterDeadNodesFromArchiver: boolean
   verbose: boolean
 }
 
 export const CONFIG: Config = {
   port: 8080,
-  chainId: 8081,
+  chainId: 8082,
   nodeIpInfo: {
-    externalIp: '',
+    externalIp: 'localhost',
     externalPort: 9001,
   },
   dynamicConsensorNode: true,
@@ -65,7 +66,7 @@ export const CONFIG: Config = {
   },
   faucetServerUrl: 'https://faucet.liberty10.shardeum.org',
   queryFromValidator: true,
-  queryFromArchiver: true,
+  queryFromArchiver: false,
   explorerUrl: 'http://localhost:6001',
   queryFromExplorer: false,
   rpcDataServerUrl: 'http://localhost:4445',
@@ -89,5 +90,6 @@ export const CONFIG: Config = {
   secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P', // this is the private key that rpc server will used to sign jwt token
   nonceValidate: false,
   adaptiveRejection: true,
+  filterDeadNodesFromArchiver: false,
   verbose: true,
 }
