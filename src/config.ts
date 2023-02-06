@@ -2,7 +2,7 @@ type Config = {
   port: number
   chainId: number
   nodeIpInfo: {
-    externalIp:string ,
+    externalIp: string
     externalPort: number
   }
   dynamicConsensorNode: boolean
@@ -18,10 +18,7 @@ type Config = {
   queryFromArchiver: boolean
   explorerUrl: string
   queryFromExplorer: boolean
-  explorerRPCDataServerInfo: {
-    externalIp: string
-    externalPort: number
-  }
+  rpcDataServerUrl: string
   generateTxTimestamp: boolean
   recordTxStatus: boolean
   rateLimit: boolean
@@ -71,10 +68,7 @@ export const CONFIG: Config = {
   queryFromArchiver: true,
   explorerUrl: 'http://localhost:6001',
   queryFromExplorer: false,
-  explorerRPCDataServerInfo: {
-    externalIp: 'localhost',
-    externalPort: 4445,
-  },
+  rpcDataServerUrl: 'http://localhost:4445',
   generateTxTimestamp: true,
   recordTxStatus: true,
   rateLimit: false,

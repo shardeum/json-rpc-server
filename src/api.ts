@@ -10,11 +10,11 @@ import {
   requestWithRetry,
   TxStatusCode,
   RequestMethod,
-  calculateInternalTxHash
+  calculateInternalTxHash,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import {CONFIG as config} from './config' 
+import { CONFIG as config } from './config'
 
 export const verbose = config.verbose
 
@@ -189,10 +189,7 @@ export async function saveTxStatus() {
   const txStatusesClone = [...txStatuses]
   txStatuses = []
   logEventEmitter.emit('tx_insert_db', txStatusesClone)
-  const response = await axios.post(
-    `http://${config.explorerRPCDataServerInfo.externalIp}:${config.explorerRPCDataServerInfo.externalPort}/tx/status`,
-    txStatusesClone
-  )
+  const response = await axios.post(`${config.rpcDataServerUrl}/tx/status`, txStatusesClone)
   console.log('forward Tx Status To Explorer', response.data)
 }
 
@@ -836,12 +833,12 @@ export const methods = {
         if (config.queryFromValidator) {
           res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
           result = res.data.account ? res.data.account.readableReceipt : null
-          if (result && result.readableReceipt){
+          if (result && result.readableReceipt) {
             result = result.readableReceipt
-          } else if (result && result.appData && result.appData.data){
+          } else if (result && result.appData && result.appData.data) {
             result = result.appData.data.readableReceipt
           }
-          if(!result && res.data && res.data.error){
+          if (!result && res.data && res.data.error) {
             if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
           }
         }
@@ -959,12 +956,12 @@ export const methods = {
       if (config.queryFromValidator) {
         res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
         result = res.data.account ? res.data.account.readableReceipt : null
-        if (result && result.readableReceipt){
+        if (result && result.readableReceipt) {
           result = result.readableReceipt
-        } else if (result && result.appData && result.appData.data){
+        } else if (result && result.appData && result.appData.data) {
           result = result.appData.data.readableReceipt
         }
-        if(!result && res.data && res.data.error){
+        if (!result && res.data && res.data.error) {
           if (verbose) console.log(`eth_getTransactionReceipt from valdator error: ${res.data.error} `)
         }
       }
@@ -1136,7 +1133,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1148,7 +1145,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1174,7 +1171,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1186,7 +1183,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1198,7 +1195,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1210,7 +1207,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1222,7 +1219,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1234,7 +1231,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1246,7 +1243,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1258,7 +1255,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1270,7 +1267,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1282,7 +1279,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1294,7 +1291,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1306,7 +1303,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1318,7 +1315,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1330,7 +1327,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1342,7 +1339,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1354,7 +1351,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1366,7 +1363,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    
+
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, performance.now())
@@ -1395,7 +1392,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     console.log('Running eth_getAccessList', args)
-    
+
     const callObj = args[0]
     if (!callObj.from) {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
