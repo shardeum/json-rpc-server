@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { serializeError } from 'eth-rpc-errors'
 import { BN, bufferToHex } from 'ethereumjs-util'
 import {
   getAccount,
@@ -14,7 +15,7 @@ import {
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import { CONFIG as config } from './config'
+import { CONFIG as config } from './config' 
 
 export const verbose = config.verbose
 
@@ -153,7 +154,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             timestamp: tx.timestamp || Date.now(),
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
           })
-          resolve(injectResult.success)
+          resolve(injectResult)
         } else {
           recordTxStatus({
             txHash,
@@ -591,7 +592,7 @@ export const methods = {
       console.log('Running sendRawTransaction', args)
     }
     try {
-      let isInternalTx = args[0].isInternalTx
+      const { isInternalTx } = args[0]
       let tx: any
       let txHash = ''
 
@@ -600,9 +601,8 @@ export const methods = {
         tx = args[0]
         txHash = calculateInternalTxHash(tx)
         console.log('Internal tx hash', txHash)
-        const sender = ''
       } else {
-        let raw = args[0]
+        const raw = args[0]
         tx = {
           raw,
         }
@@ -612,49 +612,51 @@ export const methods = {
         txHash = bufferToHex(transaction.hash())
         const currentTxNonce = transaction.nonce.toNumber()
         const sender = transaction.getSenderAddress().toString()
+        let memPoolTx = txMemPool[String(sender)]
 
-        if (config.nonceValidate && txMemPool[sender] && txMemPool[sender].length > 0) {
-          let maxIteration = txMemPool[sender].length
+        if (config.nonceValidate && memPoolTx && memPoolTx.length > 0) {
+          const maxIteration = memPoolTx.length
           let count = 0
           while (count < maxIteration) {
             count++
 
             if (
-              txMemPool[sender][0].nonce < currentTxNonce &&
-              txMemPool[sender][0].nonce === nonceTracker[sender] + 1
+              memPoolTx[0].nonce < currentTxNonce &&
+              memPoolTx[0].nonce === nonceTracker[String(sender)] + 1
             ) {
-              let pendingTx = txMemPool[sender].shift()
+              const pendingTx = memPoolTx.shift()
               console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
               injectAndRecordTx(txHash, pendingTx.tx, args)
-              nonceTracker[sender] = pendingTx.nonce
-              console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`)
+              nonceTracker[String(sender)] = pendingTx.nonce
+              console.log(`Pending tx count for ${sender}: ${memPoolTx.length}`)
               await sleep(500)
             }
           }
         }
 
-        let lastTxNonce = nonceTracker[sender]
+        const lastTxNonce = nonceTracker[String(sender)]
 
         if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
           console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
-          if (txMemPool[sender]) {
-            txMemPool[sender].push({ nonce: currentTxNonce, tx })
-            txMemPool[sender] = txMemPool[sender].sort((a: any, b: any) => a.nonce - b.nonce)
+          if (memPoolTx) {
+            memPoolTx.push({ nonce: currentTxNonce, tx })
+            memPoolTx = memPoolTx.sort((a: any, b: any) => a.nonce - b.nonce)
           } else {
-            txMemPool[sender] = [{ nonce: currentTxNonce, tx }]
+            memPoolTx = [{ nonce: currentTxNonce, tx }]
           }
-          nonceTracker[sender] = currentTxNonce
+          nonceTracker[String(sender)] = currentTxNonce
           return txHash
         }
       }
 
       injectAndRecordTx(txHash, tx, args)
-        .then((success) => {
+        .then(({ success, reason, status }: any) => {
           if (success === true) {
             callback(null, txHash)
           }
           if (success !== true && config.adaptiveRejection) {
-            callback({ message: 'Tx injection failure' }, null)
+            // The error code is hard-coded as of now as we don't have defined codes yet.
+            callback(serializeError({ status }, { fallbackError: { message: reason, code: 101 } }), null)
           }
         })
         .catch((e) => {
@@ -674,13 +676,13 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    let now = Date.now()
+    const now = Date.now()
     if (verbose) {
       console.log('Sending internal tx to /inject endpoint', new Date(now), now)
       console.log('Running eth_sendInternalTransaction', args)
     }
     try {
-      let internalTx = args[0]
+      const internalTx = args[0]
 
       if (config.generateTxTimestamp && internalTx.timestamp == null) internalTx.timestamp = now
 
