@@ -689,7 +689,7 @@ export const methods = {
       const txHash = ''
 
       injectAndRecordTx(txHash, internalTx, args)
-        .then((success) => {
+        .then(({ success }: any) => {
           if (success === true) {
             callback(null, txHash)
           }
