@@ -1,7 +1,6 @@
 const pm2 = require('pm2')
 const count = parseInt(process.argv[2])
-const config = require('./dist/config')
-
+const config = require('./dist/src/config.js')
 const startingPort = config.port ?? 8080
 
 console.log(`count: ${count} starting port:${startingPort}`)
@@ -26,7 +25,7 @@ function startRPC(port) {
   const processName = 'rcp_' + port
   pm2.start(
     {
-      script: 'dist/server.js',
+      script: 'dist/src/server.js',
       name: processName,
       args: String(port),
     },
