@@ -98,7 +98,7 @@ app.use(server.middleware())
 
 updateNodeList(true).then(() => {
   setConsensorNode()
-  setInterval(updateNodeList, 500)
+  setInterval(updateNodeList, config.nodelistRefreshInterval)
   setInterval(saveTxStatus, 5000)
   app.listen(port, function() {
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)

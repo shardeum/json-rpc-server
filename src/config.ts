@@ -20,6 +20,7 @@ type Config = {
   queryFromExplorer: boolean
   rpcDataServerUrl: string
   generateTxTimestamp: boolean
+  nodelistRefreshInterval: number
   recordTxStatus: boolean
   rateLimit: boolean
   rateLimitOption: {
@@ -71,6 +72,7 @@ export const CONFIG: Config = {
   queryFromExplorer: false,
   rpcDataServerUrl: 'http://localhost:4445',
   generateTxTimestamp: true,
+  nodelistRefreshInterval: 5000,
   recordTxStatus: true,
   rateLimit: false,
   rateLimitOption: {
