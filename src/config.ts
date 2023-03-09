@@ -50,7 +50,7 @@ type Config = {
   verbose: boolean
 }
 
-export const CONFIG: Config = {
+export let CONFIG: Config = {
   port: 8080,
   chainId: 8082,
   nodeIpInfo: {

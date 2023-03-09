@@ -16,7 +16,16 @@ router.route('/:passphrase').get(async function (req: Request, res: Response) {
       httpOnly: false,
       maxAge: 1000 * 60 * 60 * 700, // ~ a month
     })
-    res.send({ message: 'authenticated and authorized for debug api calls' }).status(200)
+    return res.send({ token:token, message: 'authenticated and authorized for debug api calls' }).status(200)
   }
-  res.send({ message: 'wrong passphrase' }).status(400)
+  return res.send({ message: 'wrong passphrase' }).status(400)
+})
+
+router.route('/token-check/:token').get(async function (req: Request, res: Response) {
+  const { token } = req.params
+
+  jwt.verify(token, CONFIG.secret_key, (err: any, decoded: any) => {
+    if (err) return res.send({ valid: false }).status(403)
+    return res.send({valid: true}).status(200);
+  })
 })

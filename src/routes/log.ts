@@ -2,67 +2,188 @@ import { db } from '../storage/sqliteStorage'
 import express from 'express'
 export const router = express.Router()
 import { CONFIG } from '../config'
+import { debug_info } from '../logger'
 
+const timeInputProcessor = (timestamp: string) => {
+  const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
+  return new Date(t).getTime()
+}
+
+type SQLFiltersParam = {
+  start?: string | number, 
+  end?: string | number, 
+  id?: number, 
+  hash?: string, 
+  to?: string, 
+  from?: string,
+  type?: string,
+  reason?: string, 
+  injected?: boolean, 
+  accepted?: number,
+  success?: boolean, 
+  api_name?: string, 
+  nodeUrl?: string, 
+  ip?: string 
+}
+const prepareSQLFilters = ({
+  start, 
+  end, 
+  id, 
+  hash, 
+  to, 
+  from,
+  type,
+  reason, 
+  injected, 
+  accepted,
+  success, 
+  api_name, 
+  nodeUrl, 
+  ip 
+}:SQLFiltersParam) => {
+  let sql = ''
+  // if(start && end) {
+  //   sql += `AND timestamp between ${start} AND ${end} `
+  // }
+  if(id){
+    sql += `AND id = ${id} `
+  }
+  if(hash) {
+    sql += `AND hash = ${hash} `
+  }
+  if(to){
+    sql += `AND [to]=${to} `
+  }
+  if(from) {
+    sql += `AND [from] = ${from} `
+  }
+  if(type) {
+    sql += `AND [type] = ${type} `
+  }
+  if(reason){
+    sql += `AND reason LIKE '%${reason}%' `
+  }
+  if(injected){
+    sql += `AND injected = ${injected} `
+  }
+  if(accepted){
+    sql += `AND accepted = ${accepted} `
+  }
+  if(success){
+    sql += `AND success = ${success} `
+  }
+  if(api_name){
+    sql += `AND api_name = ${api_name} `
+  }
+  if(nodeUrl){
+    sql += `AND nodeUrl=${nodeUrl} `
+  }
+  if(ip){
+    sql += `And ip = ${ip} `
+  }
+  return sql
+}
 router.route('/api-stats').get(async (req: any, res: any) => {
   try {
-    const timeInputProcessor = (timestamp: string) => {
-      const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
-      return new Date(t).getTime()
+
+    const page = req.query.page || 0
+    const max = req.query.max || 5000
+    const cursor: number = page * max
+
+    const start = req.query.start ? timeInputProcessor(req.query.start) : null
+    const end = req.query.end ? timeInputProcessor(req.query.end) : null
+    const aggregate = req.query.aggregate == 'true' ? true : false
+
+
+
+    // start 1678037555727
+    // end 1678038025945
+    if(start && !end){
+        const tx = db.prepare(`SELECT * FROM interface_stats WHERE timestamp>${start} LIMIT 1`).all()
+        return res.json(tx[0]).status(200);
     }
-    const start = req.query.start ? timeInputProcessor(req.query.start) : 1
-    const end = req.query.end ? timeInputProcessor(req.query.end) : Date.now()
+    if(!start && end){
+        // returns closet entry
+        const tx = db.prepare(`SELECT *
+                                FROM interface_stats
+                                WHERE ABS(timestamp - ${end}) = (
+                                  SELECT MIN(ABS(timestamp - ${end}))
+                                  FROM interface_stats
+                                )
+                                LIMIT 1 OFFSET 0;`).all()
+        return res.json(tx[0]).status(200);
+    }
 
-    const raw = await db
-      .prepare(`SELECT * FROM interface_stats WHERE timestamp BETWEEN ${start} AND ${end}`)
-      .all()
-
-    const stats: any = {}
-    for (const entry of raw) {
-      if (stats[entry.api_name]) {
-        stats[entry.api_name].tFinals.push(entry.tfinal)
-      } else {
-        stats[entry.api_name] = {
-          tMax: 0,
-          tMin: 0,
-          tAvg: 0,
-          tTotal: 0,
-          tFinals: [entry.tfinal],
-        }
+      const raw = await db
+        .prepare(`SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}`)
+        .all()
+      const data: any = {
+        current:  Number(page),
+        length: raw.length,
+        max: max
       }
-    }
 
-    for (const api_name in stats) {
-      /* eslint-disable security/detect-object-injection */
-      stats[api_name].tFinals.sort()
-      const length = stats[api_name].tFinals.length
-      const index = length > 0 ? length - 1 : 0
-      stats[api_name].tMax = stats[api_name].tFinals[index]
-      stats[api_name].tMin = stats[api_name].tFinals[0]
-      stats[api_name].count = length
-
-      for (const tfinal of stats[api_name].tFinals) {
-        stats[api_name].tTotal += tfinal
+      if(data.current > 0){
+        data.prev = data.current -1;
       }
-      stats[api_name].tAvg = stats[api_name].tTotal / stats[api_name].tFinals.length
-      delete stats[api_name].tFinals
-      /* eslint-enable security/detect-object-injection */
-    }
-    const info = {
-      date: {
-        start: new Date(start).toString(),
-        end: new Date(end).toString(),
-      },
-      stats: stats,
-    }
-    return res.json(info).status(200)
+      if(data.current >= max){
+        data.next = data.current+1
+      }
+      data.data = raw
+      return res.json(data).status(200);
+
+    //   const raw = await db
+    //     .prepare(`SELECT * FROM interface_stats WHERE timestamp BETWEEN ${start} AND ${end}`)
+    //     .all()
+    // const stats: any = {}
+    // for (const entry of raw) {
+    //   if (stats[entry.api_name]) {
+    //     stats[entry.api_name].tFinals.push(entry.tfinal)
+    //   } else {
+    //     stats[entry.api_name] = {
+    //       tMax: 0,
+    //       tMin: 0,
+    //       tAvg: 0,
+    //       tTotal: 0,
+    //       tFinals: [entry.tfinal],
+    //     }
+    //   }
+    // }
+    //
+    // for (const api_name in stats) {
+    //   /* eslint-disable security/detect-object-injection */
+    //   stats[api_name].tFinals.sort()
+    //   const length = stats[api_name].tFinals.length
+    //   const index = length > 0 ? length - 1 : 0
+    //   stats[api_name].tMax = stats[api_name].tFinals[index]
+    //   stats[api_name].tMin = stats[api_name].tFinals[0]
+    //   stats[api_name].count = length
+    //
+    //   for (const tfinal of stats[api_name].tFinals) {
+    //     stats[api_name].tTotal += tfinal
+    //   }
+    //   stats[api_name].tAvg = stats[api_name].tTotal / stats[api_name].tFinals.length
+    //   delete stats[api_name].tFinals
+    //   /* eslint-enable security/detect-object-injection */
+    // }
+    // const info = {
+    //   date: {
+    //     start: new Date(start).toString(),
+    //     end: new Date(end).toString(),
+    //   },
+    //   stats: stats,
+    // }
+    // return res.json(info).status(200)
   } catch (e) {
+        console.log(e);
     return res.json(e).status(500)
   }
 })
 
-router.route('/cleanStatDB').get(async (req: any, res: any) => {
+router.route('/cleanStatTable').get(async (req: any, res: any) => {
   try {
     await db.exec('DELETE FROM interface_stats')
+    debug_info.interfaceDB_cleanTime = Date.now()
     res.send({ success: true }).status(200)
   } catch (e: any) {
     res.send(e).status(500)
@@ -78,16 +199,76 @@ router.route('/txs').get(async function (req: any, res: any) {
     const page = req.query.page || 0
     const max = req.query.max || 1000
     const cursor: number = page * max
-    const txs = db.prepare(`SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}`).all()
-    res.send({ length: txs.length, txs: txs }).status(200)
+    const start = req.query.start ? timeInputProcessor(req.query.start) : null
+    const end = req.query.end ? timeInputProcessor(req.query.end) : null
+
+    if(start && !end){
+        const tx = db.prepare(`SELECT * FROM transactions WHERE timestamp>${start} LIMIT 1`).all()
+        return res.json(tx[0]).status(200);
+    }
+    if(!start && end){
+        // returns closet entry
+        const tx = db.prepare(`SELECT *
+                                FROM transactions
+                                WHERE ABS(timestamp - ${end}) = (
+                                  SELECT MIN(ABS(timestamp - ${end}))
+                                  FROM transactions
+                                )
+                                LIMIT 1 OFFSET 0;`).all()
+        return res.json(tx[0]).status(200);
+    }
+
+    let txs 
+
+    const sqlFilter = prepareSQLFilters({
+        nodeUrl: req.query.nodeUrl,
+        type: req.query.type,
+        reason: req.query.reason,
+        injected: req.query.injected,
+        ip: req.query.ip ,
+        to: req.query.to,
+        from: req.query.from,
+        hash: req.query.hash
+    })
+
+    console.log(sqlFilter);
+    const sqlString = (sqlFilter == '') ?
+        `SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}` :
+        `SELECT * FROM transactions WHERE id > ${0} ${sqlFilter}`
+
+    console.log(sqlString);
+    // eslint-disable-next-line prefer-const
+    txs = db.prepare(sqlString).all()
+
+      const data: any = {
+        current: Number(page),
+        length: txs.length,
+      }
+
+      if(Number(page) > 0){
+        data.prev = Number(page) -1;
+      }
+      if(data.length >= max){
+        data.next = Number(page)+1
+      }
+      data.data = txs
+
+      if(sqlFilter != ''){
+          delete data.current
+          if(data.next) delete data.next
+          if(data.prev) delete data.prev
+      }
+      return res.json(data).status(200);
   } catch (e: any) {
+      console.log(e);
     res.send(e).status(500)
   }
 })
 
-router.route('/cleanLogDB').get(async function (req: any, res: any) {
+router.route('/cleanTxTable').get(async function (req: any, res: any) {
   try {
     await db.exec('DELETE FROM transactions')
+    debug_info.txDB_cleanTime = Date.now()
     res.send({ success: true }).status(200)
   } catch (e: any) {
     res.send(e).status(500)
@@ -95,10 +276,41 @@ router.route('/cleanLogDB').get(async function (req: any, res: any) {
 })
 
 router.route('/startTxCapture').get(async function (req: any, res: any) {
+    if(CONFIG.recordTxStatus) return res.json({message: "Tx recording already enabled"}).status(304);
+  debug_info.txRecordingStartTime = Date.now();
+  debug_info.txRecordingEndTime = 0;
   CONFIG.recordTxStatus = true
-  res.send('Transaction status recording enabled').status(200)
+
+  res.json({message:'Transaction status recording enabled'}).status(200)
 })
 router.route('/stopTxCapture').get(async function (req: any, res: any) {
+    if(!CONFIG.recordTxStatus) return res.json({message: "Tx recording already stopped"}).status(304);
+  debug_info.txRecordingEndTime = Date.now();
   CONFIG.recordTxStatus = false
-  res.send('Transaction status recording disabled').status(200)
+  res.send({message: 'Transaction status recording disabled'}).status(200)
+})
+
+router.route('/startRPCCapture').get(async function (req: any, res: any) {
+    if(CONFIG.statLog) {
+        return res.json({message: "Interface stats are recording recording already"}).status(304);
+    }
+  debug_info.interfaceRecordingStartTime = Date.now();
+  debug_info.interfaceRecordingEndTime = 0;
+  CONFIG.statLog = true
+
+  res.json({message:'RPC interface recording enabled'}).status(200)
+})
+router.route('/stopRPCCapture').get(async function (req: any, res: any) {
+    if(!CONFIG.statLog) {
+        return res.json({message: "Interface stats recording already stopped"}).status(304);
+    }
+  debug_info.interfaceRecordingEndTime = Date.now();
+  CONFIG.statLog = false
+  res.json({message:'RPC interface recording disabled'}).status(200)
+})
+
+router.route('/status').get(async function (req: any, res: any) {
+    debug_info.isRecordingTx = CONFIG.recordTxStatus
+    debug_info.isRecordingInterface = CONFIG.statLog
+  res.json(debug_info).status(200)
 })

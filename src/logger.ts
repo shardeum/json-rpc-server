@@ -10,6 +10,9 @@ type ApiPerfLogData = {
   tfinal: number
   timestamp: number
   api_name: string
+  nodeUrl?: string
+  success: boolean
+  reason?: string
 }[]
 
 type ApiPerfLogTicket = {
@@ -23,17 +26,41 @@ export let apiPerfLogData: ApiPerfLogData = []
 export let apiPerfLogTicket: ApiPerfLogTicket = {}
 export const logEventEmitter = new EventEmitter()
 
+export const debug_info = {
+  isRecordingInterface: config.statLog,
+  isRecordingTx: config.recordTxStatus,
+  txRecordingStartTime: 0,
+  txRecordingEndTime: 0,
+  interfaceRecordingStartTime: 0,
+  interfaceRecordingEndTime: 0,
+  txDB_cleanTime: 0,
+  interfaceDB_cleanTime: 0,
+}
+
 export async function saveInterfaceStat() {
-  const { api_name, tfinal, timestamp } = apiPerfLogData[0]
-  let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}'`
-  let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
-  for (let i = 1; i < apiPerfLogData.length; i++) {
-    const { api_name, tfinal, timestamp } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
-    placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}'`
-    sql = sql + `, (${placeholders})`
+
+  console.log(apiPerfLogData);
+  try{
+    // eslint-disable-next-line prefer-const
+    let { api_name, tfinal, timestamp, nodeUrl, success, reason } = apiPerfLogData[0]
+    // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
+    let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}'`
+    let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
+    for (let i = 1; i < apiPerfLogData.length; i++) {
+
+      // eslint-disable-next-line prefer-const
+      let { api_name, tfinal, timestamp, nodeUrl, success, reason } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
+
+      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
+      placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}'`
+      sql = sql + `, (${placeholders})`
+    }
+
+    await db.exec(sql)
+  }catch(e){
+    console.log(e);
   }
 
-  await db.exec(sql)
   apiPerfLogData = []
   apiPerfLogTicket = {}
 }
@@ -42,13 +69,15 @@ export function setupLogEvents() {
   /* eslint-disable security/detect-object-injection */
   if (config.statLog) {
     logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
+      if(config.statLog !== true) return
       apiPerfLogTicket[ticket] = { 
         api_name: api_name,
         start_timer: start_timer,
       }
     })
 
-    logEventEmitter.on('fn_end', (ticket: string, end_timer: number) => {
+    logEventEmitter.on('fn_end', (ticket: string, data: {nodeUrl?: string, success: boolean, reason?:string}, end_timer: number) => {
+      if(config.statLog !== true) return
       const timestamp = Date.now()
 
       if (!Object.prototype.hasOwnProperty.call(apiPerfLogTicket, ticket)) return
@@ -60,14 +89,17 @@ export function setupLogEvents() {
         api_name: api_name,
         tfinal: tfinal,
         timestamp: timestamp,
+        nodeUrl: data.nodeUrl,
+        success: data.success,
+        reason: data?.reason
       })
       delete apiPerfLogTicket[ticket]
-      if (apiPerfLogData.length >= 10000) saveInterfaceStat()
+      if (apiPerfLogData.length >= 100) saveInterfaceStat()
     })
   }
 
-  if (config.recordTxStatus) {
     logEventEmitter.on('tx_insert_db', async (_txs: TxStatus[]) => {
+      if(config.recordTxStatus !== true) return
       const txs = _txs as any[]
       const detailedList: DetailedTxStatus[] = []
 
@@ -98,6 +130,7 @@ export function setupLogEvents() {
             to: bufferToHex(tx.to),
             from: bufferToHex(tx.getSenderAddress()),
             timestamp: txStatus.timestamp,
+            nodeUrl: txStatus.nodeUrl
           })
         } catch (e) {
           continue
@@ -105,7 +138,6 @@ export function setupLogEvents() {
       }
       txStatusSaver(detailedList)
     })
-  }
   /* eslint-enable security/detect-object-injection */
 }
 
@@ -118,12 +150,18 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
     if (txs.length === 0) return
     const prepareBulkInsertSQL = (txs: DetailedTxStatus[]) => {
       // items order {txHash, injected, accepted, reason, type, to, from, ip, timestamp}
-      const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[0]
-      let placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+      // eslint-disable-next-line prefer-const
+      let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[0]
+      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
+
+      let placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}', '${nodeUrl}'`
       let sql = 'INSERT OR REPLACE INTO transactions VALUES (' + placeholders + ')'
+
       for (let i = 1; i < txs.length; i++) {
-        const { txHash, injected, accepted, reason, type, to, from, ip, timestamp } = txs[i] // eslint-disable-line security/detect-object-injection
-        placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}'`
+      // eslint-disable-next-line prefer-const
+      let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[i]
+      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
+        placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}', '${nodeUrl}'`
         sql = sql + `, (${placeholders})`
       }
       return sql
@@ -137,28 +175,28 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
   }
 
   // construct string to be a valid sql string, NOTE> insert value needs to be in order
-  const prepareSQL = ({
-    txHash,
-    injected,
-    accepted,
-    reason,
-    type,
-    to,
-    from,
-    ip,
-    timestamp,
-  }: DetailedTxStatus) => {
-    return (
-      `INSERT OR REPLACE INTO transactions` +
-      ` VALUES (NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}')`
-    )
-  }
-
-  for await (const tx of txs) {
-    try {
-      await db.exec(prepareSQL(tx))
-    } catch (e) {
-      continue
-    }
-  }
+  // const prepareSQL = ({
+  //   txHash,
+  //   injected,
+  //   accepted,
+  //   reason,
+  //   type,
+  //   to,
+  //   from,
+  //   ip,
+  //   timestamp,
+  // }: DetailedTxStatus) => {
+  //   return (
+  //     `INSERT OR REPLACE INTO transactions` +
+  //     ` VALUES (NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}')`
+  //   )
+  // }
+  //
+  // for await (const tx of txs) {
+  //   try {
+  //     await db.exec(prepareSQL(tx))
+  //   } catch (e) {
+  //     continue
+  //   }
+  // }
 }

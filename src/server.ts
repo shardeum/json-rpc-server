@@ -3,7 +3,7 @@ import cors from 'cors'
 import express, { NextFunction } from 'express'
 import cookieParser from 'cookie-parser'
 import { methods, saveTxStatus } from './api'
-import { setupLogEvents } from './logger'
+import { debug_info, setupLogEvents } from './logger'
 import authorize from './middlewares/authorize'
 import injectIP from './middlewares/injectIP'
 import { setupDatabase } from './storage/sqliteStorage'
@@ -17,10 +17,22 @@ import {
 import {router as logRoute} from './routes/log'
 import {router as authenticate} from './routes/authenticate'
 import { Request, Response } from 'express'
-import {CONFIG as config} from './config'
+import {CONFIG, CONFIG as config} from './config'
 import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
+import path from 'path'
 
+// const path = require('path');
+// var whitelist = ['http://example1.com', 'http://example2.com']
+// var corsOptions = {
+//   origin: function (origin, callback) {
+//     if (whitelist.indexOf(origin) !== -1) {
+//       callback(null, true)
+//     } else {
+//       callback(new Error('Not allowed by CORS'))
+//     }
+//   }
+// }
 const app = express()
 const server = new jayson.Server(methods)
 let port = config.port //8080
@@ -45,6 +57,21 @@ app.set('trust proxy', true)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
+
+const clientModule = require.resolve('@shardeum/rpc-gateway-frontend');
+
+const clientDirectory = path.dirname(clientModule);
+const staticDirectory = path.join(clientDirectory,'static');
+
+console.log(path.join(clientDirectory,'index.html'));
+
+
+app.set('views', clientDirectory);
+app.use('/static',express.static(staticDirectory));
+// app.set('views', clientDirectory);
+app.get('/dashboard', function (req, res) {
+  return res.sendFile(path.join(clientDirectory,'index.html'));
+});
 
 app.get('/api/subscribe', (req: Request, res: Response) => {
   const query = req.query
@@ -96,7 +123,10 @@ app.use('/authenticate', authenticate)
 app.use(injectIP)
 app.use(server.middleware())
 
+
 updateNodeList(true).then(() => {
+  debug_info.interfaceRecordingStartTime = config.statLog ? Date.now() : 0
+  debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
   setConsensorNode()
   setInterval(updateNodeList, config.nodelistRefreshInterval)
   setInterval(saveTxStatus, 5000)

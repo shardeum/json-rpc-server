@@ -104,12 +104,14 @@ export async function requestWithRetry(
   const IS_INFINITY: boolean = nRetry < 0
   const maxRetry = nRetry //set this to 0 with for load testing rpc server
 
+  let nodeUrl
   while (retry <= maxRetry || IS_INFINITY) {
     retry++
     try {
       // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
+      nodeUrl = getBaseUrl();
       let url
-      if (!isFullUrl) url = `${getBaseUrl()}${route}`
+      if (!isFullUrl) url = `${nodeUrl}${route}`
       else url = route
       const res = await axios({
         method:method,
@@ -119,6 +121,8 @@ export async function requestWithRetry(
       })
       if (res.status === 200 && !res.data.error) {
         // success = true
+        // we want to know which validator this is being injected to for debugging purposes
+        res.data.nodeUrl = nodeUrl
         return res //break
       }
     } catch (e: any) {
@@ -132,7 +136,7 @@ export async function requestWithRetry(
       if (verbose) console.log('Node is busy...out of retries')
     }
   }
-  return { data: null }
+  return { data: {nodeUrl} }
 }
 
 export function getTransactionObj(tx: any): any {
@@ -238,13 +242,9 @@ export function sleep(ms: number) {
   })
 }
 
-export async function getAccount(addressStr: any) {
-  try {
-    const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
-    return res.data.account
-  } catch (e) {
-    // console.log('getAccount error', e)
-  }
+export async function getAccount(addressStr: any): Promise<{account?: any, nodeUrl: string}> {
+   const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
+   return res.data
 }
 
 export class RequestersList {
