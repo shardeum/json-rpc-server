@@ -92,9 +92,6 @@ router.route('/api-stats').get(async (req: any, res: any) => {
 
     const start = req.query.start ? timeInputProcessor(req.query.start) : null
     const end = req.query.end ? timeInputProcessor(req.query.end) : null
-    const aggregate = req.query.aggregate == 'true' ? true : false
-
-
 
     // start 1678037555727
     // end 1678038025945
@@ -114,20 +111,39 @@ router.route('/api-stats').get(async (req: any, res: any) => {
         return res.json(tx[0]).status(200);
     }
 
-      const raw = await db
-        .prepare(`SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}`)
-        .all()
+      const sqlFilter = prepareSQLFilters({
+          nodeUrl: req.query.nodeUrl,
+          api_name: req.query.api_name,
+          reason: req.query.reason,
+          hash: req.query.hash,
+          success: req.query.success
+      })
+
+    console.log(sqlFilter);
+    const sqlString = (sqlFilter == '') ?
+        `SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}` :
+        `SELECT * FROM interface_stats WHERE id > ${0} ${sqlFilter}`
+
+    console.log(sqlString);
+    // eslint-disable-next-line prefer-const
+    const raw = db.prepare(sqlString).all()
       const data: any = {
         current:  Number(page),
         length: raw.length,
         max: max
       }
 
-      if(data.current > 0){
-        data.prev = data.current -1;
+      if(Number(page) > 0){
+        data.prev = Number(page) -1;
       }
-      if(data.current >= max){
-        data.next = data.current+1
+      if(data.length >= max){
+        data.next = Number(page)+1
+      }
+
+      if(sqlFilter != ''){
+          delete data.current
+          if(data.next) delete data.next
+          if(data.prev) delete data.prev
       }
       data.data = raw
       return res.json(data).status(200);
@@ -218,7 +234,6 @@ router.route('/txs').get(async function (req: any, res: any) {
         return res.json(tx[0]).status(200);
     }
 
-    let txs 
 
     const sqlFilter = prepareSQLFilters({
         nodeUrl: req.query.nodeUrl,
@@ -238,7 +253,7 @@ router.route('/txs').get(async function (req: any, res: any) {
 
     console.log(sqlString);
     // eslint-disable-next-line prefer-const
-    txs = db.prepare(sqlString).all()
+    const txs = db.prepare(sqlString).all()
 
       const data: any = {
         current: Number(page),

@@ -13,6 +13,7 @@ type ApiPerfLogData = {
   nodeUrl?: string
   success: boolean
   reason?: string
+  hash?: string
 }[]
 
 type ApiPerfLogTicket = {
@@ -42,17 +43,19 @@ export async function saveInterfaceStat() {
   console.log(apiPerfLogData);
   try{
     // eslint-disable-next-line prefer-const
-    let { api_name, tfinal, timestamp, nodeUrl, success, reason } = apiPerfLogData[0]
+    let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[0]
     // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
-    let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}'`
+    let placeholders = 
+      `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
     let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
     for (let i = 1; i < apiPerfLogData.length; i++) {
 
       // eslint-disable-next-line prefer-const
-      let { api_name, tfinal, timestamp, nodeUrl, success, reason } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
+      let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
 
       // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname 
-      placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}'`
+      placeholders = 
+      `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
       sql = sql + `, (${placeholders})`
     }
 
@@ -76,7 +79,9 @@ export function setupLogEvents() {
       }
     })
 
-    logEventEmitter.on('fn_end', (ticket: string, data: {nodeUrl?: string, success: boolean, reason?:string}, end_timer: number) => {
+    logEventEmitter.on('fn_end', (
+      ticket: string, 
+      data: {nodeUrl?: string, success: boolean, reason?:string, hash?: string}, end_timer: number) => {
       if(config.statLog !== true) return
       const timestamp = Date.now()
 
@@ -91,10 +96,11 @@ export function setupLogEvents() {
         timestamp: timestamp,
         nodeUrl: data.nodeUrl,
         success: data.success,
-        reason: data?.reason
+        reason: data?.reason,
+        hash: data?.hash
       })
       delete apiPerfLogTicket[ticket]
-      if (apiPerfLogData.length >= 100) saveInterfaceStat()
+      if (apiPerfLogData.length >= 10000) saveInterfaceStat()
     })
   }
 

@@ -9,7 +9,7 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
   token = token? token : req.cookies.access_token
 
   jwt.verify(token , CONFIG.secret_key, (err: any) => {
-    if (err) res.send({ message: 'unauthorized' }).status(403)
+    if (err) res.status(401).send({ message: 'unauthorized' })
     next()
   })
   return

@@ -153,7 +153,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             nodeUrl: nodeUrl, 
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status
+            status: injectResult.status,
           })
         }
 
@@ -644,10 +644,10 @@ export const methods = {
       console.log('Running sendRawTransaction', args)
     }
     let nodeUrl: any
+    let txHash = ''
     try {
       const { isInternalTx } = args[0]
       let tx: any
-      let txHash = ''
 
       if (isInternalTx === true) {
         console.log('We are processing an internal tx')
@@ -711,7 +711,8 @@ export const methods = {
             logEventEmitter.emit('fn_end', ticket, {
               nodeUrl: res.nodeUrl, 
               success: true, 
-              reason: res.reason
+              reason: res.reason,
+              hash: txHash
             }, performance.now())
             callback(null, txHash)
           }
@@ -719,18 +720,29 @@ export const methods = {
             logEventEmitter.emit('fn_end', ticket, {
               nodeUrl: res.nodeUrl, 
               success: false, 
-              reason: res.reason
+              reason: res.reason,
+              hash: txHash
             }, performance.now())
             callback(serializeError({ status: res.status }, { fallbackError: { message: res.reason, code: 101 } }), null)
           }
         })
         .catch((e) => {
-          logEventEmitter.emit('fn_end', ticket, {nodeUrl: e.nodeUrl, success: false, reason:e.error}, performance.now())
+          logEventEmitter.emit('fn_end', ticket, {
+            nodeUrl: e.nodeUrl, 
+            success: false, 
+            reason:e.error, 
+            hash: txHash
+          }, performance.now())
           callback(e, null)
         })
     } catch (e: any) {
       console.log(`Error while injecting tx to consensor`, e)
-      logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: false, reason: e.toString()}, performance.now())
+      logEventEmitter.emit('fn_end', ticket, {
+        nodeUrl, 
+        success: false, 
+        reason: e.toString(),
+        hash:txHash
+      }, performance.now())
       callback({ message: e }, null)
     }
   },
@@ -746,12 +758,12 @@ export const methods = {
       console.log('Sending internal tx to /inject endpoint', new Date(now), now)
       console.log('Running eth_sendInternalTransaction', args)
     }
+    const txHash = ''
     try {
       const internalTx = args[0]
 
       if (config.generateTxTimestamp && internalTx.timestamp == null) internalTx.timestamp = now
 
-      const txHash = ''
 
       injectAndRecordTx(txHash, internalTx, args)
         .then((res: any) => {
@@ -760,7 +772,8 @@ export const methods = {
             logEventEmitter.emit('fn_end', ticket, {
               nodeUrl: res.nodeUrl, 
               success: true, 
-              reason: res.reason
+              reason: res.reason,
+              hash: txHash
             }, performance.now())
 
             callback(null, txHash)
@@ -769,13 +782,19 @@ export const methods = {
             logEventEmitter.emit('fn_end', ticket, {
               nodeUrl: res.nodeUrl, 
               success: false, 
-              reason: res.reason
+              reason: res.reason,
+              hash: txHash
             }, performance.now())
             callback({ message: 'Internal tx injection failure' }, null)
           }
         })
         .catch((res) => {
-          logEventEmitter.emit('fn_end', ticket, {nodeUrl: res.nodeUrl, success: false, reason: res.error}, performance.now())
+          logEventEmitter.emit('fn_end', ticket, {
+            nodeUrl: res.nodeUrl, 
+            success: false, 
+            reason: res.error,
+            hash:txHash
+          }, performance.now())
           callback(res.error, null)
         })
     } catch (e) {

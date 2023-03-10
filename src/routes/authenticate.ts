@@ -25,7 +25,7 @@ router.route('/token-check/:token').get(async function (req: Request, res: Respo
   const { token } = req.params
 
   jwt.verify(token, CONFIG.secret_key, (err: any, decoded: any) => {
-    if (err) return res.send({ valid: false }).status(403)
+    if (err) return res.status(401).send({ valid: false })
     return res.send({valid: true}).status(200);
   })
 })
