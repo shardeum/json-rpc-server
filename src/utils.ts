@@ -712,8 +712,15 @@ export class RequestersList {
   }
 }
 
+export function hashSignedObj(obj: any) {
+  if (!obj.sign) {
+    return crypto.hashObj(obj)
+  }
+  return crypto.hashObj(obj, true)
+}
+
 export function calculateInternalTxHash(tx: any) {
-  return crypto.hashObj(tx)
+  return '0x' + hashSignedObj(tx)
 }
 
 export async function getTransactionReceipt(hash: string) {
