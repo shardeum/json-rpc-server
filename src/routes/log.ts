@@ -119,12 +119,10 @@ router.route('/api-stats').get(async (req: any, res: any) => {
           success: req.query.success
       })
 
-    console.log(sqlFilter);
     const sqlString = (sqlFilter == '') ?
         `SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}` :
         `SELECT * FROM interface_stats WHERE id > ${0} ${sqlFilter}`
 
-    console.log(sqlString);
     // eslint-disable-next-line prefer-const
     const raw = db.prepare(sqlString).all()
       const data: any = {
@@ -246,12 +244,10 @@ router.route('/txs').get(async function (req: any, res: any) {
         hash: req.query.hash
     })
 
-    console.log(sqlFilter);
     const sqlString = (sqlFilter == '') ?
         `SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}` :
         `SELECT * FROM transactions WHERE id > ${0} ${sqlFilter}`
 
-    console.log(sqlString);
     // eslint-disable-next-line prefer-const
     const txs = db.prepare(sqlString).all()
 
