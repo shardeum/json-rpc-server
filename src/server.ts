@@ -58,20 +58,18 @@ app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
 
-const clientModule = require.resolve('@shardeum/rpc-gateway-frontend');
-
-const clientDirectory = path.dirname(clientModule);
-const staticDirectory = path.join(clientDirectory,'static');
-
-console.log(path.join(clientDirectory,'index.html'));
-
-
-app.set('views', clientDirectory);
-app.use('/static',express.static(staticDirectory));
-// app.set('views', clientDirectory);
-app.get('/dashboard', function (req, res) {
-  return res.sendFile(path.join(clientDirectory,'index.html'));
-});
+if(config.dashboard.enabled && config.dashboard.dist_path){
+  const clientDirectory = config.dashboard.dist_path[0] === '/' ? 
+    config.dashboard.dist_path : path.resolve(config.dashboard.dist_path);
+  const staticDirectory = path.join(clientDirectory,'static');
+  console.log(path.join(clientDirectory,'index.html'));
+  app.set('views', clientDirectory);
+  app.use('/static',express.static(staticDirectory));
+  // app.set('views', clientDirectory);
+  app.get('/dashboard', function (req, res) {
+    return res.sendFile(path.join(clientDirectory,'index.html'));
+  });
+}
 
 app.get('/api/subscribe', (req: Request, res: Response) => {
   const query = req.query

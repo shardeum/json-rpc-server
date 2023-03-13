@@ -48,9 +48,14 @@ type Config = {
   adaptiveRejection: boolean
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
+
+  dashboard: {
+    enabled: boolean,
+    dist_path: string,
+  }
 }
 
-export let CONFIG: Config = {
+export const CONFIG: Config = {
   port: 8080,
   chainId: 8082,
   nodeIpInfo: {
@@ -94,4 +99,10 @@ export let CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: true,
+  dashboard: {
+    enabled: true,
+
+    // relative path will work but absolute path is recommended
+    dist_path: '../rpc-gateway-frontend/build/',
+  }
 }
