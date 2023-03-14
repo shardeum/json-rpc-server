@@ -3,13 +3,13 @@ import { BN, bufferToHex, toBuffer } from 'ethereumjs-util'
 import { recordTxStatus, createRejectTxStatus } from './api'
 import whiteList from '../whitelist.json'
 import axios from 'axios'
-import {CONFIG as config} from './config'
+import { CONFIG as config } from './config'
 import fs from 'fs'
 // import crypto from '@shardus/crypto-utils'
 
 const crypto = require('@shardus/crypto-utils')
 
-crypto.init("69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc")
+crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
 export const node = {
   ip: 'localhost',
@@ -21,6 +21,15 @@ let gotArchiver = false
 let nodeList: any[] = []
 let nextIndex = 0
 const allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
+
+type ArchiverStat = {
+  url?: string
+  cycle_value: number | null
+}
+const DEFAULT_ARCHIVER_URL = `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
+let maxCycleValue = 0
+let healthyArchivers: ArchiverStat[] = [{ url: DEFAULT_ARCHIVER_URL, cycle_value: 0 }]
+let archiverIndex = 0
 
 export enum RequestMethod {
   Get = 'get',
@@ -41,7 +50,7 @@ export async function updateNodeList(tryInfinate = false) {
   // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
   const res = await requestWithRetry(
     RequestMethod.Get,
-    `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/full-nodelist?activeOnly=true`,
+    `${DEFAULT_ARCHIVER_URL}/full-nodelist?activeOnly=true`,
     {},
     nRetry,
     true
@@ -55,10 +64,10 @@ export async function updateNodeList(tryInfinate = false) {
       })
     }
     if (config.filterDeadNodesFromArchiver) {
-      let allNodes = [...nodes]
-      let onlineNodes = []
+      const allNodes = [...nodes]
+      const onlineNodes = []
       let count = 0
-      for (let node of allNodes) {
+      for (const node of allNodes) {
         count++
         try {
           const res = await axios({
@@ -77,12 +86,40 @@ export async function updateNodeList(tryInfinate = false) {
         }
       }
       nodeList = [...onlineNodes]
-      if (verbose) console.log(`Nodelist is updated. All nodes ${allNodes.length}, online nodes ${onlineNodes.length}`)
+      if (verbose)
+        console.log(`Nodelist is updated. All nodes ${allNodes.length}, online nodes ${onlineNodes.length}`)
     } else {
       nodeList = [...nodes]
     }
   }
   console.timeEnd('nodelist_update')
+}
+
+export async function checkArchiverHealth() {
+  console.info('\n====> Checking Health of Archivers <====')
+  const archiverData: ArchiverStat[] = await getArchiverStats()
+  console.table(archiverData, ['url', 'cycle_value'])
+  healthyArchivers = archiverData.filter((a: ArchiverStat) => a.cycle_value === maxCycleValue)
+  console.log(`-->> ${healthyArchivers.length} Healthy Archivers active in the Network <<--`)
+}
+
+async function getArchiverStats(): Promise<ArchiverStat[]> {
+  const counters = config.existingArchivers.map(async (url) => {
+    try {
+      const res = await axios.get(`http://${url.ip}:${url.port}/cycleinfo/1`)
+      if (res?.data?.cycleInfo[0].counter > maxCycleValue) {
+        maxCycleValue = res?.data?.cycleInfo[0].counter
+      }
+
+      return { url: `${url.ip}:${url.port}/`, cycle_value: res?.data?.cycleInfo[0].counter }
+    } catch (error: any) {
+      console.error(
+        `Unreachable Archiver @ ${url.ip}:${url.port}/ | Error-code: ${error.errno} => ${error.code}`
+      )
+      return { url: `${url.ip}:${url.port}/`, cycle_value: null }
+    }
+  })
+  return Promise.all(counters)
 }
 
 export async function waitRandomSecond() {
@@ -172,8 +209,8 @@ export function getBaseUrl() {
 }
 
 export function getArchiverUrl() {
-  // http://localhost:4000/nodelist
-  return `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
+  const { url } = getNextArchiver()
+  return url ? `http://${url}` : DEFAULT_ARCHIVER_URL
 }
 
 export function changeNode(ip: string, port: number) {
@@ -234,6 +271,20 @@ export function getNextConsensorNode() {
   }
 }
 
+function getNextArchiver() {
+  if (healthyArchivers.length > 0) {
+    if (archiverIndex === healthyArchivers.length) {
+      archiverIndex = 0
+    }
+    const archiver = healthyArchivers[Number(archiverIndex)]
+    archiverIndex++
+    return archiver
+  } else {
+    console.error('🔴-> No Healthy Archivers in the Network <-🔴')
+    return { url: null }
+  }
+}
+
 export function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -270,7 +321,7 @@ export class RequestersList {
     this.bannedIps = blackList.map((ip: string) => {
       return { ip, timestamp: Date.now() }
     })
-    
+
     if (config.rateLimit) {
       setInterval(() => {
         this.clearOldIps()
@@ -569,7 +620,7 @@ export class RequestersList {
     if (this.isIpBanned(ip)) {
       if (verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
       if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
-        let transaction = getTransactionObj({ raw: reqParams[0] })
+        const transaction = getTransactionObj({ raw: reqParams[0] })
         createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
       }
       return false
@@ -588,7 +639,7 @@ export class RequestersList {
         if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
-          let transaction = getTransactionObj({ raw: reqParams[0] })
+          const transaction = getTransactionObj({ raw: reqParams[0] })
           createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
         }
         return false

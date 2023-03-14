@@ -12,12 +12,13 @@ import {
   setConsensorNode,
   updateNodeList,
   RequestersList,
+  checkArchiverHealth,
   sleep,
 } from './utils'
-import {router as logRoute} from './routes/log'
-import {router as authenticate} from './routes/authenticate'
+import { router as logRoute } from './routes/log'
+import { router as authenticate } from './routes/authenticate'
 import { Request, Response } from 'express'
-import {CONFIG, CONFIG as config} from './config'
+import { CONFIG as config } from './config'
 import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
 import path from 'path'
@@ -128,6 +129,7 @@ updateNodeList(true).then(() => {
   setConsensorNode()
   setInterval(updateNodeList, config.nodelistRefreshInterval)
   setInterval(saveTxStatus, 5000)
+  setInterval(checkArchiverHealth, 60000)
   app.listen(port, function() {
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
     setupDatabase()
