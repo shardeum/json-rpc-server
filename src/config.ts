@@ -13,6 +13,11 @@ type Config = {
     externalIp: string
     externalPort: number
   }
+  existingArchivers: {
+    ip: string
+    port: number
+    publicKey: string
+  }[]
   faucetServerUrl: string
   queryFromValidator: boolean
   queryFromArchiver: boolean
@@ -70,6 +75,28 @@ export const CONFIG: Config = {
     externalIp: 'localhost',
     externalPort: 4000,
   },
+  existingArchivers: [
+    {
+      ip: '3.127.57.166',
+      port: 4000,
+      publicKey: '758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3',
+    },
+    {
+      ip: '45.79.113.106',
+      port: 4000,
+      publicKey: '7af699dd711074eb96a8d1103e32b589e511613ebb0c6a789a9e8791b2b05f34',
+    },
+    {
+      ip: '139.144.189.238',
+      port: 4000,
+      publicKey: '840e7b59a95d3c5f5044f4bc62ab9fa94bc107d391001141410983502e3cde63',
+    },
+    {
+      ip: '194.195.220.150',
+      port: 4000,
+      publicKey: '616f720f4b6145373acd95b068cb674ff3a24ba738cfff5da568ec36873859f6',
+    },
+  ],
   faucetServerUrl: 'https://faucet.liberty10.shardeum.org',
   queryFromValidator: true,
   queryFromArchiver: false,
