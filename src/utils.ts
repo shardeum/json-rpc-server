@@ -23,12 +23,11 @@ let nextIndex = 0
 const allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
 
 type ArchiverStat = {
-  url?: string
+  url: string
   cycle_value: number | null
 }
-const DEFAULT_ARCHIVER_URL = `http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}`
 let maxCycleValue = 0
-let healthyArchivers: ArchiverStat[] = [{ url: DEFAULT_ARCHIVER_URL, cycle_value: 0 }]
+let healthyArchivers: ArchiverStat[] = []
 let archiverIndex = 0
 
 export enum RequestMethod {
@@ -38,6 +37,8 @@ export enum RequestMethod {
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 export async function updateNodeList(tryInfinate = false) {
+  if (!healthyArchivers.length) await checkArchiverHealth()
+
   console.time('nodelist_update')
   const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
   if (config.askLocalHostForArchiver === true) {
@@ -47,10 +48,9 @@ export async function updateNodeList(tryInfinate = false) {
     }
   }
 
-  // const res = await axios.get(`http://${config.archiverIpInfo.externalIp}:${config.archiverIpInfo.externalPort}/nodelist`)
   const res = await requestWithRetry(
     RequestMethod.Get,
-    `${DEFAULT_ARCHIVER_URL}/full-nodelist?activeOnly=true`,
+    `${getArchiverUrl().url}/full-nodelist?activeOnly=true`,
     {},
     nRetry,
     true
@@ -60,7 +60,7 @@ export async function updateNodeList(tryInfinate = false) {
   if (nodes.length > 0) {
     if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
       nodes.forEach((node: any) => {
-        node.ip = config.archiverIpInfo.externalIp
+        node.ip = getArchiverUrl().ip
       })
     }
     if (config.filterDeadNodesFromArchiver) {
@@ -111,12 +111,12 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
         maxCycleValue = res?.data?.cycleInfo[0].counter
       }
 
-      return { url: `${url.ip}:${url.port}/`, cycle_value: res?.data?.cycleInfo[0].counter }
+      return { url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter }
     } catch (error: any) {
       console.error(
-        `Unreachable Archiver @ ${url.ip}:${url.port}/ | Error-code: ${error.errno} => ${error.code}`
+        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${error.errno} => ${error.code}`
       )
-      return { url: `${url.ip}:${url.port}/`, cycle_value: null }
+      return { url: `http://${url.ip}:${url.port}`, cycle_value: null }
     }
   })
   return Promise.all(counters)
@@ -151,7 +151,7 @@ export async function requestWithRetry(
       if (!isFullUrl) url = `${nodeUrl}${route}`
       else url = route
       const res = await axios({
-        method:method,
+        method,
         url,
         data,
         timeout: 5000,
@@ -173,7 +173,7 @@ export async function requestWithRetry(
       if (verbose) console.log('Node is busy...out of retries')
     }
   }
-  return { data: {nodeUrl} }
+  return { data: { nodeUrl } }
 }
 
 export function getTransactionObj(tx: any): any {
@@ -209,8 +209,7 @@ export function getBaseUrl() {
 }
 
 export function getArchiverUrl() {
-  const { url } = getNextArchiver()
-  return url ? `http://${url}` : DEFAULT_ARCHIVER_URL
+  return getNextArchiver()
 }
 
 export function changeNode(ip: string, port: number) {
@@ -278,10 +277,11 @@ function getNextArchiver() {
     }
     const archiver = healthyArchivers[Number(archiverIndex)]
     archiverIndex++
-    return archiver
+    const [ip, port] = archiver.url.split('//')[1].split(':')
+    return { url: archiver.url, ip, port: Number(port) }
   } else {
-    console.error('🔴-> No Healthy Archivers in the Network <-🔴')
-    return { url: null }
+    console.error('🔴-> No Healthy Archivers in the Network. Terminating Server. <-🔴')
+    process.exit(0)
   }
 }
 
