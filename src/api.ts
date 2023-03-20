@@ -548,7 +548,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleCountByBlockHash', args)
     }
-    const result = '0x1'
+    const result = '0x0'
 
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
     callback(null, result)
@@ -563,7 +563,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUnbleCountByBlockNumber', args)
     }
-    const result = '0x1'
+    const result = '0x0'
 
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
     callback(null, result)
@@ -1125,7 +1125,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockHashAndIndex', args)
     }
-    const result = 'test'
+    const result = '0x0'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
@@ -1139,7 +1139,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockNumberAndIndex', args)
     }
-    const result = 'test'
+    const result = '0x0'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
