@@ -1125,7 +1125,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockHashAndIndex', args)
     }
-    const result = '0x0'
+    const result = null
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
@@ -1139,7 +1139,7 @@ export const methods = {
     if (verbose) {
       console.log('Running getUncleByBlockNumberAndIndex', args)
     }
-    const result = '0x0'
+    const result = null
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
