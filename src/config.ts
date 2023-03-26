@@ -78,7 +78,7 @@ export const CONFIG: Config = {
   rpcDataServerUrl: 'http://localhost:4445',
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
-  recordTxStatus: true,
+  recordTxStatus: false,
   rateLimit: false,
   rateLimitOption: {
     softReject: true,
@@ -92,7 +92,7 @@ export const CONFIG: Config = {
     releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
-  statLog: true,
+  statLog: false,
   passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes
   secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P', // this is the private key that rpc server will used to sign jwt token
   nonceValidate: false,
