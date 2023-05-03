@@ -21,6 +21,8 @@ type Config = {
   rpcDataServerUrl: string
   generateTxTimestamp: boolean
   nodelistRefreshInterval: number
+  defaultRequestRetry: number
+  defaultRequestTimeout: number
   recordTxStatus: boolean
   rateLimit: boolean
   rateLimitOption: {
@@ -76,10 +78,12 @@ export const CONFIG: Config = {
   queryFromValidator: true,
   queryFromArchiver: false,
   explorerUrl: 'http://localhost:6001',
-  queryFromExplorer: false,
+  queryFromExplorer: true,
   rpcDataServerUrl: 'http://localhost:4445',
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
+  defaultRequestRetry: 5,
+  defaultRequestTimeout: 2000,
   recordTxStatus: false,
   rateLimit: false,
   rateLimitOption: {
@@ -100,10 +104,9 @@ export const CONFIG: Config = {
   nonceValidate: false,
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
-  verbose: true,
+  verbose: false,
   dashboard: {
     enabled: true,
-
     // relative path will work but absolute path is recommended
     dist_path: '../rpc-gateway-frontend/build/',
   }

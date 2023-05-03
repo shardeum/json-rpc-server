@@ -14,6 +14,7 @@ import {
   RequestersList,
   checkArchiverHealth,
   sleep,
+  cleanBadNodes
 } from './utils'
 import { router as logRoute } from './routes/log'
 import { router as authenticate } from './routes/authenticate'
@@ -60,7 +61,7 @@ app.use(express.json())
 app.use(cookieParser())
 
 if(config.dashboard.enabled && config.dashboard.dist_path){
-  const clientDirectory = config.dashboard.dist_path[0] === '/' ? 
+  const clientDirectory = config.dashboard.dist_path[0] === '/' ?
     config.dashboard.dist_path : path.resolve(config.dashboard.dist_path);
   const staticDirectory = path.join(clientDirectory,'static');
   console.log(path.join(clientDirectory,'index.html'));
@@ -130,6 +131,7 @@ updateNodeList(true).then(() => {
   setInterval(updateNodeList, config.nodelistRefreshInterval)
   setInterval(saveTxStatus, 5000)
   setInterval(checkArchiverHealth, 60000)
+  setInterval(cleanBadNodes, 60000)
   app.listen(port, function() {
     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
     setupDatabase()

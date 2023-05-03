@@ -16,6 +16,8 @@ export const node = {
   port: 9001,
 }
 
+let badNodesMap: Map<string, number> = new Map()
+
 const verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
@@ -37,7 +39,9 @@ export enum RequestMethod {
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 export async function updateNodeList(tryInfinate = false) {
+
   if (!healthyArchivers.length) await checkArchiverHealth()
+  console.log(`Updating NodeList from ${getArchiverUrl().url}`)
 
   console.time('nodelist_update')
   const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
@@ -123,10 +127,8 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
 }
 
 export async function waitRandomSecond() {
-  const second = Math.floor(Math.random() * 5) + 1
-  console.log(`Waiting ${second} second`)
-  if (verbose) console.log(`Waiting ${second} second`)
-  await sleep(second * 1000)
+  if (verbose) console.log(`Waiting before trying a different node`) // we don't need to wait here but doesn't hurt to wait a bit for perf
+  await sleep(200)
 }
 
 // nRetry negative number will retry infinitely
@@ -134,7 +136,7 @@ export async function requestWithRetry(
   method: RequestMethod,
   route: string,
   data: any = {},
-  nRetry = 5,
+  nRetry = config.defaultRequestRetry,
   isFullUrl = false
 ) {
   let retry = 0
@@ -144,17 +146,23 @@ export async function requestWithRetry(
   let nodeUrl
   while (retry <= maxRetry || IS_INFINITY) {
     retry++
+    let url
+    let nodeIpPort
+    let nodeUrl
+    if (!isFullUrl) {
+      let urlInfo = getBaseUrl();
+      nodeUrl = urlInfo.baseUrl
+      nodeIpPort = urlInfo.nodeIpPort
+      url = `${nodeUrl}${route}`
+    } else {
+      url = route
+    }
     try {
-      // if (true) console.log(`Running request with retry: ${url} count: ${retry}`)
-      nodeUrl = getBaseUrl();
-      let url
-      if (!isFullUrl) url = `${nodeUrl}${route}`
-      else url = route
       const res = await axios({
         method,
         url,
         data,
-        timeout: 5000,
+        timeout: config.defaultRequestTimeout,
       })
       if (res.status === 200 && !res.data.error) {
         // success = true
@@ -164,6 +172,12 @@ export async function requestWithRetry(
       }
     } catch (e: any) {
       console.log('Error: requestWithRetry', e.message)
+      let badNodePercentage = badNodesMap.size / nodeList.length
+      console.log('badNodePercentage', badNodePercentage, 'bad node count', badNodesMap.size)
+      if (nodeIpPort && badNodePercentage < 2/3) { // don't add to bad list if 2/3 of nodes are already bad
+        badNodesMap.set(nodeIpPort, Date.now())
+        console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
+      }
     }
 
     if (retry <= maxRetry) {
@@ -205,7 +219,7 @@ export function intStringToHex(str: string) {
 }
 export function getBaseUrl() {
   setConsensorNode()
-  return `http://${node.ip}:${node.port}`
+  return {nodeIpPort: `${node.ip}:${node.port}`, baseUrl: `http://${node.ip}:${node.port}`}
 }
 
 export function getArchiverUrl() {
@@ -218,16 +232,36 @@ export function changeNode(ip: string, port: number) {
   if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
 }
 
-function rotateConsensorNode() {
-  const consensor: any = getNextConsensorNode() //getRandomConsensorNode()
-  if (consensor) {
-    let nodeIp = consensor.ip
-    //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
-    //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
-    if (config.useConfigNodeIp === true) {
-      nodeIp = config.nodeIpInfo.externalIp
+export function cleanBadNodes() {
+  let now = Date.now()
+  let threeMinutesInMs = 180000
+  for (let [key, value] of badNodesMap.entries()) {
+    if (now - value > threeMinutesInMs) {
+      console.log(`Removing ${key} from badNodesMap`)
+      badNodesMap.delete(key)
     }
-    changeNode(nodeIp, consensor.port)
+  }
+  console.log(`Current number of good nodes: ${nodeList.length - badNodesMap.size}`)
+}
+
+function rotateConsensorNode() {
+  let count = 0
+  let maxRetry = 10
+  let success = false
+  while (count < maxRetry && !success) {
+    count++
+    const consensor: any = getNextConsensorNode() //getRandomConsensorNode()
+    let ipPort = `${consensor.ip}:${consensor.port}`
+    if (consensor && !badNodesMap.has(ipPort)) {
+      let nodeIp = consensor.ip
+      //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
+      //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
+      if (config.useConfigNodeIp === true) {
+        nodeIp = config.nodeIpInfo.externalIp
+      }
+      changeNode(nodeIp, consensor.port)
+      success = true
+    }
   }
 }
 

@@ -15,7 +15,7 @@ import {
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import { CONFIG as config } from './config' 
+import { CONFIG as config } from './config'
 
 export const verbose = config.verbose
 
@@ -36,7 +36,7 @@ const nonceTracker: any = {}
 type InjectResponse = {
   success: boolean
   reason: string
-  status: number 
+  status: number
 }
 
 export type TxStatus = {
@@ -86,7 +86,7 @@ async function getCurrentBlock() {
   let nodeUrl
   try {
     const result = await getCurrentBlockInfo()
-    nodeUrl =  result?.nodeUrl 
+    nodeUrl =  result?.nodeUrl
     blockNumber = result.blockNumber
     timestamp = result.timestamp
   } catch (e) {
@@ -141,16 +141,16 @@ export function recordTxStatus(txStatus: TxStatus) {
 
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
   const { raw } = tx
-  const nodeUrl = getBaseUrl()
+  const { baseUrl } = getBaseUrl()
   return new Promise((resolve, reject) => {
     axios
-      .post(`${nodeUrl}/inject`, tx)
+      .post(`${baseUrl}/inject`, tx)
       .then((response) => {
         const injectResult: InjectResponse = response.data
         console.log('inject tx result', txHash, response.data)
         if (config.recordTxStatus === false) {
           return resolve({
-            nodeUrl: nodeUrl, 
+            nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
             status: injectResult.status,
@@ -166,10 +166,10 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             reason: injectResult.reason || '',
             timestamp: tx.timestamp || Date.now(),
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
-            nodeUrl: nodeUrl
+            nodeUrl: baseUrl
           })
           return resolve({
-            nodeUrl: nodeUrl, 
+            nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
             status: injectResult.status
@@ -183,9 +183,9 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             reason: 'Unable to inject transaction into the network',
             timestamp: tx.timestamp || Date.now(),
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware
-            nodeUrl: nodeUrl
+            nodeUrl: baseUrl
           })
-          reject({nodeUrl: nodeUrl, error: "Unable inject transaction to the network"})
+          reject({nodeUrl: baseUrl, error: "Unable inject transaction to the network"})
         }
       })
       .catch(() => {
@@ -198,9 +198,9 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             reason: 'Unable to inject transaction into the network',
             timestamp: tx.timestamp || Date.now(),
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware l
-            nodeUrl: nodeUrl
+            nodeUrl: baseUrl
           })
-          reject({nodeUrl: nodeUrl, error: "Unable inject transaction to the network"})
+          reject({nodeUrl: baseUrl, error: "Unable inject transaction to the network"})
       })
   })
 }
@@ -507,7 +507,7 @@ export const methods = {
     } catch (e) {
       if (verbose) console.log('Unable to getTransactionCount', e)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: false}, performance.now())
-    }  
+    }
   },
   eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockTransactionCountByHash'
@@ -598,7 +598,7 @@ export const methods = {
     } catch (e) {
       console.log('Unable to eth_getCode', e)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: false}, performance.now())
-    } 
+    }
   },
   eth_signTransaction: async function (args: any, callback: any) {
     const api_name = 'eth_signTransaction'
@@ -709,8 +709,8 @@ export const methods = {
           nodeUrl = res.nodeUrl
           if (res.success === true) {
             logEventEmitter.emit('fn_end', ticket, {
-              nodeUrl: res.nodeUrl, 
-              success: true, 
+              nodeUrl: res.nodeUrl,
+              success: true,
               reason: res.reason,
               hash: txHash
             }, performance.now())
@@ -718,8 +718,8 @@ export const methods = {
           }
           if (res.success !== true && config.adaptiveRejection) {
             logEventEmitter.emit('fn_end', ticket, {
-              nodeUrl: res.nodeUrl, 
-              success: false, 
+              nodeUrl: res.nodeUrl,
+              success: false,
               reason: res.reason,
               hash: txHash
             }, performance.now())
@@ -728,9 +728,9 @@ export const methods = {
         })
         .catch((e) => {
           logEventEmitter.emit('fn_end', ticket, {
-            nodeUrl: e.nodeUrl, 
-            success: false, 
-            reason:e.error, 
+            nodeUrl: e.nodeUrl,
+            success: false,
+            reason:e.error,
             hash: txHash
           }, performance.now())
           callback(e, null)
@@ -738,8 +738,8 @@ export const methods = {
     } catch (e: any) {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit('fn_end', ticket, {
-        nodeUrl, 
-        success: false, 
+        nodeUrl,
+        success: false,
         reason: e.toString(),
         hash:txHash
       }, performance.now())
@@ -770,8 +770,8 @@ export const methods = {
           if (res.success === true) {
 
             logEventEmitter.emit('fn_end', ticket, {
-              nodeUrl: res.nodeUrl, 
-              success: true, 
+              nodeUrl: res.nodeUrl,
+              success: true,
               reason: res.reason,
               hash: txHash
             }, performance.now())
@@ -780,8 +780,8 @@ export const methods = {
           }
           if (res.success !== true && config.adaptiveRejection) {
             logEventEmitter.emit('fn_end', ticket, {
-              nodeUrl: res.nodeUrl, 
-              success: false, 
+              nodeUrl: res.nodeUrl,
+              success: false,
               reason: res.reason,
               hash: txHash
             }, performance.now())
@@ -790,8 +790,8 @@ export const methods = {
         })
         .catch((res) => {
           logEventEmitter.emit('fn_end', ticket, {
-            nodeUrl: res.nodeUrl, 
-            success: false, 
+            nodeUrl: res.nodeUrl,
+            success: false,
             reason: res.error,
             hash:txHash
           }, performance.now())
@@ -801,7 +801,7 @@ export const methods = {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl: undefined, success: false}, performance.now())
       callback({ message: e }, null)
-    }       
+    }
   },
   eth_call: async function (args: any, callback: any) {
     const api_name = 'eth_call'
@@ -1505,7 +1505,7 @@ export const methods = {
     }
     console.log('callObj', callObj)
 
-    
+
     let nodeUrl
     try {
       const res = await requestWithRetry(RequestMethod.Post, `/contract/accesslist`, callObj)
