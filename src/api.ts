@@ -1,4 +1,5 @@
 import axios from 'axios'
+import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
 import { BN, bufferToHex } from 'ethereumjs-util'
 import {
@@ -15,7 +16,8 @@ import {
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import { CONFIG as config } from './config'
+import { CONFIG, CONFIG as config } from './config' 
+import { logSubscriptionList } from './websocket/Clients'
 
 export const verbose = config.verbose
 
@@ -1525,4 +1527,43 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  eth_subscribe: async function (args: any, callback: any) {
+    try{
+      const subscription_name = args[0]
+      const filters = args[1]
+      const sub_id = args[10]
+      if(subscription_name !== 'logs') {
+        callback("Shardeum only support logs subscriptions",null);
+        return
+      }
+      if(!filters.address || !filters.topics){
+        callback("Invalid Filters",null);
+        return
+      }
+      if(!sub_id){
+        throw new Error("Subscription id missing, internal server Error");
+      }
+
+      const payload = {
+        subscription_id: sub_id,
+        address: filters.address,
+        topics: filters.topics
+      }
+      const res = await axios.post(CONFIG.explorerUrl + '/evm_log_subscribe', payload)
+
+      if(res.data.success) {
+        callback(null, sub_id);
+      }
+      else{
+        callback(res.data.error, null);
+        // subscription failed, will not be tracking it
+        logSubscriptionList.pruneClient(args[10])
+      }
+
+    }catch(e: any){
+      callback(e.message, null);
+      // subscription failed, will not be tracking it
+      logSubscriptionList.pruneClient(args[10])
+    }
+  }
 }

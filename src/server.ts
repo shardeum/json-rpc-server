@@ -1,6 +1,8 @@
 import jayson from 'jayson'
 import cors from 'cors'
 import express, { NextFunction } from 'express'
+import * as http from 'http'
+import * as WebSocket from 'ws'
 import cookieParser from 'cookie-parser'
 import { methods, saveTxStatus } from './api'
 import { debug_info, setupLogEvents } from './logger'
@@ -24,6 +26,7 @@ import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
 import path from 'path'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
+import { onConnection } from './websocket'
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
@@ -40,6 +43,12 @@ const app = express()
 const server = new jayson.Server(methods)
 let port = config.port //8080
 const chainId = config.chainId //8080
+
+const extendedServer = http.createServer(app);
+
+const wss = new WebSocket.Server({ server:extendedServer });
+
+wss.on('connection', onConnection);
 
 const myArgs = process.argv.slice(2)
 if (myArgs.length > 0) {
@@ -141,10 +150,10 @@ setupArchiverDiscovery({
     setInterval(saveTxStatus, 5000)
     setInterval(checkArchiverHealth, 60000)
     setInterval(cleanBadNodes, 60000)
-    app.listen(port, function () {
-      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
-      setupDatabase()
-      setupLogEvents()
+  	extendedServer.listen(port, function() {
+     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+     setupDatabase()
+     setupLogEvents()
     })
   })
 })
