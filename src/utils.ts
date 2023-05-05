@@ -173,7 +173,7 @@ export async function requestWithRetry(
     } catch (e: any) {
       console.log('Error: requestWithRetry', e.message)
       let badNodePercentage = badNodesMap.size / nodeList.length
-      let shouldAddToBadNodeList = route.includes('eth_blockNumber') || route.includes('account')
+      let shouldAddToBadNodeList = route.includes('eth_blockNumber')
       console.log(`shouldAddToBadNodeList: ${shouldAddToBadNodeList}, route: ${route}`,'badNodePercentage', badNodePercentage, 'bad node count', badNodesMap.size)
       if (shouldAddToBadNodeList && nodeIpPort && badNodePercentage < 2/3) { // don't add to bad list if 2/3 of nodes are already bad
         badNodesMap.set(nodeIpPort, Date.now())
