@@ -1,4 +1,5 @@
 type Config = {
+  ip: string
   port: number
   chainId: number
   nodeIpInfo: {
@@ -56,6 +57,7 @@ type Config = {
 }
 
 export const CONFIG: Config = {
+  ip: '0.0.0.0',
   port: 8080,
   chainId: 8082,
   nodeIpInfo: {

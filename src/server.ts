@@ -19,14 +19,15 @@ import {
   cleanBadNodes
 } from './utils'
 import { router as logRoute } from './routes/log'
+import { router as webHookRoute } from './routes/webhooks'
 import { router as authenticate } from './routes/authenticate'
 import { Request, Response } from 'express'
-import { CONFIG as config } from './config'
+import { CONFIG, CONFIG as config } from './config'
 import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
 import path from 'path'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
-import { onConnection } from './websocket'
+import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
@@ -46,7 +47,7 @@ const chainId = config.chainId //8080
 
 const extendedServer = http.createServer(app);
 
-const wss = new WebSocket.Server({ server:extendedServer });
+const wss = new WebSocket.Server({ server: extendedServer });
 
 wss.on('connection', onConnection);
 
@@ -57,6 +58,7 @@ if (myArgs.length > 0) {
   console.log(`json-rpc-server port console override to:${port}`)
 }
 
+export const ipport = CONFIG.ip + "__" + CONFIG.port
 //maybe catch unhandled exceptions?
 process.on('uncaughtException', (err) => {
   console.log('uncaughtException:' + err)
@@ -133,6 +135,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 })
 
 app.use('/log', authorize, logRoute)
+app.use('/webhook',webHookRoute)
 app.use('/authenticate', authenticate)
 app.use(injectIP)
 app.use(server.middleware())
@@ -154,6 +157,7 @@ setupArchiverDiscovery({
      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
      setupDatabase()
      setupLogEvents()
+	 setupSubscriptionEventHandlers()
     })
   })
 })

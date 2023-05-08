@@ -18,6 +18,7 @@ import crypto from 'crypto'
 import { logEventEmitter } from './logger'
 import { CONFIG, CONFIG as config } from './config' 
 import { logSubscriptionList } from './websocket/Clients'
+import { ipport } from './server'
 
 export const verbose = config.verbose
 
@@ -1533,10 +1534,12 @@ export const methods = {
       const filters = args[1]
       const sub_id = args[10]
       if(subscription_name !== 'logs') {
+        logSubscriptionList.removeById(args[10])
         callback("Shardeum only support logs subscriptions",null);
         return
       }
       if(!filters.address || !filters.topics){
+        logSubscriptionList.removeById(args[10])
         callback("Invalid Filters",null);
         return
       }
@@ -1547,23 +1550,51 @@ export const methods = {
       const payload = {
         subscription_id: sub_id,
         address: filters.address,
-        topics: filters.topics
+        topics: filters.topics,
+        ipport: ipport
       }
-      const res = await axios.post(CONFIG.explorerUrl + '/evm_log_subscribe', payload)
+      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_subscribe', payload)
 
       if(res.data.success) {
         callback(null, sub_id);
       }
       else{
+        logSubscriptionList.removeById(args[10])
         callback(res.data.error, null);
         // subscription failed, will not be tracking it
-        logSubscriptionList.pruneClient(args[10])
       }
 
     }catch(e: any){
+      logSubscriptionList.removeById(args[10])
       callback(e.message, null);
       // subscription failed, will not be tracking it
-      logSubscriptionList.pruneClient(args[10])
+    }
+  },
+
+  eth_unsubscribe: async function (args: any, callback: any) {
+    try{
+      const subscription_id: string = args[0]
+      const socket: WebSocket.WebSocket = args[10]
+
+      if(!logSubscriptionList.getById(subscription_id)){
+        throw new Error("Subscription not found");
+      }
+
+      // this mean client is trying to unsubscribe someone else's subscription
+      if(logSubscriptionList.getById(subscription_id)?.socket !== socket){
+        throw new Error("Subscription not found");
+      }
+
+      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
+      
+      if(res.data.success){
+        logSubscriptionList.removeById(subscription_id);
+      }
+
+      callback(null, res.data.success);
+    }catch(e: any){
+      callback(e.message, null);
+      // subscription failed, will not be tracking it
     }
   }
 }

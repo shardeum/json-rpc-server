@@ -1,9 +1,15 @@
 import WebSocket from "ws";
+import EventEmitter from 'events'
 import { methods } from "../api";
 import { logSubscriptionList } from "./Clients";
 import * as crypto from 'crypto';
+import { CONFIG } from "../config";
+import axios from "axios";
+import { ipport } from "../server";
+
 
 export const onConnection = async (socket: WebSocket.WebSocket) => {
+
   socket.on('message', (message: string) => {
     // console.log(`Received message: ${message}`);
 
@@ -54,14 +60,67 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
          let subscription_id = crypto.randomBytes(32).toString('hex')
          subscription_id = '0x'+ crypto.createHash('sha256')
                                       .update(subscription_id).digest().toString('hex');
+          subscription_id = subscription_id.substring(0, 46);
          request.params[10] = subscription_id
-          logSubscriptionList.list.set(subscription_id, socket);
+          logSubscriptionList.set(subscription_id, socket, request.params[1]);
        }
+       if(method_name === 'eth_unsubscribe'){
+         request.params[10] = socket
+       }
+
        // call interface handler
        methods[method_name as keyof typeof methods](request.params, callback);
   });
 
-  socket.on('disconnect', () => {
-    console.log('A client disconnected!');
+  socket.on('close', () => {
+
+
+    if(logSubscriptionList.getBySocket(socket)){
+      logSubscriptionList.getBySocket(socket)?.forEach(subscription_id => {
+        axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
+      } )
+      logSubscriptionList.removeBySocket(socket);
+    }
+    console.log(logSubscriptionList.getAll())
   });
+}
+
+
+export const subscriptionEventEmitter = new EventEmitter();
+
+export const setupSubscriptionEventHandlers = () => {
+  subscriptionEventEmitter.on('evm_log_received', async (logs, subscription_id)=>{
+
+    if(!logSubscriptionList.getById(subscription_id)){
+      console.log("Don't have the id oops");
+      // implement unsubscriptions
+      return
+    }
+    const socket = logSubscriptionList.getById(subscription_id)?.socket
+
+    // we found the log for subscription
+    // but the client went disconnected
+    // purging subscription
+    if(socket?.readyState === 2 || socket?.readyState === 3){
+      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
+      if(res.data.success){
+        logSubscriptionList.removeBySocket(socket)
+      }
+      return
+    }
+
+    for(const log of logs){
+      logSubscriptionList.getById(subscription_id)?.socket.send(JSON.stringify(
+        {
+          jsonrpc: '2.0',
+          method:"eth_subscription",
+          params:{
+            result: log,
+            subscription: subscription_id
+          }
+        }
+      ))
+    }
+  }) 
+  
 }
