@@ -22,7 +22,7 @@ type Config = {
   generateTxTimestamp: boolean
   nodelistRefreshInterval: number
   defaultRequestRetry: number
-  defaultRequestTimeout: number
+  defaultRequestTimeout: any
   recordTxStatus: boolean
   rateLimit: boolean
   rateLimitOption: {
@@ -83,7 +83,12 @@ export const CONFIG: Config = {
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
   defaultRequestRetry: 5,
-  defaultRequestTimeout: 2000,
+  defaultRequestTimeout: {
+    default: 2000,
+    eth_call: 7000,
+    account: 5000,
+    full_nodelist: 10000,
+  },
   recordTxStatus: false,
   rateLimit: false,
   rateLimitOption: {

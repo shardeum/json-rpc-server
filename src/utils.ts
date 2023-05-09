@@ -131,6 +131,13 @@ export async function waitRandomSecond() {
   await sleep(200)
 }
 
+function getTimeout(route: string) {
+  let root = route.split('/')[1] ? route.split('/')[1].split("?")[0] : null
+  if (root && config.defaultRequestTimeout[root]) return config.defaultRequestTimeout[root]
+  if (route.includes('full-nodelist')) return config.defaultRequestTimeout['full_nodelist']
+  return config.defaultRequestTimeout[`default`]
+}
+
 // nRetry negative number will retry infinitely
 export async function requestWithRetry(
   method: RequestMethod,
@@ -158,11 +165,12 @@ export async function requestWithRetry(
       url = route
     }
     try {
+      console.log(`timeout for ${route} is ${getTimeout(route)}`)
       const res = await axios({
         method,
         url,
         data,
-        timeout: config.defaultRequestTimeout,
+        timeout: getTimeout(route),
       })
       if (res.status === 200 && !res.data.error) {
         // success = true
