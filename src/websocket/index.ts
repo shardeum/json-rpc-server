@@ -55,21 +55,45 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
       return
      }
        if(method_name === 'eth_subscribe'){
-         // in this case we need to keep track of a connection
-         // We will NOT keep track of connection for other interface call 
-         let subscription_id = crypto.randomBytes(32).toString('hex')
-         subscription_id = '0x'+ crypto.createHash('sha256')
-                                      .update(subscription_id).digest().toString('hex');
-          subscription_id = subscription_id.substring(0, 46);
-         request.params[10] = subscription_id
-          logSubscriptionList.set(subscription_id, socket, request.params[1]);
-       }
+         try{
+           // in this case we need to keep track of a connection
+           // We will NOT keep track of connection for other interface call 
+           let subscription_id = crypto.randomBytes(32).toString('hex')
+           subscription_id = '0x'+ crypto.createHash('sha256')
+                                        .update(subscription_id).digest().toString('hex');
+            subscription_id = subscription_id.substring(0, 46);
+           request.params[10] = subscription_id
+           const address = request.params[1].address
+           const topics = request.params[1].topics
+           if(typeof address === 'string'){
+             request.params[1].address = [address.toLowerCase()]
+           }
+           if(Array.isArray(address)){
+             request.params[1].address = address.map(el=>{return el.toLowerCase()})
+           }
+           if(Array.isArray(topics)){
+             request.params[1].topics = topics.map(topic=>{return topic.toLowerCase()})
+           }
+            logSubscriptionList.set(subscription_id, socket, request.params[1]);
+         }catch(e:any){
+            socket.send(JSON.stringify({
+                id: request.id,
+                jsonrpc: '2.0',
+                error: {
+                  message: e.message,
+                  code: -1
+                }
+            }));
+            return
+         }
+      }
+
        if(method_name === 'eth_unsubscribe'){
          request.params[10] = socket
        }
 
-       // call interface handler
-       methods[method_name as keyof typeof methods](request.params, callback);
+         // call interface handler
+         methods[method_name as keyof typeof methods](request.params, callback);
   });
 
   socket.on('close', () => {
