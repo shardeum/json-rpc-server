@@ -85,7 +85,7 @@ export const CONFIG: Config = {
   defaultRequestRetry: 5,
   defaultRequestTimeout: {
     default: 2000,
-    eth_call: 7000,
+    contract: 7000,
     account: 5000,
     full_nodelist: 10000,
   },

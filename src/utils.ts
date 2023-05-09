@@ -165,7 +165,7 @@ export async function requestWithRetry(
       url = route
     }
     try {
-      console.log(`timeout for ${route} is ${getTimeout(route)}`)
+      if (verbose) console.log(`timeout for ${route} is ${getTimeout(route)}`)
       const res = await axios({
         method,
         url,
