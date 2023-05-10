@@ -55,6 +55,10 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
       return
      }
        if(method_name === 'eth_subscribe'){
+          if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+            socket.send(JSON.stringify(constructRPCErrorRes("Subscription serving disabled", -1, request.id)))
+            return
+          }
          try{
            // in this case we need to keep track of a connection
            // We will NOT keep track of connection for other interface call 
@@ -89,6 +93,11 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
       }
 
        if(method_name === 'eth_unsubscribe'){
+          if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+
+            socket.send(JSON.stringify(constructRPCErrorRes("Subscription serving disabled", -1, request.id)))
+            return
+          }
          request.params[10] = socket
        }
 
@@ -147,4 +156,16 @@ export const setupSubscriptionEventHandlers = () => {
     }
   }) 
   
+}
+
+const constructRPCErrorRes = (ErrorMessage: string, ErrCode = -1, id: number) => {
+
+  return  {
+          id: id,
+          jsonrpc: '2.0',
+          error: {
+            message: ErrorMessage,
+            code: ErrCode,
+          }
+        }
 }

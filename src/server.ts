@@ -28,6 +28,7 @@ import spammerList from '../spammerlist.json'
 import path from 'path'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
+import rejectSubscription from './middlewares/rejectSubscription'
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
@@ -49,7 +50,9 @@ const extendedServer = http.createServer(app);
 
 const wss = new WebSocket.Server({ server: extendedServer });
 
-wss.on('connection', onConnection);
+if(CONFIG.websocket.enabled){
+  wss.on('connection', onConnection);
+}
 
 const myArgs = process.argv.slice(2)
 if (myArgs.length > 0) {
@@ -138,6 +141,8 @@ app.use('/log', authorize, logRoute)
 app.use('/webhook',webHookRoute)
 app.use('/authenticate', authenticate)
 app.use(injectIP)
+// reject subscription methods from http
+app.use(rejectSubscription)
 app.use(server.middleware())
 
 

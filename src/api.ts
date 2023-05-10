@@ -1529,6 +1529,10 @@ export const methods = {
     }
   },
   eth_subscribe: async function (args: any, callback: any) {
+    if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+      callback("Subscription feature disabled", null);
+      return
+    }
     try{
       const subscription_name = args[0]
       const filters = args[1]
@@ -1572,6 +1576,10 @@ export const methods = {
   },
 
   eth_unsubscribe: async function (args: any, callback: any) {
+    if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+      callback("Subscription feature disabled", null);
+      return
+    }
     try{
       const subscription_id: string = args[0]
       const socket: WebSocket.WebSocket = args[10]

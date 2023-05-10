@@ -1,10 +1,17 @@
 type Config = {
+  // set ip to be public exposed address
+  // so that rpc could let explorer know about its ip
+  // this is required for subscriptions to work
   ip: string
   port: number
   chainId: number
   nodeIpInfo: {
     externalIp: string
     externalPort: number
+  }
+  websocket:{
+    enabled: boolean
+    serveSubscriptions: boolean
   }
   dynamicConsensorNode: boolean
   useConfigNodeIp: boolean
@@ -57,6 +64,12 @@ type Config = {
 }
 
 export const CONFIG: Config = {
+
+  websocket:{
+    enabled: true,
+    serveSubscriptions: false,
+  },
+
   ip: '0.0.0.0',
   port: 8080,
   chainId: 8082,
