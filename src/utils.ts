@@ -380,24 +380,38 @@ export class RequestersList {
 
   addToBlacklist(ip: string) {
     this.bannedIps.push({ ip, timestamp: Date.now() })
-    fs.readFile('blacklist.json', function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
-      const ipList = JSON.parse(currentDataStr.toString())
-      if (ipList.indexOf(ip) >= 0) return
-      const newIpList = [...ipList, ip]
-      console.log(`Added ip ${ip} to banned list`)
-      fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
-    })
+    try {
+      fs.readFile(
+        'blacklist.json',
+        function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
+          const ipList = JSON.parse(currentDataStr.toString())
+          if (ipList.indexOf(ip) >= 0) return
+          const newIpList = [...ipList, ip]
+          console.log(`Added ip ${ip} to banned list`)
+          fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
+        }
+      )
+    } catch (e) {
+      console.log('Error writing to blacklist.json', e)
+    }
   }
 
   addSenderToBacklist(address: string) {
     this.blackListedSenders.add(address.toLowerCase())
-    fs.readFile('spammerlist.json', function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
-      const spammerList = JSON.parse(currentDataStr.toString())
-      if (spammerList.indexOf(address) >= 0) return
-      const newSpammerList = [...spammerList, address]
-      console.log(`Added address ${address} to spammer list`)
-      fs.writeFileSync('spammerlist.json', JSON.stringify(newSpammerList))
-    })
+    try {
+      fs.readFile(
+        'spammerlist.json',
+        function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
+          const spammerList = JSON.parse(currentDataStr.toString())
+          if (spammerList.indexOf(address) >= 0) return
+          const newSpammerList = [...spammerList, address]
+          console.log(`Added address ${address} to spammer list`)
+          fs.writeFileSync('spammerlist.json', JSON.stringify(newSpammerList))
+        }
+      )
+    } catch (e) {
+      console.log('Error writing to spammerlist.json', e)
+    }
   }
 
   isSenderBlacklisted(address: string) {
