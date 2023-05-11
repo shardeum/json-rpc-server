@@ -3,16 +3,18 @@ import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
 import { BN, bufferToHex } from 'ethereumjs-util'
 import {
+  calculateInternalTxHash,
   getAccount,
+  getArchiverUrl,
+  getBaseUrl,
+  getFilterId,
   getTransactionObj,
   intStringToHex,
-  sleep,
-  getBaseUrl,
-  getArchiverUrl,
-  requestWithRetry,
-  TxStatusCode,
+  parseFilterDetails,
   RequestMethod,
-  calculateInternalTxHash,
+  requestWithRetry,
+  sleep,
+  TxStatusCode
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -21,6 +23,7 @@ import { logSubscriptionList } from './websocket/Clients'
 import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/explorer'
+import * as Types from './types'
 
 export const verbose = config.verbose
 
@@ -32,7 +35,7 @@ let lastCycleInfo = {
 
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode = 500 //server internal error
-const errorBusy = { code: errorCode, message: 'Busy or error' }
+const errorBusy = {code: errorCode, message: 'Busy or error'}
 export let txStatuses: TxStatus[] = []
 const maxTxCountToStore = 10000
 const txMemPool: any = {}
@@ -67,16 +70,18 @@ export type DetailedTxStatus = {
   nodeUrl?: string
 }
 
+let filtersMap: Map<string, any> = new Map()
+
 async function getCurrentBlockInfo() {
   if (verbose) console.log('Running getCurrentBlockInfo')
-  let result = { ...lastCycleInfo, nodeUrl: undefined }
+  let result = {...lastCycleInfo, nodeUrl: undefined}
 
   try {
     if (verbose) console.log('Querying getCurrentBlockInfo from validator')
     const res = await requestWithRetry(RequestMethod.Get, `/eth_blockNumber`)
     const blockNumber = res.data.blockNumber
     const timestamp = Date.now()
-    result = { nodeUrl: res.data.nodeUrl, blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp)) } as any
+    result = {nodeUrl: res.data.nodeUrl, blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp))} as any
     lastCycleInfo = result
     return result
   } catch (e) {
@@ -91,7 +96,7 @@ async function getCurrentBlock() {
   let nodeUrl
   try {
     const result = await getCurrentBlockInfo()
-    nodeUrl =  result?.nodeUrl
+    nodeUrl = result?.nodeUrl
     blockNumber = result.blockNumber
     timestamp = result.timestamp
   } catch (e) {
@@ -145,8 +150,8 @@ export function recordTxStatus(txStatus: TxStatus) {
 }
 
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
-  const { raw } = tx
-  const { baseUrl } = getBaseUrl()
+  const {raw} = tx
+  const {baseUrl} = getBaseUrl()
   return new Promise((resolve, reject) => {
     axios
       .post(`${baseUrl}/inject`, tx)
@@ -205,7 +210,7 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware l
             nodeUrl: baseUrl
           })
-          reject({nodeUrl: baseUrl, error: "Unable inject transaction to the network"})
+        reject({nodeUrl: baseUrl, error: "Unable inject transaction to the network"})
       })
   })
 }
@@ -254,7 +259,7 @@ export const methods = {
     }
     const result = '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad'
 
-    logEventEmitter.emit('fn_end', ticket, {success: true},performance.now())
+    logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
     callback(null, result)
 
   },
@@ -271,7 +276,7 @@ export const methods = {
     }
     const chainId = config.chainId.toString()
 
-    logEventEmitter.emit('fn_end', ticket, {success: true},performance.now())
+    logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
     callback(null, chainId)
   },
   net_listening: async function (args: any, callback: any) {
@@ -419,7 +424,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_blockNumber', args)
     }
-    const { blockNumber, nodeUrl } = await getCurrentBlockInfo()
+    const {blockNumber, nodeUrl} = await getCurrentBlockInfo()
     if (verbose) console.log('BLOCK NUMBER', blockNumber, parseInt(blockNumber, 16))
     if (blockNumber == null) {
 
@@ -651,7 +656,7 @@ export const methods = {
     let nodeUrl: any
     let txHash = ''
     try {
-      const { isInternalTx } = args[0]
+      const {isInternalTx} = args[0]
       let tx: any
 
       if (isInternalTx === true) {
@@ -685,8 +690,8 @@ export const methods = {
               const pendingTx = memPoolTx.shift()
               console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
               nodeUrl = injectAndRecordTx(txHash, pendingTx.tx, args)
-                       .then((res:any) => res.nodeUrl)
-                       .catch((e:any)=> e.nodeUrl)
+                .then((res: any) => res.nodeUrl)
+                .catch((e: any) => e.nodeUrl)
               nonceTracker[String(sender)] = pendingTx.nonce;
               console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`)
               await sleep(500)
@@ -699,10 +704,10 @@ export const methods = {
         if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
           console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
           if (memPoolTx) {
-            memPoolTx.push({ nonce: currentTxNonce, tx })
+            memPoolTx.push({nonce: currentTxNonce, tx})
             memPoolTx = memPoolTx.sort((a: any, b: any) => a.nonce - b.nonce)
           } else {
-            memPoolTx = [{ nonce: currentTxNonce, tx }]
+            memPoolTx = [{nonce: currentTxNonce, tx}]
           }
           nonceTracker[String(sender)] = currentTxNonce
           return txHash
@@ -728,14 +733,14 @@ export const methods = {
               reason: res.reason,
               hash: txHash
             }, performance.now())
-            callback(serializeError({ status: res.status }, { fallbackError: { message: res.reason, code: 101 } }), null)
+            callback(serializeError({status: res.status}, {fallbackError: {message: res.reason, code: 101}}), null)
           }
         })
         .catch((e) => {
           logEventEmitter.emit('fn_end', ticket, {
             nodeUrl: e.nodeUrl,
             success: false,
-            reason:e.error,
+            reason: e.error,
             hash: txHash
           }, performance.now())
           callback(e, null)
@@ -746,9 +751,9 @@ export const methods = {
         nodeUrl,
         success: false,
         reason: e.toString(),
-        hash:txHash
+        hash: txHash
       }, performance.now())
-      callback({ message: e }, null)
+      callback({message: e}, null)
     }
   },
   eth_sendInternalTransaction: async function (args: any, callback: any) {
@@ -790,7 +795,7 @@ export const methods = {
               reason: res.reason,
               hash: txHash
             }, performance.now())
-            callback({ message: 'Internal tx injection failure' }, null)
+            callback({message: 'Internal tx injection failure'}, null)
           }
         })
         .catch((res) => {
@@ -798,14 +803,14 @@ export const methods = {
             nodeUrl: res.nodeUrl,
             success: false,
             reason: res.error,
-            hash:txHash
+            hash: txHash
           }, performance.now())
           callback(res.error, null)
         })
     } catch (e) {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl: undefined, success: false}, performance.now())
-      callback({ message: e }, null)
+      callback({message: e}, null)
     }
   },
   eth_call: async function (args: any, callback: any) {
@@ -900,7 +905,7 @@ export const methods = {
     const result = res.data.block
     if (verbose) console.log('BLOCK DETAIL', result)
     callback(null, result)
-    logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: res.data.block ? true: false}, performance.now())
+    logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: res.data.block ? true : false}, performance.now())
   },
   eth_getTransactionByHash: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionByHash'
@@ -1237,6 +1242,35 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
+  eth_newFilter: async function (args: any, callback: any) {
+    const api_name = 'eth_newFilter'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+
+    let inputFilter = args[0]
+
+    if (inputFilter == null) inputFilter = {};
+    const {addresses, topics} = parseFilterDetails(inputFilter || {});
+    const filterObj: Types.Filter = {
+      addresses,
+      topics,
+      fromBlock: inputFilter.fromBlock,
+      toBlock: inputFilter.toBlock,
+      lastQuriedTimestamp: 0,
+      lastQueriedBlock: 0
+    };
+    const unsubscribe = () => {
+    } // todo: implement unsubscribe
+    const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.log};
+    const filterId = getFilterId()
+    filtersMap.set(filterId.toString(), internalFilter);
+
+    callback(null, filterId)
+    logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
+  },
   eth_getFilterChanges: async function (args: any, callback: any) {
     const api_name = 'eth_getFilterChanges'
     const ticket = crypto
@@ -1245,8 +1279,18 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = 'test'
-    callback(null, result)
+    let filterId = args[0]
+
+    const filter = filtersMap.get(filterId.toString());
+    let updates = []
+    if (filter) {
+      updates = filter.updates;
+      filter.updates = [];
+    } else {
+      throw new Error("filter not found");
+    }
+
+    callback(null, updates)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
   eth_getFilterLogs: async function (args: any, callback: any) {
@@ -1522,7 +1566,7 @@ export const methods = {
         return
       }
       if (verbose) console.log('predicted accessList from', res.data.nodeUrl, JSON.stringify(res.data.accessList))
-      logEventEmitter.emit('fn_end', ticket, {nodeUrl,success: true}, performance.now())
+      logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: true}, performance.now())
       callback(null, res.data.accessList)
     } catch (e) {
       console.log(`Error while making an eth call`, e)

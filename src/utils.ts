@@ -1,10 +1,11 @@
-import { Transaction, AccessListEIP2930Transaction } from '@ethereumjs/tx'
-import { BN, bufferToHex, toBuffer } from 'ethereumjs-util'
-import { recordTxStatus, createRejectTxStatus } from './api'
+import {AccessListEIP2930Transaction, Transaction} from '@ethereumjs/tx'
+import {BN, bufferToHex, toBuffer} from 'ethereumjs-util'
+import {createRejectTxStatus, recordTxStatus} from './api'
 import whiteList from '../whitelist.json'
 import axios from 'axios'
-import { CONFIG as config } from './config'
+import {CONFIG as config} from './config'
 import fs from 'fs'
+import * as Types from './types'
 // import crypto from '@shardus/crypto-utils'
 import { getArchiverList, getFromArchiver } from '@shardus/archiver-discovery'
 import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
@@ -133,12 +134,12 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
         maxCycleValue = res?.data?.cycleInfo[0].counter
       }
 
-      return { url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter }
+      return {url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter}
     } catch (error: any) {
       console.error(
         `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${error.errno} => ${error.code}`
       )
-      return { url: `http://${url.ip}:${url.port}`, cycle_value: null }
+      return {url: `http://${url.ip}:${url.port}`, cycle_value: null}
     }
   })
   return Promise.all(counters)
@@ -200,8 +201,8 @@ export async function requestWithRetry(
       console.log('Error: requestWithRetry', e.message)
       let badNodePercentage = badNodesMap.size / nodeList.length
       let shouldAddToBadNodeList = route.includes('eth_blockNumber')
-      console.log(`shouldAddToBadNodeList: ${shouldAddToBadNodeList}, route: ${route}`,'badNodePercentage', badNodePercentage, 'bad node count', badNodesMap.size)
-      if (shouldAddToBadNodeList && nodeIpPort && badNodePercentage < 2/3) { // don't add to bad list if 2/3 of nodes are already bad
+      console.log(`shouldAddToBadNodeList: ${shouldAddToBadNodeList}, route: ${route}`, 'badNodePercentage', badNodePercentage, 'bad node count', badNodesMap.size)
+      if (shouldAddToBadNodeList && nodeIpPort && badNodePercentage < 2 / 3) { // don't add to bad list if 2/3 of nodes are already bad
         badNodesMap.set(nodeIpPort, Date.now())
         console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
       }
@@ -214,7 +215,7 @@ export async function requestWithRetry(
       if (verbose) console.log('Node is busy...out of retries')
     }
   }
-  return { data: { nodeUrl } }
+  return {data: {nodeUrl}}
 }
 
 export function getTransactionObj(tx: any): any {
@@ -244,6 +245,7 @@ export function getTransactionObj(tx: any): any {
 export function intStringToHex(str: string) {
   return '0x' + new BN(str).toString(16)
 }
+
 export function getBaseUrl() {
   setConsensorNode()
   return {nodeIpPort: `${node.ip}:${node.port}`, baseUrl: `http://${node.ip}:${node.port}`}
@@ -355,7 +357,7 @@ function getNextArchiver() {
     const archiver = healthyArchivers[Number(archiverIndex)]
     archiverIndex++
     const [ip, port] = archiver.url.split('//')[1].split(':')
-    return { url: archiver.url, ip, port: Number(port) }
+    return {url: archiver.url, ip, port: Number(port)}
   } else {
     console.error('🔴-> No Healthy Archivers in the Network. Terminating Server. <-🔴')
     process.exit(0)
@@ -370,9 +372,9 @@ export function sleep(ms: number) {
   })
 }
 
-export async function getAccount(addressStr: any): Promise<{account?: any, nodeUrl: string}> {
-   const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
-   return res.data
+export async function getAccount(addressStr: any): Promise<{ account?: any, nodeUrl: string }> {
+  const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
+  return res.data
 }
 
 export class RequestersList {
@@ -396,7 +398,7 @@ export class RequestersList {
     this.allRequestTracker = {}
     this.totalTxTracker = {}
     this.bannedIps = blackList.map((ip: string) => {
-      return { ip, timestamp: Date.now() }
+      return {ip, timestamp: Date.now()}
     })
 
     if (config.rateLimit) {
@@ -569,12 +571,12 @@ export class RequestersList {
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
     } else {
-      this.requestTracker[ip] = { ip, count: 1 }
+      this.requestTracker[ip] = {ip, count: 1}
     }
     if (this.totalTxTracker[ip]) {
       this.totalTxTracker[ip].count += 1
     } else {
-      this.totalTxTracker[ip] = { ip, count: 1 }
+      this.totalTxTracker[ip] = {ip, count: 1}
     }
     if (this.heavyRequests.get(ip)) {
       const reqHistory = this.heavyRequests.get(ip)
@@ -620,7 +622,7 @@ export class RequestersList {
         if (fromData.ips[ip]) {
           fromData.ips[ip].count += 1
         } else {
-          fromData.ips[ip] = { ip, count: 1 }
+          fromData.ips[ip] = {ip, count: 1}
         }
       } else {
         const newFromData: any = {
@@ -659,7 +661,7 @@ export class RequestersList {
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
     } else {
-      this.allRequestTracker[ip] = { ip, count: 1 }
+      this.allRequestTracker[ip] = {ip, count: 1}
     }
     /*eslint-enable security/detect-object-injection */
   }
@@ -711,7 +713,7 @@ export class RequestersList {
     if (this.isIpBanned(ip)) {
       if (verbose) console.log(`This ip ${ip} is banned.`, reqType, reqParams)
       if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
-        const transaction = getTransactionObj({ raw: reqParams[0] })
+        const transaction = getTransactionObj({raw: reqParams[0]})
         createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
       }
       return false
@@ -730,7 +732,7 @@ export class RequestersList {
         if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
-          const transaction = getTransactionObj({ raw: reqParams[0] })
+          const transaction = getTransactionObj({raw: reqParams[0]})
           createRejectTxStatus(bufferToHex(transaction.hash()), 'This IP is banned.', ip)
         }
         return false
@@ -739,8 +741,9 @@ export class RequestersList {
 
     let transaction
     try {
-      if (reqType === 'eth_sendRawTransaction') transaction = getTransactionObj({ raw: reqParams[0] })
-    } catch (e) {}
+      if (reqType === 'eth_sendRawTransaction') transaction = getTransactionObj({raw: reqParams[0]})
+    } catch (e) {
+    }
 
     if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin) {
       if (
@@ -878,12 +881,31 @@ export async function getTransactionReceipt(hash: string) {
   return result
 }
 
+export function getFilterId() {
+  // todo: use a better way to generate filter id
+  return Math.round(Math.random() * 1000000000)
+}
+
+export function parseFilterDetails(
+  filter: any
+) {
+  // `filter.address` may be a single address or an array
+  const addresses = filter.address
+    ? (Array.isArray(filter.address) ? filter.address : [filter.address]).map(
+      (a: string) => a.toLowerCase()
+    )
+    : [];
+  const topics = filter.topics ? filter.topics : [];
+  return {addresses, topics};
+}
+
 export enum TxStatusCode {
   BAD_TX = 0,
   SUCCESS = 1,
   BUSY = 2,
   OTHER_FAILURE = 3,
 }
+
 export function getReasonEnumCode(reason: string) {
   const _REASONS = new Map()
   _REASONS.set('Maximum load exceeded.'.toLowerCase(), TxStatusCode.BUSY)
