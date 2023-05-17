@@ -19,6 +19,8 @@ import { logEventEmitter } from './logger'
 import { CONFIG, CONFIG as config } from './config' 
 import { logSubscriptionList } from './websocket/Clients'
 import { ipport } from './server'
+import { subscriptionEventEmitter } from './websocket'
+import { evmLogProvider_ConnectionStream } from './websocket/explorer'
 
 export const verbose = config.verbose
 
@@ -1557,16 +1559,10 @@ export const methods = {
         topics: filters.topics,
         ipport: ipport
       }
-      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_subscribe', payload)
-
-      if(res.data.success) {
-        callback(null, sub_id);
+      if(evmLogProvider_ConnectionStream === null){
+        throw new Error("RPC cannot established connection to evm log provider");
       }
-      else{
-        logSubscriptionList.removeById(args[10])
-        callback(res.data.error, null);
-        // subscription failed, will not be tracking it
-      }
+      subscriptionEventEmitter.emit('evm_log_subscribe', payload);
 
     }catch(e: any){
       logSubscriptionList.removeById(args[10])
@@ -1593,13 +1589,14 @@ export const methods = {
         throw new Error("Subscription not found");
       }
 
-      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
-      
-      if(res.data.success){
-        logSubscriptionList.removeById(subscription_id);
-      }
+      // const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
+      //
+      // if(res.data.success){
+      //   logSubscriptionList.removeById(subscription_id);
+      // }
 
-      callback(null, res.data.success);
+      // callback(null, res.data.success);
+      subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id);
     }catch(e: any){
       callback(e.message, null);
       // subscription failed, will not be tracking it

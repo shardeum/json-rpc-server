@@ -13,7 +13,6 @@ const rejectSubscription = (req: Request, res: Response, next: NextFunction) => 
           }
       });
   }
-  return
   next()
 }
 

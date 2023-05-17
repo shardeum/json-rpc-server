@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { CONFIG } from "../config";
 import axios from "axios";
 import { ipport } from "../server";
+import { evmLogProvider_ConnectionStream } from "./explorer";
 
 
 export const onConnection = async (socket: WebSocket.WebSocket) => {
@@ -106,11 +107,9 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
   });
 
   socket.on('close', () => {
-
-
     if(logSubscriptionList.getBySocket(socket)){
       logSubscriptionList.getBySocket(socket)?.forEach(subscription_id => {
-        axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
+        subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       } )
       logSubscriptionList.removeBySocket(socket);
     }
@@ -125,8 +124,8 @@ export const setupSubscriptionEventHandlers = () => {
   subscriptionEventEmitter.on('evm_log_received', async (logs, subscription_id)=>{
 
     if(!logSubscriptionList.getById(subscription_id)){
-      console.log("Don't have the id oops");
-      // implement unsubscriptions
+      // this subscription id belong to other rpc
+      // doing nothing in this case
       return
     }
     const socket = logSubscriptionList.getById(subscription_id)?.socket
@@ -135,10 +134,16 @@ export const setupSubscriptionEventHandlers = () => {
     // but the client went disconnected
     // purging subscription
     if(socket?.readyState === 2 || socket?.readyState === 3){
-      const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
-      if(res.data.success){
-        logSubscriptionList.removeBySocket(socket)
-      }
+      evmLogProvider_ConnectionStream?.send(JSON.stringify({
+        method: "unsubscribe",
+        params: {
+          subscription_id,
+          ipport
+        }
+      }));
+      // if(res.data.success){
+      //   logSubscriptionList.removeBySocket(socket)
+      // }
       return
     }
 
@@ -155,7 +160,22 @@ export const setupSubscriptionEventHandlers = () => {
       ))
     }
   }) 
+
+  interface SUBSCRIPTION_PAYLOAD {
+    subscription_id: string,
+    address: string[] | string,
+    topics: string[],
+    ipport: string
+  }
+  subscriptionEventEmitter.on('evm_log_subscribe', async (payload: SUBSCRIPTION_PAYLOAD) => {
+      const method = 'subscribe'
+      evmLogProvider_ConnectionStream?.send(JSON.stringify({method, params: payload}));
+  })
   
+  subscriptionEventEmitter.on('evm_log_unsubscribe', async (subscription_id: string) => {
+      const method = 'unsubscribe'
+      evmLogProvider_ConnectionStream?.send(JSON.stringify({method, params: { subscription_id }}));
+  })
 }
 
 const constructRPCErrorRes = (ErrorMessage: string, ErrCode = -1, id: number) => {
