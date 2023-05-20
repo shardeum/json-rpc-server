@@ -6,11 +6,13 @@ type subscription_details = {
 }
 class ClientList {
   private list: Map<string,{ socket:WebSocket.WebSocket, subscription_data: subscription_details }>
+  public requestIdBySubscriptionId: Map<string, number>
   private indexedBySocket: Map<WebSocket.WebSocket, Set<string>>
 
   constructor(){
     this.indexedBySocket = new Map();
     this.list = new Map<string,{ socket:WebSocket.WebSocket, subscription_data: subscription_details }>();
+    this.requestIdBySubscriptionId = new Map();
     
     this.set = this.set.bind(this)
     this.getById = this.getById.bind(this)
@@ -38,7 +40,8 @@ class ClientList {
     return this.indexedBySocket.get(socket);
   }
 
-  set(id: string, socket: WebSocket.WebSocket, subscription_data: subscription_details){
+  set(id: string, socket: WebSocket.WebSocket, subscription_data: subscription_details, rpc_request_id: number){
+    this.requestIdBySubscriptionId.set(id, rpc_request_id)
     this.list.set(id, { socket, subscription_data });
     if(this.indexedBySocket.has(socket)){
       this.indexedBySocket?.get(socket)?.add(id)
@@ -47,6 +50,7 @@ class ClientList {
     this.indexedBySocket.set(socket, new Set([id]));
   }
   removeById(id: string){
+    this.requestIdBySubscriptionId.delete(id);
     if(this.list.has(id)){
       const socket = this.list.get(id)?.socket 
       this.indexedBySocket?.get(socket as WebSocket.WebSocket)?.delete(id);
@@ -61,6 +65,7 @@ class ClientList {
 
     const subscriptions = this.indexedBySocket.get(socket)
     subscriptions?.forEach(el => {
+      this.requestIdBySubscriptionId.delete(el);
       this.list.delete(el);
     })
 

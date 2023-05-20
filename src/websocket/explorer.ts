@@ -48,9 +48,14 @@ export const setupEvmLogProviderConnectionStream = () => {
               // unsubscribe
             }
             if(message.success){
+              console.log("Returning SubID");
+              // logSubscriptionList.getById(message.subscription_id)?.socket.send(JSON.stringify({
+              //   message: "throw a big fat error",
+              // }))
+              
               logSubscriptionList.getById(message.subscription_id)?.socket.send(JSON.stringify({
                 jsonrpc: '2.0',
-                method:"eth_subscribe",
+                id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
                 result: message.subscription_id
               }))
             }
@@ -69,7 +74,7 @@ export const setupEvmLogProviderConnectionStream = () => {
             if(message.success){
               logSubscriptionList.getById(message.subscription_id)?.socket.send(JSON.stringify({
                 jsonrpc: '2.0',
-                method:"eth_unsubscribe",
+                id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
                 result: true 
               }))
               logSubscriptionList.removeById(message.subscription_id)
@@ -77,7 +82,7 @@ export const setupEvmLogProviderConnectionStream = () => {
             else{
               logSubscriptionList.getById(message.subscription_id)?.socket.send(JSON.stringify({
                 jsonrpc: '2.0',
-                method: "eth_unsubscribe",
+                id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
                 result: false 
               }))
             }

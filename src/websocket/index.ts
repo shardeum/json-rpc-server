@@ -14,10 +14,17 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
   socket.on('message', (message: string) => {
     // console.log(`Received message: ${message}`);
 
-    const request = JSON.parse(message);
-    // console.log(request);
+    let request: any
+    try{
+      request = JSON.parse(message);
+    }catch(e: any){
+      socket.close();
+    }
 
-    if(request.jsonrpc !== '2.0') socket.send("Rpc version does not satisfy");
+    if(request.jsonrpc !== '2.0') socket.close(undefined, "Invalid rpc socket frame");
+    if(typeof request.id !== "number") {
+      socket.close(undefined, "Invalid rpc socket frame");
+    }
     if(!request.method) socket.send("Method is not specified");
     if(!request.params) socket.send("Params not found");
 
@@ -56,6 +63,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
       return
      }
        if(method_name === 'eth_subscribe'){
+
           if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
             socket.send(JSON.stringify(constructRPCErrorRes("Subscription serving disabled", -1, request.id)))
             return
@@ -79,7 +87,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
            if(Array.isArray(topics)){
              request.params[1].topics = topics.map(topic=>{return topic.toLowerCase()})
            }
-            logSubscriptionList.set(subscription_id, socket, request.params[1]);
+            logSubscriptionList.set(subscription_id, socket, request.params[1], request.id);
          }catch(e:any){
             socket.send(JSON.stringify({
                 id: request.id,
@@ -148,13 +156,17 @@ export const setupSubscriptionEventHandlers = () => {
     }
 
     for(const log of logs){
+
+      // figured out where this can be done correctly
+      log.removed = false
+
       logSubscriptionList.getById(subscription_id)?.socket.send(JSON.stringify(
         {
           jsonrpc: '2.0',
           method:"eth_subscription",
           params:{
+            subscription: subscription_id,
             result: log,
-            subscription: subscription_id
           }
         }
       ))
