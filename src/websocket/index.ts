@@ -17,12 +17,14 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
     let request: any
     try{
       request = JSON.parse(message);
+      console.log(request.params);
     }catch(e: any){
+      console.log("Couldn't parse websocket message", e);
       socket.close();
     }
 
     if(request.jsonrpc !== '2.0') socket.close(undefined, "Invalid rpc socket frame");
-    if(typeof request.id !== "number") {
+    if(!request.id) {
       socket.close(undefined, "Invalid rpc socket frame");
     }
     if(!request.method) socket.send("Method is not specified");
@@ -78,15 +80,20 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
            request.params[10] = subscription_id
            const address = request.params[1].address
            const topics = request.params[1].topics
+           
+           // this convert everything to lower case, making it case-insenstive
            if(typeof address === 'string'){
              request.params[1].address = [address.toLowerCase()]
            }
            if(Array.isArray(address)){
              request.params[1].address = address.map(el=>{return el.toLowerCase()})
            }
-           if(Array.isArray(topics)){
-             request.params[1].topics = topics.map(topic=>{return topic.toLowerCase()})
+           if(!Array.isArray(topics)){
+            request.params[1].topics = [] 
            }
+            request.params[1].topics = request.params[1].topics.map((topic: string | undefined)=>{
+              return topic?.toLowerCase()
+            })
             logSubscriptionList.set(subscription_id, socket, request.params[1], request.id);
          }catch(e:any){
             socket.send(JSON.stringify({
