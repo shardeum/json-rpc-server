@@ -4,7 +4,6 @@ import { methods } from "../api";
 import { logSubscriptionList } from "./Clients";
 import * as crypto from 'crypto';
 import { CONFIG } from "../config";
-import axios from "axios";
 import { ipport } from "../server";
 import { evmLogProvider_ConnectionStream } from "./explorer";
 
@@ -23,9 +22,9 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
       socket.close();
     }
 
-    if(request.jsonrpc !== '2.0') socket.close(undefined, "Invalid rpc socket frame");
-    if(!request.id) {
-      socket.close(undefined, "Invalid rpc socket frame");
+    if(request.jsonrpc !== '2.0') socket.close(1002, "Invalid rpc socket frame");
+    if(request.id == null) {
+      socket.close(1002, "Invalid rpc socket frame");
     }
     if(!request.method) socket.send("Method is not specified");
     if(!request.params) socket.send("Params not found");
@@ -72,7 +71,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
           }
          try{
            // in this case we need to keep track of a connection
-           // We will NOT keep track of connection for other interface call 
+           // We will NOT keep track of connection for other interface call
            let subscription_id = crypto.randomBytes(32).toString('hex')
            subscription_id = '0x'+ crypto.createHash('sha256')
                                         .update(subscription_id).digest().toString('hex');
@@ -80,7 +79,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
            request.params[10] = subscription_id
            const address = request.params[1].address
            const topics = request.params[1].topics
-           
+
            // this convert everything to lower case, making it case-insenstive
            if(typeof address === 'string'){
              request.params[1].address = [address.toLowerCase()]
@@ -89,7 +88,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
              request.params[1].address = address.map(el=>{return el.toLowerCase()})
            }
            if(!Array.isArray(topics)){
-            request.params[1].topics = [] 
+            request.params[1].topics = []
            }
             request.params[1].topics = request.params[1].topics.map((topic: string | undefined)=>{
               return topic?.toLowerCase()
@@ -106,9 +105,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
             }));
             return
          }
-      }
-
-       if(method_name === 'eth_unsubscribe'){
+      } else if(method_name === 'eth_unsubscribe'){
           if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
 
             socket.send(JSON.stringify(constructRPCErrorRes("Subscription serving disabled", -1, request.id)))
@@ -121,7 +118,8 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
          methods[method_name as keyof typeof methods](request.params, callback);
   });
 
-  socket.on('close', () => {
+  socket.on('close', (code, reason) => {
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`);
     if(logSubscriptionList.getBySocket(socket)){
       logSubscriptionList.getBySocket(socket)?.forEach(subscription_id => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
@@ -178,7 +176,7 @@ export const setupSubscriptionEventHandlers = () => {
         }
       ))
     }
-  }) 
+  })
 
   interface SUBSCRIPTION_PAYLOAD {
     subscription_id: string,
@@ -190,7 +188,7 @@ export const setupSubscriptionEventHandlers = () => {
       const method = 'subscribe'
       evmLogProvider_ConnectionStream?.send(JSON.stringify({method, params: payload}));
   })
-  
+
   subscriptionEventEmitter.on('evm_log_unsubscribe', async (subscription_id: string) => {
       const method = 'unsubscribe'
       evmLogProvider_ConnectionStream?.send(JSON.stringify({method, params: { subscription_id }}));
