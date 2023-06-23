@@ -74,7 +74,7 @@ if(config.dashboard.enabled && config.dashboard.dist_path){
   });
 }
 
-app.get('/api/subscribe', (req: Request, res: Response) => {
+app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
   const query = req.query
   if (!query || !req.ip || !query.port) {
     console.log('Invalid ip or port')
