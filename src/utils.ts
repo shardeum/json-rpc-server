@@ -25,6 +25,7 @@ let badNodesMap: Map<string, number> = new Map()
 const verbose = config.verbose
 let gotArchiver = false
 let nodeList: any[] = []
+let nodeListMap: Map<string, any> = new Map()
 let nextIndex = 0
 const allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
 
@@ -42,6 +43,7 @@ export enum RequestMethod {
 }
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
+// linear complexity, O(n) where n is the amount of nodes object { ip: string, port number }
 export async function updateNodeList(tryInfinate = false) {
 
   if (!healthyArchivers.length) await checkArchiverHealth()
@@ -65,6 +67,8 @@ export async function updateNodeList(tryInfinate = false) {
   )
 
   const nodes = res.data.nodeList // <-
+  nodeListMap = new Map(); // clean old nodelist map
+
   if (nodes.length > 0) {
     if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
       nodes.forEach((node: any) => {
@@ -87,6 +91,7 @@ export async function updateNodeList(tryInfinate = false) {
           if (res.data.nodeInfo && res.data.nodeInfo.status === 'active') {
             console.log(`No. ${count} this node is ONLINE`, node.ip, node.port)
             onlineNodes.push(node)
+            nodeListMap.set(`${node.ip}:${node.port}`, node)
           }
         } catch (e) {
           console.log(`No. ${count} this node is offline`, node.ip, node.port)
@@ -97,6 +102,9 @@ export async function updateNodeList(tryInfinate = false) {
       if (verbose)
         console.log(`Nodelist is updated. All nodes ${allNodes.length}, online nodes ${onlineNodes.length}`)
     } else {
+      for(const node of nodes){
+            nodeListMap.set(`${node.ip}:${node.port}`, node)
+      }
       nodeList = [...nodes]
     }
   }
@@ -245,10 +253,26 @@ export function getArchiverUrl() {
   return getNextArchiver()
 }
 
-export function changeNode(ip: string, port: number) {
+/**
+ * It mutate the `node` object which decide which node rpc will make request to
+ * @param {string} ip
+ * @param {number} port
+ * @param {bool} default: false, when set true, it'll ensure ip and port provided is actually in the nodelist
+ */
+export function changeNode(ip: string, port: number, strict = false): boolean {
+  if(strict === true && nodeListMap.has(ip + ':' + port)){
+    node.ip = ip
+    node.port = port
+    if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
+    return true
+  }
+  if(strict === true && !nodeListMap.has(ip)){
+    return false
+  }
   node.ip = ip
   node.port = port
   if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
+  return true
 }
 
 export function cleanBadNodes() {

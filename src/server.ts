@@ -82,7 +82,11 @@ app.get('/api/subscribe', (req: Request, res: Response) => {
   }
   const ip = req.ip || 'localhost'
   const port = req.connection.localPort || 9001
-  changeNode(ip, port)
+  const success = changeNode(ip, port, true)
+  if(!success){
+    res.end(`Ip not in the nodelist ${ip}:${port}, node subscription rejected`)
+    return
+  }
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
