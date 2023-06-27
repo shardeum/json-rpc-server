@@ -125,17 +125,22 @@ app.use(injectIP)
 app.use(server.middleware())
 
 
-updateNodeList(true).then(() => {
-  debug_info.interfaceRecordingStartTime = config.statLog ? Date.now() : 0
-  debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
-  setConsensorNode()
-  setInterval(updateNodeList, config.nodelistRefreshInterval)
-  setInterval(saveTxStatus, 5000)
-  setInterval(checkArchiverHealth, 60000)
-  setInterval(cleanBadNodes, 60000)
-  app.listen(port, function() {
-    console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
-    setupDatabase()
-    setupLogEvents()
+setupArchiverDiscovery({
+  customConfigPath: 'archiverConfig.json',
+}).then(() => {
+  console.log('Finished setting up archiver discovery!')
+  updateNodeList(true).then(() => {
+    debug_info.interfaceRecordingStartTime = config.statLog ? Date.now() : 0
+    debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
+    setConsensorNode()
+    setInterval(updateNodeList, config.nodelistRefreshInterval)
+    setInterval(saveTxStatus, 5000)
+    setInterval(checkArchiverHealth, 60000)
+    setInterval(cleanBadNodes, 60000)
+    app.listen(port, function () {
+      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+      setupDatabase()
+      setupLogEvents()
+    })
   })
 })
