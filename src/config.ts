@@ -9,10 +9,6 @@ type Config = {
   useConfigNodeIp: boolean
   askLocalHostForArchiver: boolean
   rotationInterval: number
-  existingArchivers: {
-    ip: string
-    port: number
-  }[]
   faucetServerUrl: string
   queryFromValidator: boolean
   queryFromArchiver: boolean
@@ -52,9 +48,11 @@ type Config = {
   verbose: boolean
 
   dashboard: {
-    enabled: boolean,
-    dist_path: string,
+    enabled: boolean
+    dist_path: string
   }
+  isRemoteLocalNetwork: boolean // To indicate that the RPC server is running for a remote local network
+  nodeExternalIpForRemoteLocalNetwork: string // The external IP of the node for the remote local network
 }
 
 export const CONFIG: Config = {
@@ -68,12 +66,6 @@ export const CONFIG: Config = {
   useConfigNodeIp: false,
   askLocalHostForArchiver: true,
   rotationInterval: 60,
-  existingArchivers: [
-    {
-      ip: 'localhost',
-      port: 4000,
-    }
-  ],
   faucetServerUrl: 'https://faucet.liberty10.shardeum.org',
   queryFromValidator: true,
   queryFromArchiver: false,
@@ -114,5 +106,7 @@ export const CONFIG: Config = {
     enabled: true,
     // relative path will work but absolute path is recommended
     dist_path: '../rpc-gateway-frontend/build/',
-  }
+  },
+  isRemoteLocalNetwork: false,
+  nodeExternalIpForRemoteLocalNetwork: 'localhost',
 }

@@ -23,6 +23,7 @@ import { CONFIG as config } from './config'
 import blackList from '../blacklist.json'
 import spammerList from '../spammerlist.json'
 import path from 'path'
+import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']

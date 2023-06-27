@@ -6,10 +6,14 @@ import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
 // import crypto from '@shardus/crypto-utils'
+import { getArchiverList, getFromArchiver } from '@shardus/archiver-discovery'
+import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
 
 const crypto = require('@shardus/crypto-utils')
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
+
+const existingArchivers: Archiver[] = []
 
 export const node = {
   ip: 'localhost',
@@ -108,7 +112,13 @@ export async function checkArchiverHealth() {
 }
 
 async function getArchiverStats(): Promise<ArchiverStat[]> {
-  const counters = config.existingArchivers.map(async (url) => {
+  if (existingArchivers.length === 0) {
+    const archivers = await getArchiverList({
+      customConfigPath: 'archiverConfig.json',
+    })
+    existingArchivers.push(...archivers)
+  }
+  const counters = existingArchivers.map(async (url) => {
     try {
       const res = await axios.get(`http://${url.ip}:${url.port}/cycleinfo/1`)
       if (res?.data?.cycleInfo[0].counter > maxCycleValue) {

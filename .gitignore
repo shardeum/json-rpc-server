@@ -10,3 +10,4 @@ log/
 config.js
 .env
 dist/
+.idea/
