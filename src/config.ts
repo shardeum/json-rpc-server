@@ -66,8 +66,8 @@ type Config = {
 export const CONFIG: Config = {
 
   websocket:{
-    enabled: true,
-    serveSubscriptions: true,
+    enabled: false,
+    serveSubscriptions: false,
   },
 
   ip: '0.0.0.0',
