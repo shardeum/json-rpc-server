@@ -14,7 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@ethereumjs/tx": "^3.4.0",
-    "@shardus/archiver-discovery": "^1.0.1",
+    "@shardus/archiver-discovery": "^1.0.2",
     "@shardus/crypto-utils": "^4.0.4",
     "axios": "^0.24.0",
     "better-sqlite3": "^7.6.2",
