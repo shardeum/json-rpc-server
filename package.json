@@ -4,7 +4,6 @@
   "description": "JSON RPC server for Shardeum",
   "main": "src/server.js",
   "scripts": {
-    "preinstall": "npx npm-force-resolutions",
     "lint": "eslint ./**/*.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run compile && node dist/src/server.js",
