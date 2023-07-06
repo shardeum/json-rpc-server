@@ -18,7 +18,7 @@ import {
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
-import { CONFIG, CONFIG as config } from './config' 
+import { CONFIG, CONFIG as config } from './config'
 import { logSubscriptionList } from './websocket/Clients'
 import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
@@ -70,7 +70,43 @@ export type DetailedTxStatus = {
   nodeUrl?: string
 }
 
-let filtersMap: Map<string, any> = new Map()
+let filtersMap: Map<string, Types.InternalFilter> = new Map()
+
+async function getFilterUpdates(internalFilter: Types.InternalFilter, getAllLogs: boolean = false): Promise<any[]> {
+  let updates: any[] = []
+  let currentPage = 1
+  let fromBlock = internalFilter.filter.lastQueriedBlock
+
+  if (getAllLogs) { // this is for eth_getFilterLogs api
+    fromBlock = internalFilter.filter.createdBlock
+  }
+
+  let baseUrl = `${config.explorerUrl}/api/log?address=${internalFilter.filter.address}&topic0=${internalFilter.filter.topics[0]}&fromBlock=${internalFilter.filter.lastQueriedBlock}`
+  let fullUrl = baseUrl + `&page=${currentPage}`
+
+  console.log(`getFilterUpdate: ${fullUrl}`)
+
+  let res = await axios.get(fullUrl)
+
+  console.log(`RAW res.data`, res.data)
+
+  if (res.data && res.data.success && res.data.logs.length > 0) {
+    const logs = res.data.logs.map((item: any) => item.log)
+    updates = updates.concat(logs)
+    currentPage += 1
+    const totalPages = res.data.totalPages
+    while (currentPage <= totalPages) {
+      console.log(`querying page ${currentPage} of ${totalPages}`)
+      res = await axios.get(`${baseUrl}&page=${currentPage}`)
+        if (res.data && res.data.success) {
+            const logs = res.data.logs.map((item: any) => item.log)
+            updates = updates.concat(logs)
+        }
+        currentPage += 1
+    }
+  }
+  return updates
+}
 
 async function getCurrentBlockInfo() {
   if (verbose) console.log('Running getCurrentBlockInfo')
@@ -1238,8 +1274,17 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = true
-    callback(null, result)
+    let filterId = args[0]
+    let internalFilter = filtersMap.get(filterId)
+    if (internalFilter == null) {
+      callback(null, false)
+      return
+    }
+
+    internalFilter.unsubscribe()
+    filtersMap.delete(filterId)
+
+    callback(null, true)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
   eth_newFilter: async function (args: any, callback: any) {
@@ -1252,18 +1297,26 @@ export const methods = {
 
     let inputFilter = args[0]
 
-    if (inputFilter == null) inputFilter = {};
-    const {addresses, topics} = parseFilterDetails(inputFilter || {});
+    if (inputFilter == null) {
+      callback(null, null)
+      return
+    }
+    const {address, topics} = parseFilterDetails(inputFilter || {});
+    if (address == null) {
+        callback(null, null)
+        return
+    }
+    const currentBlock = await getCurrentBlock()
     const filterObj: Types.Filter = {
-      addresses,
+      address: address,
       topics,
       fromBlock: inputFilter.fromBlock,
       toBlock: inputFilter.toBlock,
-      lastQuriedTimestamp: 0,
-      lastQueriedBlock: 0
+      lastQueriedTimestamp: Date.now(),
+      lastQueriedBlock: parseInt(currentBlock.number.toString()),
+      createdBlock: parseInt(currentBlock.number.toString())
     };
-    const unsubscribe = () => {
-    } // todo: implement unsubscribe
+    const unsubscribe = () => {}
     const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.log};
     const filterId = getFilterId()
     filtersMap.set(filterId.toString(), internalFilter);
@@ -1281,18 +1334,21 @@ export const methods = {
 
     let filterId = args[0]
 
-    const filter = filtersMap.get(filterId.toString());
+    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString());
     let updates = []
-    if (filter) {
-      updates = filter.updates;
-      filter.updates = [];
-      filter.lastQuriedTimestamp = Date.now();
-      getCurrentBlock().then(block => {
-        filter.lastQueriedBlock = block.number;
-      })
+    if (internalFilter) {
+      updates = await getFilterUpdates(internalFilter)
+      internalFilter.updates = [];
+      let currentBlock = await getCurrentBlock()
+      // this could potentially have issue because explorer server is a bit behind validator in terms of tx receipt or block number
+      internalFilter.filter.lastQueriedBlock = parseInt(currentBlock.number.toString());
+      internalFilter.filter.lastQueriedTimestamp = Date.now();
     } else {
-      throw new Error("filter not found");
+      // throw new Error("filter not found");
+      console.error(`eth_getFilterChanges: filter not found: ${filterId}`)
     }
+
+    if (config.verbose) console.log(`eth_getFilterChanges: filterId: ${filterId}, updates: ${updates.length}`, updates)
 
     callback(null, updates)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
@@ -1305,8 +1361,20 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = 'test'
-    callback(null, result)
+    let filterId = args[0]
+    let logs = []
+
+    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString());
+    if (internalFilter) {
+      logs = await getFilterUpdates(internalFilter, true)
+    } else {
+      // throw new Error("filter not found");
+      console.error(`eth_getFilterChanges: filter not found: ${filterId}`)
+    }
+
+    if (config.verbose) console.log(`eth_getFilterLogs: filterId: ${filterId}`, logs)
+
+    callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
   eth_getLogs: async function (args: any, callback: any) {

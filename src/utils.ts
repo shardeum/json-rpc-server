@@ -896,7 +896,7 @@ export function parseFilterDetails(
     )
     : [];
   const topics = filter.topics ? filter.topics : [];
-  return {addresses, topics};
+  return {address: addresses[0], topics};
 }
 
 export enum TxStatusCode {

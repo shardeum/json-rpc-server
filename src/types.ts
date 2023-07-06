@@ -4,12 +4,13 @@ export enum FilterTypes {
   pendingTransaction
 }
 export type Topic = string | string[];
-export type BaseFilterArgs = { addresses: string[]; topics: Topic[] };
+export type BaseFilterArgs = { address: string; topics: Topic[] };
 export type Filter = BaseFilterArgs & {
   fromBlock?: string;
   toBlock?: string;
-  lastQuriedTimestamp: number;
+  lastQueriedTimestamp: number;
   lastQueriedBlock: number;
+  createdBlock: number;
 };
 export type InternalFilter = {
   type: FilterTypes;
