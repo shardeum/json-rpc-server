@@ -72,38 +72,42 @@ export type DetailedTxStatus = {
 
 let filtersMap: Map<string, Types.InternalFilter> = new Map()
 
-async function getFilterUpdates(internalFilter: Types.InternalFilter, getAllLogs: boolean = false): Promise<any[]> {
+async function getLogsFromExplorer(request: Types.LogQueryRequest): Promise<any[]> {
   let updates: any[] = []
   let currentPage = 1
-  let fromBlock = internalFilter.filter.lastQueriedBlock
 
-  if (getAllLogs) { // this is for eth_getFilterLogs api
-    fromBlock = internalFilter.filter.createdBlock
-  }
+  try {
+    if (request == null || request.address == null) return []
+    let baseUrl = `${config.explorerUrl}/api/log?address=${request.address}`
+    if (request.topics != null && request.topics.length > 1) {
+      baseUrl += `&topic0=${request.topics[0]}`
+      baseUrl += `&topic1=${request.topics[1]}`
+      baseUrl += `&topic2=${request.topics[2]}`
+      baseUrl += `&topic3=${request.topics[3]}`
+    }
+    if (request.fromBlock != null) baseUrl += `&fromBlock=${request.fromBlock}`
+    if (request.toBlock != null) baseUrl += `&toBlock=${request.toBlock}`
 
-  let baseUrl = `${config.explorerUrl}/api/log?address=${internalFilter.filter.address}&topic0=${internalFilter.filter.topics[0]}&fromBlock=${internalFilter.filter.lastQueriedBlock}`
-  let fullUrl = baseUrl + `&page=${currentPage}`
+    let fullUrl = baseUrl + `&page=${currentPage}`
+    let res = await axios.get(fullUrl)
 
-  console.log(`getFilterUpdate: ${fullUrl}`)
-
-  let res = await axios.get(fullUrl)
-
-  console.log(`RAW res.data`, res.data)
-
-  if (res.data && res.data.success && res.data.logs.length > 0) {
-    const logs = res.data.logs.map((item: any) => item.log)
-    updates = updates.concat(logs)
-    currentPage += 1
-    const totalPages = res.data.totalPages
-    while (currentPage <= totalPages) {
-      console.log(`querying page ${currentPage} of ${totalPages}`)
-      res = await axios.get(`${baseUrl}&page=${currentPage}`)
+    if (res.data && res.data.success && res.data.logs.length > 0) {
+      const logs = res.data.logs.map((item: any) => item.log)
+      updates = updates.concat(logs)
+      currentPage += 1
+      const totalPages = res.data.totalPages
+      while (currentPage <= totalPages) {
+        console.log(`querying page ${currentPage} of ${totalPages}`)
+        res = await axios.get(`${baseUrl}&page=${currentPage}`)
         if (res.data && res.data.success) {
-            const logs = res.data.logs.map((item: any) => item.log)
-            updates = updates.concat(logs)
+          const logs = res.data.logs.map((item: any) => item.log)
+          updates = updates.concat(logs)
         }
         currentPage += 1
+      }
     }
+  } catch (e) {
+    console.error(`Error getting filter updates`, e)
   }
   return updates
 }
@@ -919,10 +923,10 @@ export const methods = {
       console.log('Running getBlockByHash', args)
     }
     //getCurrentBlock handles errors, no try catch needed
-    const result = await getCurrentBlock()
+    const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
 
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
-    callback(null, result)
+    callback(null, res.data.block)
   },
   eth_getBlockByNumber: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockByNumber'
@@ -1248,8 +1252,19 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = '0x1'
-    callback(null, result)
+    const currentBlock = await getCurrentBlock()
+    const filterId = getFilterId()
+    const filterObj: Types.BlockFilter = {
+      id: filterId.toString(),
+      lastQueriedTimestamp: Date.now(),
+      lastQueriedBlock: parseInt(currentBlock.number.toString()),
+      createdBlock: parseInt(currentBlock.number.toString())
+    };
+    const unsubscribe = () => {}
+    const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.block};
+    filtersMap.set(filterId.toString(), internalFilter);
+
+    callback(null, filterId)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
   eth_newPendingTransactionFilter: async function (args: any, callback: any) {
@@ -1307,7 +1322,9 @@ export const methods = {
         return
     }
     const currentBlock = await getCurrentBlock()
-    const filterObj: Types.Filter = {
+    const filterId = getFilterId()
+    const filterObj: Types.LogFilter = {
+      id: filterId.toString(),
       address: address,
       topics,
       fromBlock: inputFilter.fromBlock,
@@ -1318,7 +1335,6 @@ export const methods = {
     };
     const unsubscribe = () => {}
     const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.log};
-    const filterId = getFilterId()
     filtersMap.set(filterId.toString(), internalFilter);
 
     callback(null, filterId)
@@ -1336,19 +1352,34 @@ export const methods = {
 
     const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString());
     let updates = []
-    if (internalFilter) {
-      updates = await getFilterUpdates(internalFilter)
+    if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
+      let logFilter = internalFilter.filter as Types.LogFilter
+      let request: Types.LogQueryRequest = {
+        address: logFilter.address,
+        topics: logFilter.topics,
+        fromBlock: String(logFilter.lastQueriedBlock + 1),
+      }
+      updates = await getLogsFromExplorer(request)
       internalFilter.updates = [];
       let currentBlock = await getCurrentBlock()
       // this could potentially have issue because explorer server is a bit behind validator in terms of tx receipt or block number
-      internalFilter.filter.lastQueriedBlock = parseInt(currentBlock.number.toString());
-      internalFilter.filter.lastQueriedTimestamp = Date.now();
+      logFilter.lastQueriedBlock = parseInt(currentBlock.number.toString());
+      logFilter.lastQueriedTimestamp = Date.now();
+    } else if (internalFilter && internalFilter.type === Types.FilterTypes.block) {
+      let blockFilter = internalFilter.filter as Types.BlockFilter
+      const url = `/eth_getBlockHashes?fromBlock=${blockFilter.lastQueriedBlock + 1}`
+      const res = await requestWithRetry(RequestMethod.Get, url)
+      if (res.data && res.data.blockHashes) {
+        updates = res.data.blockHashes
+        blockFilter.lastQueriedBlock = res.data.toBlock
+        blockFilter.lastQueriedTimestamp = Date.now()
+      }
     } else {
       // throw new Error("filter not found");
       console.error(`eth_getFilterChanges: filter not found: ${filterId}`)
     }
 
-    if (config.verbose) console.log(`eth_getFilterChanges: filterId: ${filterId}, updates: ${updates.length}`, updates)
+    if (config.verbose) console.log(`eth_getFilterChanges: filterId: ${filterId}, updates: ${updates.length}`, internalFilter, updates)
 
     callback(null, updates)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
@@ -1365,10 +1396,18 @@ export const methods = {
     let logs = []
 
     const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString());
-    if (internalFilter) {
-      logs = await getFilterUpdates(internalFilter, true)
+    if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
+      let logFilter = internalFilter.filter as Types.LogFilter
+      let request: Types.LogQueryRequest = {
+        address: logFilter.address,
+        topics: logFilter.topics,
+        fromBlock: String(logFilter.createdBlock),
+      }
+      if (logFilter.fromBlock) {
+        request.fromBlock = String(logFilter.fromBlock)
+      }
+      logs = await getLogsFromExplorer(request)
     } else {
-      // throw new Error("filter not found");
       console.error(`eth_getFilterChanges: filter not found: ${filterId}`)
     }
 
@@ -1387,8 +1426,10 @@ export const methods = {
     if (verbose) {
       console.log('Running getLogs', args)
     }
-    const result = 'test'
-    callback(null, result)
+    let request = args[0]
+    let logs = []
+    logs = await getLogsFromExplorer(request)
+    callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
   },
   eth_getWork: async function (args: any, callback: any) {
