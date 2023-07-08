@@ -28,6 +28,7 @@ import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
 import { evmLogProvider_ConnectionStream, setupEvmLogProviderConnectionStream } from './websocket/explorer'
+import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
