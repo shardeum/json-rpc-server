@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
-import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex } from 'ethereumjs-util'
+import {serializeError} from 'eth-rpc-errors'
+import {bufferToHex} from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -17,12 +17,12 @@ import {
   TxStatusCode
 } from './utils'
 import crypto from 'crypto'
-import { logEventEmitter } from './logger'
-import { CONFIG, CONFIG as config } from './config'
-import { logSubscriptionList } from './websocket/Clients'
-import { ipport } from './server'
-import { subscriptionEventEmitter } from './websocket'
-import { evmLogProvider_ConnectionStream } from './websocket/explorer'
+import {logEventEmitter} from './logger'
+import {CONFIG, CONFIG as config} from './config'
+import {logSubscriptionList} from './websocket/Clients'
+import {ipport} from './server'
+import {subscriptionEventEmitter} from './websocket'
+import {evmLogProvider_ConnectionStream} from './websocket/explorer'
 import * as Types from './types'
 
 export const verbose = config.verbose
@@ -72,23 +72,47 @@ export type DetailedTxStatus = {
 
 let filtersMap: Map<string, Types.InternalFilter> = new Map()
 
+function buildLogAPIUrl(request: Types.LogQueryRequest) {
+  const apiUrl = `${config.explorerUrl}/api/log`;
+  const queryParams = [];
+
+  // Check if each query parameter exists in the request object and add it to the queryParams array if it does
+  if (request.address) {
+    queryParams.push(`address=${request.address}`);
+  }
+  if (request.topics && request.topics.length > 0) {
+    if (request.topics[0]) {
+      queryParams.push(`topic0=${request.topics[0]}`);
+    }
+    if (request.topics[1]) {
+      queryParams.push(`topic1=${request.topics[1]}`);
+    }
+    if (request.topics[2]) {
+      queryParams.push(`topic2=${request.topics[2]}`);
+    }
+    if (request.topics[3]) {
+      queryParams.push(`topic3=${request.topics[3]}`);
+    }
+  }
+  if (request.fromBlock) {
+    queryParams.push(`fromBlock=${request.fromBlock}`);
+  }
+  if (request.toBlock) {
+    queryParams.push(`toBlock=${request.toBlock}`);
+  }
+  // Combine the base URL with the query parameters
+  return `${apiUrl}${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`;
+}
+
 async function getLogsFromExplorer(request: Types.LogQueryRequest): Promise<any[]> {
   let updates: any[] = []
   let currentPage = 1
 
   try {
-    if (request == null || request.address == null) return []
-    let baseUrl = `${config.explorerUrl}/api/log?address=${request.address}`
-    if (request.topics != null && request.topics.length > 1) {
-      baseUrl += `&topic0=${request.topics[0]}`
-      baseUrl += `&topic1=${request.topics[1]}`
-      baseUrl += `&topic2=${request.topics[2]}`
-      baseUrl += `&topic3=${request.topics[3]}`
-    }
-    if (request.fromBlock != null) baseUrl += `&fromBlock=${request.fromBlock}`
-    if (request.toBlock != null) baseUrl += `&toBlock=${request.toBlock}`
-
+    if (request == null) return []
+    let baseUrl = buildLogAPIUrl(request)
     let fullUrl = baseUrl + `&page=${currentPage}`
+    if (config.verbose) console.log(`getLogsFromExplorer fullUrl: ${fullUrl}`)
     let res = await axios.get(fullUrl)
 
     if (res.data && res.data.success && res.data.logs.length > 0) {
@@ -97,7 +121,6 @@ async function getLogsFromExplorer(request: Types.LogQueryRequest): Promise<any[
       currentPage += 1
       const totalPages = res.data.totalPages
       while (currentPage <= totalPages) {
-        console.log(`querying page ${currentPage} of ${totalPages}`)
         res = await axios.get(`${baseUrl}&page=${currentPage}`)
         if (res.data && res.data.success) {
           const logs = res.data.logs.map((item: any) => item.log)
@@ -1260,8 +1283,14 @@ export const methods = {
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString())
     };
-    const unsubscribe = () => {}
-    const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.block};
+    const unsubscribe = () => {
+    }
+    const internalFilter: Types.InternalFilter = {
+      updates: [],
+      filter: filterObj,
+      unsubscribe,
+      type: Types.FilterTypes.block
+    };
     filtersMap.set(filterId.toString(), internalFilter);
 
     callback(null, filterId)
@@ -1318,8 +1347,8 @@ export const methods = {
     }
     const {address, topics} = parseFilterDetails(inputFilter || {});
     if (address == null) {
-        callback(null, null)
-        return
+      callback(null, null)
+      return
     }
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
@@ -1335,8 +1364,14 @@ export const methods = {
     };
     if (filterObj.fromBlock === 'latest') filterObj.fromBlock = lastBlockInfo.blockNumber
     if (filterObj.toBlock === 'latest') delete filterObj.toBlock
-    const unsubscribe = () => {}
-    const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.log};
+    const unsubscribe = () => {
+    }
+    const internalFilter: Types.InternalFilter = {
+      updates: [],
+      filter: filterObj,
+      unsubscribe,
+      type: Types.FilterTypes.log
+    };
     filtersMap.set(filterId.toString(), internalFilter);
 
     callback(null, filterId)
@@ -1439,9 +1474,9 @@ export const methods = {
         request.fromBlock = lastBlockInfo.blockNumber
       } else {
         try {
-          let { blockNumber } = await getCurrentBlockInfo()
+          let {blockNumber} = await getCurrentBlockInfo()
           request.fromBlock = blockNumber
-        } catch(e) {
+        } catch (e) {
           console.error(`eth_getLogs: failed to get current block`, e)
           callback(null, new Error(`eth_getLogs: failed to get current block`))
           logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
@@ -1449,7 +1484,28 @@ export const methods = {
         }
       }
     }
-    if (request.toBlock === 'latest') delete request.toBlock
+    if (request.toBlock === 'latest') {
+      if (lastBlockInfo && lastBlockInfo.blockNumber !== '0x0') {
+        request.toBlock = lastBlockInfo.blockNumber
+      } else {
+        try {
+          let {blockNumber} = await getCurrentBlockInfo()
+          request.toBlock = blockNumber
+        } catch (e) {
+          console.error(`eth_getLogs: failed to get current block`, e)
+          callback(null, new Error(`eth_getLogs: failed to get current block`))
+          logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
+          return
+        }
+      }
+    }
+    if (request.blockHash) {
+      const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${request.blockHash}`)
+      if (res.data && res.data.block) {
+        request.fromBlock = res.data.block.number
+        request.toBlock = res.data.block.number
+      }
+    }
     logs = await getLogsFromExplorer(request)
     callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
@@ -1710,25 +1766,25 @@ export const methods = {
     }
   },
   eth_subscribe: async function (args: any, callback: any) {
-    if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+    if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback("Subscription feature disabled", null);
       return
     }
-    try{
+    try {
       const subscription_name = args[0]
       const filters = args[1]
       const sub_id = args[10]
-      if(subscription_name !== 'logs') {
+      if (subscription_name !== 'logs') {
         logSubscriptionList.removeById(args[10])
-        callback("Shardeum only support logs subscriptions",null);
+        callback("Shardeum only support logs subscriptions", null);
         return
       }
-      if(!filters.address || !filters.topics){
+      if (!filters.address || !filters.topics) {
         logSubscriptionList.removeById(args[10])
-        callback("Invalid Filters",null);
+        callback("Invalid Filters", null);
         return
       }
-      if(!sub_id){
+      if (!sub_id) {
         throw new Error("Subscription id missing, internal server Error");
       }
 
@@ -1738,12 +1794,12 @@ export const methods = {
         topics: filters.topics,
         ipport: ipport
       }
-      if(evmLogProvider_ConnectionStream === null){
+      if (evmLogProvider_ConnectionStream === null) {
         throw new Error("RPC cannot established connection to evm log provider");
       }
       subscriptionEventEmitter.emit('evm_log_subscribe', payload);
 
-    }catch(e: any){
+    } catch (e: any) {
       logSubscriptionList.removeById(args[10])
       callback(e.message, null);
       // subscription failed, will not be tracking it
@@ -1751,20 +1807,20 @@ export const methods = {
   },
 
   eth_unsubscribe: async function (args: any, callback: any) {
-    if(!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions){
+    if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback("Subscription feature disabled", null);
       return
     }
-    try{
+    try {
       const subscription_id: string = args[0]
       const socket: WebSocket.WebSocket = args[10]
 
-      if(!logSubscriptionList.getById(subscription_id)){
+      if (!logSubscriptionList.getById(subscription_id)) {
         throw new Error("Subscription not found");
       }
 
       // this mean client is trying to unsubscribe someone else's subscription
-      if(logSubscriptionList.getById(subscription_id)?.socket !== socket){
+      if (logSubscriptionList.getById(subscription_id)?.socket !== socket) {
         throw new Error("Subscription not found");
       }
 
@@ -1776,7 +1832,7 @@ export const methods = {
 
       // callback(null, res.data.success);
       subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id);
-    }catch(e: any){
+    } catch (e: any) {
       callback(e.message, null);
       // subscription failed, will not be tracking it
     }

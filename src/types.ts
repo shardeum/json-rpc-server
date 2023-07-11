@@ -27,7 +27,7 @@ export type InternalFilter = {
 };
 
 export interface LogQueryRequest {
-  address: string;
+  address?: string;
   topics?: Topic[];
   fromBlock?: string;
   toBlock?: string;
