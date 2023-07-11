@@ -28,7 +28,7 @@ import * as Types from './types'
 export const verbose = config.verbose
 
 const lastCycleCounter = '0x0'
-let lastCycleInfo = {
+let lastBlockInfo = {
   blockNumber: lastCycleCounter,
   timestamp: '0x0',
 }
@@ -114,7 +114,7 @@ async function getLogsFromExplorer(request: Types.LogQueryRequest): Promise<any[
 
 async function getCurrentBlockInfo() {
   if (verbose) console.log('Running getCurrentBlockInfo')
-  let result = {...lastCycleInfo, nodeUrl: undefined}
+  let result = {...lastBlockInfo, nodeUrl: undefined}
 
   try {
     if (verbose) console.log('Querying getCurrentBlockInfo from validator')
@@ -122,7 +122,7 @@ async function getCurrentBlockInfo() {
     const blockNumber = res.data.blockNumber
     const timestamp = Date.now()
     result = {nodeUrl: res.data.nodeUrl, blockNumber: blockNumber, timestamp: intStringToHex(String(timestamp))} as any
-    lastCycleInfo = result
+    lastBlockInfo = {...result}
     return result
   } catch (e) {
     console.log('Unable to get cycle number', e)
@@ -1323,7 +1323,7 @@ export const methods = {
     }
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
-    const filterObj: Types.LogFilter = {
+    let filterObj: Types.LogFilter = {
       id: filterId.toString(),
       address: address,
       topics,
@@ -1333,6 +1333,8 @@ export const methods = {
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString())
     };
+    if (filterObj.fromBlock === 'latest') filterObj.fromBlock = lastBlockInfo.blockNumber
+    if (filterObj.toBlock === 'latest') delete filterObj.toBlock
     const unsubscribe = () => {}
     const internalFilter: Types.InternalFilter = {updates: [], filter: filterObj, unsubscribe, type: Types.FilterTypes.log};
     filtersMap.set(filterId.toString(), internalFilter);
@@ -1359,6 +1361,7 @@ export const methods = {
         topics: logFilter.topics,
         fromBlock: String(logFilter.lastQueriedBlock + 1),
       }
+      console.log('filter changes request', request)
       updates = await getLogsFromExplorer(request)
       internalFilter.updates = [];
       let currentBlock = await getCurrentBlock()
@@ -1428,6 +1431,25 @@ export const methods = {
     }
     let request = args[0]
     let logs = []
+    if (request.fromBlock === 'earliest') {
+      request.fromBlock = '0'
+    }
+    if (request.fromBlock === 'latest') {
+      if (lastBlockInfo && lastBlockInfo.blockNumber) {
+        request.fromBlock = lastBlockInfo.blockNumber
+      } else {
+        try {
+          let { blockNumber } = await getCurrentBlockInfo()
+          request.fromBlock = blockNumber
+        } catch(e) {
+          console.error(`eth_getLogs: failed to get current block`, e)
+          callback(null, new Error(`eth_getLogs: failed to get current block`))
+          logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
+          return
+        }
+      }
+    }
+    if (request.toBlock === 'latest') delete request.toBlock
     logs = await getLogsFromExplorer(request)
     callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
