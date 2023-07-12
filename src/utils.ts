@@ -881,9 +881,9 @@ export async function getTransactionReceipt(hash: string) {
   return result
 }
 
-export function getFilterId() {
+export function getFilterId(): string {
   // todo: use a better way to generate filter id
-  return Math.round(Math.random() * 1000000000)
+  return '0x' + Math.round(Math.random() * 1000000000).toString(16)
 }
 
 export function parseFilterDetails(

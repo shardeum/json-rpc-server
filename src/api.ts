@@ -1278,7 +1278,7 @@ export const methods = {
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
     const filterObj: Types.BlockFilter = {
-      id: filterId.toString(),
+      id: filterId,
       lastQueriedTimestamp: Date.now(),
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString())
@@ -1346,14 +1346,10 @@ export const methods = {
       return
     }
     const {address, topics} = parseFilterDetails(inputFilter || {});
-    if (address == null) {
-      callback(null, null)
-      return
-    }
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
     let filterObj: Types.LogFilter = {
-      id: filterId.toString(),
+      id: filterId,
       address: address,
       topics,
       fromBlock: inputFilter.fromBlock,
