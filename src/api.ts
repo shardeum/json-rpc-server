@@ -81,18 +81,19 @@ function buildLogAPIUrl(request: Types.LogQueryRequest) {
     queryParams.push(`address=${request.address}`);
   }
   if (request.topics && request.topics.length > 0) {
-    if (request.topics[0]) {
-      queryParams.push(`topic0=${request.topics[0]}`);
-    }
-    if (request.topics[1]) {
-      queryParams.push(`topic1=${request.topics[1]}`);
-    }
-    if (request.topics[2]) {
-      queryParams.push(`topic2=${request.topics[2]}`);
-    }
-    if (request.topics[3]) {
-      queryParams.push(`topic3=${request.topics[3]}`);
-    }
+    queryParams.push(`topics=${JSON.stringify(request.topics)}`);
+    // if (request.topics[0]) {
+    //   queryParams.push(`topic0=${request.topics[0]}`);
+    // }
+    // if (request.topics[1]) {
+    //   queryParams.push(`topic1=${request.topics[1]}`);
+    // }
+    // if (request.topics[2]) {
+    //   queryParams.push(`topic2=${request.topics[2]}`);
+    // }
+    // if (request.topics[3]) {
+    //   queryParams.push(`topic3=${request.topics[3]}`);
+    // }
   }
   if (request.fromBlock) {
     queryParams.push(`fromBlock=${request.fromBlock}`);
