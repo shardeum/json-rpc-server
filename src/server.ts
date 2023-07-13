@@ -94,7 +94,7 @@ app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
     console.log('Invalid ip or port')
     return res.end('Invalid ip or port')
   }
-  const ip = req.ip || 'localhost'
+  const ip = req.ip || '127.0.0.1'
   const port = req.connection.localPort || 9001
   const success = changeNode(ip, port, true)
   if(!success){

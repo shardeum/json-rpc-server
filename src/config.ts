@@ -74,7 +74,7 @@ export const CONFIG: Config = {
   port: 8080,
   chainId: 8082,
   nodeIpInfo: {
-    externalIp: 'localhost',
+    externalIp: '127.0.0.1',
     externalPort: 9001,
   },
   dynamicConsensorNode: true,
@@ -84,9 +84,9 @@ export const CONFIG: Config = {
   faucetServerUrl: 'https://faucet.liberty10.shardeum.org',
   queryFromValidator: true,
   queryFromArchiver: false,
-  explorerUrl: 'http://localhost:6001',
+  explorerUrl: 'http://127.0.0.1:6001',
   queryFromExplorer: true,
-  rpcDataServerUrl: 'http://localhost:4445',
+  rpcDataServerUrl: 'http://127.0.0.1:4445',
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
   defaultRequestRetry: 5,
@@ -123,5 +123,5 @@ export const CONFIG: Config = {
     dist_path: '../rpc-gateway-frontend/build/',
   },
   isRemoteLocalNetwork: false,
-  nodeExternalIpForRemoteLocalNetwork: 'localhost',
+  nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
 }
