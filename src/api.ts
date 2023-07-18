@@ -889,7 +889,7 @@ export const methods = {
     }
     const callObj = args[0]
     //callObj.gasPrice = new BN(0)
-    if (!callObj.from) {
+    if (!callObj.from || callObj.from === '0x0000000000000000000000000000000000000000') {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
     }
     if (verbose) console.log('callObj', callObj)
