@@ -13,6 +13,10 @@ type Config = {
     enabled: boolean
     serveSubscriptions: boolean
   }
+  distributor: {
+    ip: string
+    port: number
+  }
   dynamicConsensorNode: boolean
   useConfigNodeIp: boolean
   askLocalHostForArchiver: boolean
@@ -69,7 +73,10 @@ export const CONFIG: Config = {
     enabled: false,
     serveSubscriptions: false,
   },
-
+  distributor: {
+    ip: '0.0.0.0',
+    port: 4446,
+  },
   ip: '0.0.0.0',
   port: 8080,
   chainId: 8082,

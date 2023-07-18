@@ -23,7 +23,7 @@ import {CONFIG, CONFIG as config} from './config'
 import {logSubscriptionList} from './websocket/Clients'
 import {ipport} from './server'
 import {subscriptionEventEmitter} from './websocket'
-import {evmLogProvider_ConnectionStream} from './websocket/explorer'
+import {evmLogProvider_ConnectionStream} from './websocket/distributor'
 import * as Types from './types'
 
 export const verbose = config.verbose
@@ -1820,14 +1820,6 @@ export const methods = {
       if (logSubscriptionList.getById(subscription_id)?.socket !== socket) {
         throw new Error("Subscription not found");
       }
-
-      // const res = await axios.post(CONFIG.explorerUrl + '/api/evm_log_unsubscribe', {subscription_id, ipport})
-      //
-      // if(res.data.success){
-      //   logSubscriptionList.removeById(subscription_id);
-      // }
-
-      // callback(null, res.data.success);
       subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id);
     } catch (e: any) {
       callback(e.message, null);

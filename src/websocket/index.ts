@@ -5,7 +5,7 @@ import { logSubscriptionList } from "./Clients";
 import * as crypto from 'crypto';
 import { CONFIG } from "../config";
 import { ipport } from "../server";
-import { evmLogProvider_ConnectionStream } from "./explorer";
+import { evmLogProvider_ConnectionStream } from "./distributor";
 
 
 export const onConnection = async (socket: WebSocket.WebSocket) => {
