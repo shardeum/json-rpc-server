@@ -92,11 +92,10 @@ export const setupEvmLogProviderConnectionStream = () => {
              try{
             
                const logs = message.logs;
-               const relevant_subscribers = message.subscribers;
+               const subscription_id = message.subscription_id
             
-               for(const subscriber_id of relevant_subscribers){
-                subscriptionEventEmitter.emit('evm_log_received', logs, subscriber_id);
-               }
+               console.log('Received logs for subscription', subscription_id, logs.length)
+               subscriptionEventEmitter.emit('evm_log_received', logs, subscription_id)
              }catch(e: any){
                console.error(e);
              }

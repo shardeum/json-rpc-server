@@ -82,13 +82,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
 
            // this convert everything to lower case, making it case-insenstive
            if(typeof address === 'string'){
-             request.params[1].address = [address.toLowerCase()]
-           }
-           if(Array.isArray(address)){
-             request.params[1].address = address.map(el=>{return el.toLowerCase()})
-           }
-           if(!Array.isArray(topics)){
-            request.params[1].topics = []
+              request.params[1].address = address.toLowerCase()
            }
             request.params[1].topics = request.params[1].topics.map((topic: string | undefined)=>{
               return topic?.toLowerCase()
@@ -180,11 +174,12 @@ export const setupSubscriptionEventHandlers = () => {
 
   interface SUBSCRIPTION_PAYLOAD {
     subscription_id: string,
-    address: string[] | string,
+    address: string,
     topics: string[],
     ipport: string
   }
   subscriptionEventEmitter.on('evm_log_subscribe', async (payload: SUBSCRIPTION_PAYLOAD) => {
+    console.log("Sending subscription request to distributor");
       const method = 'subscribe'
       evmLogProvider_ConnectionStream?.send(JSON.stringify({method, params: payload}));
   })
