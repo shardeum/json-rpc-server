@@ -1776,7 +1776,7 @@ export const methods = {
         callback("Shardeum only support logs subscriptions", null);
         return
       }
-      if (!filters.address || !filters.topics) {
+      if (!filters.address && !filters.topics) {
         logSubscriptionList.removeById(args[10])
         callback("Invalid Filters", null);
         return
