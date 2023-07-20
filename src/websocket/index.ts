@@ -8,7 +8,7 @@ import { ipport } from "../server";
 import { evmLogProvider_ConnectionStream } from "./distributor";
 
 
-export const onConnection = async (socket: WebSocket.WebSocket) => {
+export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
 
   socket.on('message', (message: string) => {
     // console.log(`Received message: ${message}`);
@@ -29,7 +29,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
     if(!request.method) socket.send("Method is not specified");
     if(!request.params) socket.send("Params not found");
 
-    const callback = async (err: any, result: any) => {
+    const callback = async (err: any, result: any): Promise<void> => {
       if(err){
         const err_res_obj = {
           id: request.id,
@@ -82,7 +82,13 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
 
            // this convert everything to lower case, making it case-insenstive
            if(typeof address === 'string'){
-              request.params[1].address = address.toLowerCase()
+             request.params[1].address = [address.toLowerCase()]
+           }
+           if(Array.isArray(address)){
+             request.params[1].address = address.map(el=>{return el.toLowerCase()})
+           }
+           if(!Array.isArray(topics)){
+            request.params[1].topics = []
            }
             request.params[1].topics = request.params[1].topics.map((topic: string | undefined)=>{
               return topic?.toLowerCase()
@@ -127,7 +133,7 @@ export const onConnection = async (socket: WebSocket.WebSocket) => {
 
 export const subscriptionEventEmitter = new EventEmitter();
 
-export const setupSubscriptionEventHandlers = () => {
+export const setupSubscriptionEventHandlers = (): void => {
   subscriptionEventEmitter.on('evm_log_received', async (logs, subscription_id)=>{
 
     if(!logSubscriptionList.getById(subscription_id)){
@@ -190,7 +196,14 @@ export const setupSubscriptionEventHandlers = () => {
   })
 }
 
-const constructRPCErrorRes = (ErrorMessage: string, ErrCode = -1, id: number) => {
+const constructRPCErrorRes = (ErrorMessage: string, ErrCode = -1, id: number): {
+  id: number,
+  jsonrpc: string,
+  error: {
+    message: string,
+    code: number
+  }
+}=> {
 
   return  {
           id: id,
