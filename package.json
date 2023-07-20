@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@ethereumjs/tx": "3.4.0",
-    "@shardus/archiver-discovery": "1.0.2",
+    "@shardus/archiver-discovery": "1.1.0",
     "@shardus/crypto-utils": "4.0.4",
     "axios": "0.24.0",
     "better-sqlite3": "7.6.2",
@@ -48,13 +48,10 @@
     "eslint-plugin-no-unsanitized": "4.0.2",
     "eslint-plugin-security": "1.5.0",
     "eslint-plugin-xss": "0.1.12",
-	"nodemon": "2.0.22"
+    "nodemon": "2.0.22"
   },
   "overrides": {
     "semver": "7.5.3",
     "optionator": "0.9.3"
-  },
-  "engines": {
-    "node": "18.16.1"
   }
 }
