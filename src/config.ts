@@ -85,7 +85,7 @@ export const CONFIG: Config = {
   queryFromValidator: true,
   queryFromArchiver: false,
   explorerUrl: 'http://127.0.0.1:6001',
-  queryFromExplorer: true,
+  queryFromExplorer: false,
   rpcDataServerUrl: 'http://127.0.0.1:4445',
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
