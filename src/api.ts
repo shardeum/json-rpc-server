@@ -14,6 +14,7 @@ import {
   RequestMethod,
   requestWithRetry,
   sleep,
+  getGasPrice,
   TxStatusCode
 } from './utils'
 import crypto from 'crypto'
@@ -458,8 +459,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_gasPrice', args)
     }
-    const result = '0x1dfd14000'
-
+    const { result } = await getGasPrice();
     logEventEmitter.emit('fn_end', ticket, {success: true}, performance.now())
     callback(null, result)
   },

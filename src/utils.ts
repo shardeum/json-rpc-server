@@ -377,6 +377,11 @@ export async function getAccount(addressStr: any): Promise<{ account?: any, node
   return res.data
 }
 
+export async function getGasPrice(): Promise<{result?: string}> {
+  const res = await requestWithRetry(RequestMethod.Get, `/eth_gasPrice`)
+  return res.data
+}
+
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
