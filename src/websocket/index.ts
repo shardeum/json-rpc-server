@@ -85,7 +85,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
              request.params[1].address = [address.toLowerCase()]
            }
            if(Array.isArray(address)){
-             request.params[1].address = address.map(el=>{return el.toLowerCase()})
+             const uniqueCA = new Set<string>();
+             address.map(el=>{uniqueCA.add(el.toLowerCase())})
+             request.params[1].address = Array.from(uniqueCA)
            }
            if(!Array.isArray(topics)){
             request.params[1].topics = []
@@ -180,7 +182,7 @@ export const setupSubscriptionEventHandlers = (): void => {
 
   interface SUBSCRIPTION_PAYLOAD {
     subscription_id: string,
-    address: string,
+    address: string[],
     topics: string[],
     ipport: string
   }
