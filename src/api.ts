@@ -15,7 +15,8 @@ import {
   requestWithRetry,
   sleep,
   getGasPrice,
-  TxStatusCode
+  TxStatusCode,
+  getCode
 } from './utils'
 import crypto from 'crypto'
 import {logEventEmitter} from './logger'
@@ -654,21 +655,14 @@ export const methods = {
     }
     let nodeUrl
     try {
-      const emptyCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
-      const res = await getAccount(args[0])
-      const account = res.account
+      const res = await getCode(args[0])
+      const contractCode = res.contractCode
       nodeUrl = res.nodeUrl ? res.nodeUrl : undefined
-      // if (account && account.codeHash && account.codeHash) {
-      if (account && account.codeHash && account.codeHash !== emptyCodeHash) {
-        if (verbose) console.log('eth_getCode result', account.codeHash)
-        logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: true}, performance.now())
-        callback(null, account.codeHash)
-        return
-      }
-      const result = '0x0'
-      if (verbose) console.log('eth_getCode result', result)
+
+      if (verbose) console.log('eth_getCode result', contractCode)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: true}, performance.now())
-      callback(null, result)
+      callback(null, contractCode)
+      return
     } catch (e) {
       console.log('Unable to eth_getCode', e)
       logEventEmitter.emit('fn_end', ticket, {nodeUrl, success: false}, performance.now())

@@ -382,6 +382,16 @@ export async function getGasPrice(): Promise<{result?: string}> {
   return res.data
 }
 
+/**
+ * Gets the contract code associated with a given address
+ * @param addressStr
+ * @returns
+ */
+export async function getCode(addressStr: string): Promise<{contractCode: string, nodeUrl: string}> {
+  const res = await requestWithRetry(RequestMethod.Get, `/eth_getCode?address=${addressStr}`)
+  return res.data
+}
+
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
