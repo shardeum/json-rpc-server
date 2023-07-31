@@ -21,7 +21,7 @@ import {
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
 import { CONFIG, CONFIG as config } from './config'
-import { logSubscriptionList } from './websocket/Clients'
+import { logSubscriptionList } from './websocket/clients'
 import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/distributor'

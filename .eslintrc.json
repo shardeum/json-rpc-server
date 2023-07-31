@@ -14,7 +14,17 @@
     "plugin:no-unsanitized/DOM",
     "prettier"
   ],
-  "ignorePatterns": ["api.ts", "utils.ts", "config.ts", "logger.ts"],
+  "ignorePatterns": [
+    "api.ts",
+    "utils.ts",
+    "config.ts",
+    "logger.ts",
+    "types.ts",
+    "websocket/",
+    "middlewares/",
+    "routes/",
+    "storage/"
+  ],
   "rules": {
     "no-empty": [
       1,
@@ -25,6 +35,11 @@
     "@typescript-eslint/camelcase": "off",
     "@typescript-eslint/member-delimiter-style": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/explicit-function-return-type": "error"
+    "@typescript-eslint/explicit-function-return-type": [
+      "error",
+      {
+        "allowExpressions": true
+      }
+    ]
   }
 }

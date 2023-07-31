@@ -27,7 +27,7 @@ import spammerList from '../spammerlist.json'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
-import { evmLogProvider_ConnectionStream, setupEvmLogProviderConnectionStream } from './websocket/distributor'
+import { setupEvmLogProviderConnectionStream } from './websocket/distributor'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 
 // const path = require('path');

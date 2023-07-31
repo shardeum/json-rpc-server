@@ -2,7 +2,7 @@ import WebSocket from 'ws'
 import { subscriptionEventEmitter } from '.'
 import { CONFIG } from '../config'
 import { sleep } from '../utils'
-import { logSubscriptionList } from './Clients'
+import { logSubscriptionList } from './clients'
 
 export let evmLogProvider_ConnectionStream: WebSocket | null = null
 

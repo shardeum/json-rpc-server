@@ -46,6 +46,7 @@
     "@types/jsonwebtoken": "8.5.9",
     "@types/ws": "8.5.4",
     "@typescript-eslint/eslint-plugin": "5.46.1",
+    "@typescript-eslint/parser": "5.60.1",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-no-unsanitized": "4.0.2",
     "eslint-plugin-security": "1.5.0",

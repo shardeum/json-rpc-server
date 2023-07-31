@@ -1,4 +1,3 @@
-import { CONFIG } from '../config'
 import { NextFunction, Request, Response } from 'express'
 
 const rejectSubscription = (req: Request, res: Response, next: NextFunction) => {

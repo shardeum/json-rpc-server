@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { methods } from '../api'
-import { logSubscriptionList } from './Clients'
+import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { ipport } from '../server'
