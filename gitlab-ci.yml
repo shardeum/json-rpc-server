@@ -1,0 +1,67 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+
+# Include security-related templates
+include:
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+# Define the default Docker image for all jobs
+image: registry.gitlab.com/shardus/dev-container
+
+# Define global cache settings for all jobs
+cache:
+  key: '$CI_COMMIT_REF_SLUG-node-modules'
+  paths:
+    - node_modules/
+
+# Define the stages for the pipeline
+stages:
+  - prepare
+  - build
+  - test
+
+# Prepare Job: Install Node.js dependencies
+prepare-job:
+  stage: prepare
+  script:
+    - npm ci
+
+# Build Job: Compiles the code
+compile-job:
+  stage: build
+  needs: ['prepare-job']
+  script:
+    - echo "Running Compiler..."
+    - npm run compile
+    - echo "Compilation complete."
+
+# Format Checker Job: Runs Prettier for code formatting
+format-checker-job:
+  stage: build
+  needs: ['prepare-job']
+  script:
+    - echo "Running Prettier..."
+    - npm run format-check
+    - echo "Running Prettier complete."
+
+# Lint Checker Job: Runs ESlint for code linting
+lint-checker-job:
+  stage: build
+  needs: ['prepare-job']
+  script:
+    - echo "Running ESlint..."
+    - npm run lint
+    - echo "Running ESlint complete."
+
+# SAST Job: Performs static application security testing
+sast:
+  variables:
+    SAST_EXCLUDED_ANALYZERS: bandit, brakeman, flawfinder, gosec, kubesec, phpcs-security-audit, pmd-apex, security-code-scan, semgrep, sobelow, spotbugs
+  stage: test

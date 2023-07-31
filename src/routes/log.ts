@@ -10,82 +10,81 @@ const timeInputProcessor = (timestamp: string) => {
 }
 
 type SQLFiltersParam = {
-  start?: string | number, 
-  end?: string | number, 
-  id?: number, 
-  hash?: string, 
-  to?: string, 
-  from?: string,
-  type?: string,
-  reason?: string, 
-  injected?: boolean, 
-  accepted?: number,
-  success?: boolean, 
-  api_name?: string, 
-  nodeUrl?: string, 
-  ip?: string 
+  start?: string | number
+  end?: string | number
+  id?: number
+  hash?: string
+  to?: string
+  from?: string
+  type?: string
+  reason?: string
+  injected?: boolean
+  accepted?: number
+  success?: boolean
+  api_name?: string
+  nodeUrl?: string
+  ip?: string
 }
 const prepareSQLFilters = ({
-  start, 
-  end, 
-  id, 
-  hash, 
-  to, 
+  start,
+  end,
+  id,
+  hash,
+  to,
   from,
   type,
-  reason, 
-  injected, 
+  reason,
+  injected,
   accepted,
-  success, 
-  api_name, 
-  nodeUrl, 
-  ip 
-}:SQLFiltersParam) => {
+  success,
+  api_name,
+  nodeUrl,
+  ip,
+}: SQLFiltersParam) => {
   let sql = ''
   // if(start && end) {
   //   sql += `AND timestamp between ${start} AND ${end} `
   // }
-  if(id){
+  if (id) {
     sql += `AND id = ${id} `
   }
-  if(hash) {
+  if (hash) {
     sql += `AND hash = ${hash} `
   }
-  if(to){
+  if (to) {
     sql += `AND [to]=${to} `
   }
-  if(from) {
+  if (from) {
     sql += `AND [from] = ${from} `
   }
-  if(type) {
+  if (type) {
     sql += `AND [type] = ${type} `
   }
-  if(reason){
+  if (reason) {
     sql += `AND reason LIKE '%${reason}%' `
   }
-  if(injected){
+  if (injected) {
     sql += `AND injected = ${injected} `
   }
-  if(accepted){
+  if (accepted) {
     sql += `AND accepted = ${accepted} `
   }
-  if(success){
+  if (success) {
     sql += `AND success = ${success} `
   }
-  if(api_name){
+  if (api_name) {
     sql += `AND api_name = ${api_name} `
   }
-  if(nodeUrl){
+  if (nodeUrl) {
     sql += `AND nodeUrl=${nodeUrl} `
   }
-  if(ip){
+  if (ip) {
     sql += `And ip = ${ip} `
   }
   return sql
 }
 router.route('/api-stats').get(async (req: any, res: any) => {
   try {
-
     const page = req.query.page || 0
     const max = req.query.max || 5000
     const cursor: number = page * max
@@ -95,56 +94,61 @@ router.route('/api-stats').get(async (req: any, res: any) => {
 
     // start 1678037555727
     // end 1678038025945
-    if(start && !end){
-        const tx = db.prepare(`SELECT * FROM interface_stats WHERE timestamp>${start} LIMIT 1`).all()
-        return res.json(tx[0]).status(200);
+    if (start && !end) {
+      const tx = db.prepare(`SELECT * FROM interface_stats WHERE timestamp>${start} LIMIT 1`).all()
+      return res.json(tx[0]).status(200)
     }
-    if(!start && end){
-        // returns closet entry
-        const tx = db.prepare(`SELECT *
+    if (!start && end) {
+      // returns closet entry
+      const tx = db
+        .prepare(
+          `SELECT *
                                 FROM interface_stats
                                 WHERE ABS(timestamp - ${end}) = (
                                   SELECT MIN(ABS(timestamp - ${end}))
                                   FROM interface_stats
                                 )
-                                LIMIT 1 OFFSET 0;`).all()
-        return res.json(tx[0]).status(200);
+                                LIMIT 1 OFFSET 0;`
+        )
+        .all()
+      return res.json(tx[0]).status(200)
     }
 
-      const sqlFilter = prepareSQLFilters({
-          nodeUrl: req.query.nodeUrl,
-          api_name: req.query.api_name,
-          reason: req.query.reason,
-          hash: req.query.hash,
-          success: req.query.success
-      })
+    const sqlFilter = prepareSQLFilters({
+      nodeUrl: req.query.nodeUrl,
+      api_name: req.query.api_name,
+      reason: req.query.reason,
+      hash: req.query.hash,
+      success: req.query.success,
+    })
 
-    const sqlString = (sqlFilter == '') ?
-        `SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}` :
-        `SELECT * FROM interface_stats WHERE id > ${0} ${sqlFilter}`
+    const sqlString =
+      sqlFilter == ''
+        ? `SELECT * FROM interface_stats WHERE id > ${cursor} LIMIT ${max}`
+        : `SELECT * FROM interface_stats WHERE id > ${0} ${sqlFilter}`
 
     // eslint-disable-next-line prefer-const
     const raw = db.prepare(sqlString).all()
-      const data: any = {
-        current:  Number(page),
-        length: raw.length,
-        max: max
-      }
+    const data: any = {
+      current: Number(page),
+      length: raw.length,
+      max: max,
+    }
 
-      if(Number(page) > 0){
-        data.prev = Number(page) -1;
-      }
-      if(data.length >= max){
-        data.next = Number(page)+1
-      }
+    if (Number(page) > 0) {
+      data.prev = Number(page) - 1
+    }
+    if (data.length >= max) {
+      data.next = Number(page) + 1
+    }
 
-      if(sqlFilter != ''){
-          delete data.current
-          if(data.next) delete data.next
-          if(data.prev) delete data.prev
-      }
-      data.data = raw
-      return res.json(data).status(200);
+    if (sqlFilter != '') {
+      delete data.current
+      if (data.next) delete data.next
+      if (data.prev) delete data.prev
+    }
+    data.data = raw
+    return res.json(data).status(200)
 
     //   const raw = await db
     //     .prepare(`SELECT * FROM interface_stats WHERE timestamp BETWEEN ${start} AND ${end}`)
@@ -189,7 +193,7 @@ router.route('/api-stats').get(async (req: any, res: any) => {
     // }
     // return res.json(info).status(200)
   } catch (e) {
-        console.log(e);
+    console.log(e)
     return res.json(e).status(500)
   }
 })
@@ -216,62 +220,66 @@ router.route('/txs').get(async function (req: any, res: any) {
     const start = req.query.start ? timeInputProcessor(req.query.start) : null
     const end = req.query.end ? timeInputProcessor(req.query.end) : null
 
-    if(start && !end){
-        const tx = db.prepare(`SELECT * FROM transactions WHERE timestamp>${start} LIMIT 1`).all()
-        return res.json(tx[0]).status(200);
+    if (start && !end) {
+      const tx = db.prepare(`SELECT * FROM transactions WHERE timestamp>${start} LIMIT 1`).all()
+      return res.json(tx[0]).status(200)
     }
-    if(!start && end){
-        // returns closet entry
-        const tx = db.prepare(`SELECT *
+    if (!start && end) {
+      // returns closet entry
+      const tx = db
+        .prepare(
+          `SELECT *
                                 FROM transactions
                                 WHERE ABS(timestamp - ${end}) = (
                                   SELECT MIN(ABS(timestamp - ${end}))
                                   FROM transactions
                                 )
-                                LIMIT 1 OFFSET 0;`).all()
-        return res.json(tx[0]).status(200);
+                                LIMIT 1 OFFSET 0;`
+        )
+        .all()
+      return res.json(tx[0]).status(200)
     }
 
-
     const sqlFilter = prepareSQLFilters({
-        nodeUrl: req.query.nodeUrl,
-        type: req.query.type,
-        reason: req.query.reason,
-        injected: req.query.injected,
-        ip: req.query.ip ,
-        to: req.query.to,
-        from: req.query.from,
-        hash: req.query.hash
+      nodeUrl: req.query.nodeUrl,
+      type: req.query.type,
+      reason: req.query.reason,
+      injected: req.query.injected,
+      ip: req.query.ip,
+      to: req.query.to,
+      from: req.query.from,
+      hash: req.query.hash,
     })
 
-    const sqlString = (sqlFilter == '') ?
-        `SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}` :
-        `SELECT * FROM transactions WHERE id > ${0} ${sqlFilter}`
+    const sqlString =
+      sqlFilter == ''
+        ? `SELECT * FROM transactions WHERE id > ${cursor} LIMIT ${max}`
+        : `SELECT * FROM transactions WHERE id > ${0} ${sqlFilter}`
 
     // eslint-disable-next-line prefer-const
     const txs = db.prepare(sqlString).all()
 
-      const data: any = {
-        current: Number(page),
-        length: txs.length,
-      }
+    const data: any = {
+      current: Number(page),
+      length: txs.length,
+    }
 
-      if(Number(page) > 0){
-        data.prev = Number(page) -1;
-      }
-      if(data.length >= max){
-        data.next = Number(page)+1
-      }
-      data.data = txs
+    if (Number(page) > 0) {
+      data.prev = Number(page) - 1
+    }
+    if (data.length >= max) {
+      data.next = Number(page) + 1
+    }
+    data.data = txs
 
-      if(sqlFilter != ''){
-          delete data.current
-          if(data.next) delete data.next
-          if(data.prev) delete data.prev
-      }
-      return res.json(data).status(200);
+    if (sqlFilter != '') {
+      delete data.current
+      if (data.next) delete data.next
+      if (data.prev) delete data.prev
+    }
+    return res.json(data).status(200)
   } catch (e: any) {
-      console.log(e);
+    console.log(e)
     res.send(e).status(500)
   }
 })
@@ -287,41 +295,41 @@ router.route('/cleanTxTable').get(async function (req: any, res: any) {
 })
 
 router.route('/startTxCapture').get(async function (req: any, res: any) {
-    if(CONFIG.recordTxStatus) return res.json({message: "Tx recording already enabled"}).status(304);
-  debug_info.txRecordingStartTime = Date.now();
-  debug_info.txRecordingEndTime = 0;
+  if (CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already enabled' }).status(304)
+  debug_info.txRecordingStartTime = Date.now()
+  debug_info.txRecordingEndTime = 0
   CONFIG.recordTxStatus = true
 
-  res.json({message:'Transaction status recording enabled'}).status(200)
+  res.json({ message: 'Transaction status recording enabled' }).status(200)
 })
 router.route('/stopTxCapture').get(async function (req: any, res: any) {
-    if(!CONFIG.recordTxStatus) return res.json({message: "Tx recording already stopped"}).status(304);
-  debug_info.txRecordingEndTime = Date.now();
+  if (!CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already stopped' }).status(304)
+  debug_info.txRecordingEndTime = Date.now()
   CONFIG.recordTxStatus = false
-  res.send({message: 'Transaction status recording disabled'}).status(200)
+  res.send({ message: 'Transaction status recording disabled' }).status(200)
 })
 
 router.route('/startRPCCapture').get(async function (req: any, res: any) {
-    if(CONFIG.statLog) {
-        return res.json({message: "Interface stats are recording recording already"}).status(304);
-    }
-  debug_info.interfaceRecordingStartTime = Date.now();
-  debug_info.interfaceRecordingEndTime = 0;
+  if (CONFIG.statLog) {
+    return res.json({ message: 'Interface stats are recording recording already' }).status(304)
+  }
+  debug_info.interfaceRecordingStartTime = Date.now()
+  debug_info.interfaceRecordingEndTime = 0
   CONFIG.statLog = true
 
-  res.json({message:'RPC interface recording enabled'}).status(200)
+  res.json({ message: 'RPC interface recording enabled' }).status(200)
 })
 router.route('/stopRPCCapture').get(async function (req: any, res: any) {
-    if(!CONFIG.statLog) {
-        return res.json({message: "Interface stats recording already stopped"}).status(304);
-    }
-  debug_info.interfaceRecordingEndTime = Date.now();
+  if (!CONFIG.statLog) {
+    return res.json({ message: 'Interface stats recording already stopped' }).status(304)
+  }
+  debug_info.interfaceRecordingEndTime = Date.now()
   CONFIG.statLog = false
-  res.json({message:'RPC interface recording disabled'}).status(200)
+  res.json({ message: 'RPC interface recording disabled' }).status(200)
 })
 
 router.route('/status').get(async function (req: any, res: any) {
-    debug_info.isRecordingTx = CONFIG.recordTxStatus
-    debug_info.isRecordingInterface = CONFIG.statLog
+  debug_info.isRecordingTx = CONFIG.recordTxStatus
+  debug_info.isRecordingInterface = CONFIG.statLog
   res.json(debug_info).status(200)
 })

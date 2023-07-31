@@ -13,7 +13,7 @@ router.route('/evm_log').post(async function (req: any, res: any) {
   //   for(const subscriber_id of relevant_subscribers){
   //    subscriptionEventEmitter.emit('evm_log_received', logs, subscriber_id);
   //   }
-    res.json().status(200);
+  res.json().status(200)
   // }catch(e: any){
   //   res.json().status(500);
   // }

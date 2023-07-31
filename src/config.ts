@@ -9,7 +9,7 @@ type Config = {
     externalIp: string
     externalPort: number
   }
-  websocket:{
+  websocket: {
     enabled: boolean
     serveSubscriptions: boolean
   }
@@ -68,8 +68,7 @@ type Config = {
 }
 
 export const CONFIG: Config = {
-
-  websocket:{
+  websocket: {
     enabled: false,
     serveSubscriptions: false,
   },

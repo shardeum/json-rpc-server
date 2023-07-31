@@ -21,6 +21,6 @@ GET `/log/startRPCCapture` this endpoint set the config value to true which cont
 
 GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database
 
-GET `/cleanStatTable` this endpoint trigger purging of table that store interface stats 
+GET `/cleanStatTable` this endpoint trigger purging of table that store interface stats
 
 GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging

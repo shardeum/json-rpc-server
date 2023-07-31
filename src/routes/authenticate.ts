@@ -1,7 +1,7 @@
 import * as jwt from 'jsonwebtoken'
 import express from 'express'
 export const router = express.Router()
-import {CONFIG} from '../config'
+import { CONFIG } from '../config'
 import { Request, Response } from 'express'
 
 router.route('/:passphrase').get(async function (req: Request, res: Response) {
@@ -16,7 +16,7 @@ router.route('/:passphrase').get(async function (req: Request, res: Response) {
       httpOnly: false,
       maxAge: 1000 * 60 * 60 * 700, // ~ a month
     })
-    return res.send({ token:token, message: 'authenticated and authorized for debug api calls' }).status(200)
+    return res.send({ token: token, message: 'authenticated and authorized for debug api calls' }).status(200)
   }
   return res.send({ message: 'wrong passphrase' }).status(400)
 })
@@ -26,6 +26,6 @@ router.route('/token-check/:token').get(async function (req: Request, res: Respo
 
   jwt.verify(token, CONFIG.secret_key, (err: any, decoded: any) => {
     if (err) return res.status(401).send({ valid: false })
-    return res.send({valid: true}).status(200);
+    return res.send({ valid: true }).status(200)
   })
 })

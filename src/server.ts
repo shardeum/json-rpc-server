@@ -16,7 +16,7 @@ import {
   RequestersList,
   checkArchiverHealth,
   sleep,
-  cleanBadNodes
+  cleanBadNodes,
 } from './utils'
 import { router as logRoute } from './routes/log'
 import { router as authenticate } from './routes/authenticate'
@@ -46,12 +46,12 @@ const server = new jayson.Server(methods)
 let port = config.port //8080
 const chainId = config.chainId //8080
 
-const extendedServer = http.createServer(app);
+const extendedServer = http.createServer(app)
 
-const wss = new WebSocket.Server({ server: extendedServer });
+const wss = new WebSocket.Server({ server: extendedServer })
 
-if(CONFIG.websocket.enabled){
-  wss.on('connection', onConnection);
+if (CONFIG.websocket.enabled) {
+  wss.on('connection', onConnection)
 }
 
 const myArgs = process.argv.slice(2)
@@ -61,7 +61,7 @@ if (myArgs.length > 0) {
   console.log(`json-rpc-server port console override to:${port}`)
 }
 
-export const ipport = CONFIG.ip + "__" + CONFIG.port
+export const ipport = CONFIG.ip + '__' + CONFIG.port
 //maybe catch unhandled exceptions?
 process.on('uncaughtException', (err) => {
   console.log('uncaughtException:' + err)
@@ -75,17 +75,19 @@ app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
 
-if(config.dashboard.enabled && config.dashboard.dist_path){
-  const clientDirectory = config.dashboard.dist_path[0] === '/' ?
-    config.dashboard.dist_path : path.resolve(config.dashboard.dist_path);
-  const staticDirectory = path.join(clientDirectory,'static');
-  console.log(path.join(clientDirectory,'index.html'));
-  app.set('views', clientDirectory);
-  app.use('/static',express.static(staticDirectory));
+if (config.dashboard.enabled && config.dashboard.dist_path) {
+  const clientDirectory =
+    config.dashboard.dist_path[0] === '/'
+      ? config.dashboard.dist_path
+      : path.resolve(config.dashboard.dist_path)
+  const staticDirectory = path.join(clientDirectory, 'static')
+  console.log(path.join(clientDirectory, 'index.html'))
+  app.set('views', clientDirectory)
+  app.use('/static', express.static(staticDirectory))
   // app.set('views', clientDirectory);
   app.get('/dashboard', function (req, res) {
-    return res.sendFile(path.join(clientDirectory,'index.html'));
-  });
+    return res.sendFile(path.join(clientDirectory, 'index.html'))
+  })
 }
 
 app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
@@ -97,7 +99,7 @@ app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
   const ip = req.ip || '127.0.0.1'
   const port = req.connection.localPort || 9001
   const success = changeNode(ip, port, true)
-  if(!success){
+  if (!success) {
     res.end(`Ip not in the nodelist ${ip}:${port}, node subscription rejected`)
     return
   }
@@ -144,7 +146,6 @@ app.use(injectIP)
 app.use(rejectSubscription)
 app.use(server.middleware())
 
-
 setupArchiverDiscovery({
   customConfigPath: 'archiverConfig.json',
 }).then(() => {
@@ -157,12 +158,12 @@ setupArchiverDiscovery({
     setInterval(saveTxStatus, 5000)
     setInterval(checkArchiverHealth, 60000)
     setInterval(cleanBadNodes, 60000)
-  	extendedServer.listen(port, function() {
-     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
-     setupDatabase()
-     setupLogEvents()
-	 setupSubscriptionEventHandlers()
-	 setupEvmLogProviderConnectionStream()
+    extendedServer.listen(port, function () {
+      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+      setupDatabase()
+      setupLogEvents()
+      setupSubscriptionEventHandlers()
+      setupEvmLogProviderConnectionStream()
     })
   })
 })

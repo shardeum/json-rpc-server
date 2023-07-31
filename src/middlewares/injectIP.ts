@@ -1,4 +1,4 @@
-import {CONFIG} from '../config'
+import { CONFIG } from '../config'
 import { NextFunction, Request, Response } from 'express'
 
 const injectIP = (req: Request, res: Response, next: NextFunction) => {
