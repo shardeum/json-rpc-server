@@ -17,6 +17,7 @@ import {
   getGasPrice,
   TxStatusCode,
   getCode,
+  replayTransaction,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -1585,6 +1586,33 @@ export const methods = {
     const result = 'test'
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+  },
+  debug_traceTransaction: async function (args: any, callback: any) {
+    const api_name = 'debug_traceTransaction'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
+    if (verbose) {
+      console.log('Running debug_traceTransaction', args)
+    }
+
+    // Check if tracer is defined
+    if (args[1].tracer) {
+      callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+
+    try {
+      const result = await replayTransaction(args[0], '-s')
+      callback(null, result)
+    } catch (e) {
+      console.log(`Error while making an eth call`, e)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback(errorBusy)
+    }
   },
   db_putString: async function (args: any, callback: any) {
     const api_name = 'db_putString'

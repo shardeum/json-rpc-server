@@ -5,10 +5,13 @@ import whiteList from '../whitelist.json'
 import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
+import path from 'path'
 import * as Types from './types'
 // import crypto from '@shardus/crypto-utils'
 import { getArchiverList, getFromArchiver } from '@shardus/archiver-discovery'
 import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
+import execa from 'execa'
+import { spawn } from 'child_process'
 
 const crypto = require('@shardus/crypto-utils')
 
@@ -913,6 +916,263 @@ export function parseFilterDetails(filter: any) {
     : []
   const topics = filter.topics ? filter.topics : []
   return { address: addresses[0], topics }
+}
+
+async function fetchTxReceipt(explorerUrl: string, txHash: string) {
+  const apiQuery = `${explorerUrl}/api/transaction?txHash=${txHash}`
+  const txId = await axios
+    .get(apiQuery)
+    .then((response) => {
+      if (!response) {
+        throw new Error('Failed to fetch transaction')
+      } else return response
+    })
+    .then((response) => response.data.transactions[0].txId)
+
+  const receiptQuery = `${explorerUrl}/api/receipt?txId=${txId}`
+  const receipt = await axios.get(receiptQuery).then((response) => response.data.receipts)
+  return receipt
+}
+
+async function fetchAccountFromExplorer(explorerUrl: string, key: string, timestamp: number) {
+  const accountKey = `0x${key.slice(0, -24)}`
+  const apiQuery = `${explorerUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`
+  const txCount = await axios.get(apiQuery).then((response) => response.data.totalTransactions)
+  if (txCount === 0) {
+    // Account does not exist!
+    return undefined
+  }
+
+  let i = 1
+  const numberOfPages = Math.ceil(txCount / 10)
+  for (i; i <= numberOfPages; i++) {
+    // Fetch current page
+    const txList = await axios
+      .get(apiQuery.concat(`&page=${i}`))
+      .then((response) => response.data.transactions)
+      .then((txList) =>
+        txList.map((tx: { txId: string; timestamp: number }) => {
+          return { txId: tx.txId, timestamp: tx.timestamp }
+        })
+      )
+
+    for (const tx of txList) {
+      const foundAccount = await axios
+        .get(`${explorerUrl}/api/receipt?txId=${tx.txId}`)
+        .then((response) => response.data.receipts.accounts)
+        .then((accounts) => {
+          return accounts.find((account: { accountId: string }) => account.accountId === key)
+        })
+
+      if (foundAccount) {
+        return {
+          accountId: foundAccount.accountId,
+          data: foundAccount.data,
+        }
+      }
+    }
+  }
+
+  return undefined
+}
+
+function isContractAccount(account: any) {
+  const eoaCodeHash = [
+    197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39,
+    59, 123, 250, 216, 4, 93, 133, 164, 112,
+  ]
+
+  // Compare the code hash of the account to the EOA code hash
+  return JSON.stringify(account.account.codeHash.data) !== JSON.stringify(eoaCodeHash)
+}
+
+async function fetchAccountFromArchiver(key: string, timestamp: number) {
+  const res = await requestWithRetry(
+    RequestMethod.Get,
+    `${getArchiverUrl().url}/account?accountId=${key}`,
+    {},
+    0,
+    true
+  )
+  if (!res.data.accounts) {
+    return undefined
+  } else if (isContractAccount(res.data.accounts.data)) {
+    // Contract Account
+    return {
+      accountId: res.data.accounts.accountId,
+      data: res.data.accounts.data,
+    }
+  } else if (res.data.accounts.timestamp > timestamp) {
+    return undefined
+  } else if (res.data.accounts.timestamp === timestamp && res.data.accounts.data.account.nonce === '00') {
+    // The EOA has only had one TX so far which we are replaying
+    const blankAccount = {
+      timestamp: 0,
+      account: {
+        nonce: '00',
+        balance: '00',
+        stateRoot: {
+          type: 'Buffer',
+          data: [
+            86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153,
+            108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33,
+          ],
+        },
+        codeHash: {
+          type: 'Buffer',
+          data: [
+            197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202,
+            130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+          ],
+        },
+      },
+      ethAddress: `0x${key.slice(0, -24)}`,
+      accountType: 0,
+      hash: 'd89934f85367efac5f0c1cd4789e6b20f7c529f91b6eff4a626185c0c7fddd76',
+    }
+
+    return {
+      accountId: key,
+      data: blankAccount,
+    }
+  } else {
+    return {
+      accountId: res.data.accounts.accountId,
+      data: res.data.accounts.data,
+    }
+  }
+}
+
+async function fetchAccount(account: { type: number; key: string }, timestamp: number) {
+  if (account.type === 0) {
+    // EOA/CA
+    let result = await fetchAccountFromArchiver(account.key, timestamp)
+    if (!result) {
+      result = await fetchAccountFromExplorer(config.explorerUrl, account.key, timestamp)
+    }
+    return result
+  } else if (account.type === 1) {
+    // Contract Storage
+    // throw new Error('Replay engine should never get here')
+    return undefined
+  } else if (account.type === 2) {
+    // Contract Code
+    let result
+    const res = await requestWithRetry(
+      RequestMethod.Get,
+      `${getArchiverUrl().url}/account?accountId=${account.key}`,
+      {},
+      0,
+      true
+    )
+    if (!res.data.accounts) {
+      result = {
+        accountId: account.key,
+        data: {
+          accountType: 2,
+          ethAddress: '',
+          hash: '',
+          timestamp: 0,
+        },
+      }
+    } else {
+      result = { accountId: account.key, data: res.data.accounts.data }
+    }
+
+    return result
+  } else {
+    return undefined
+  }
+}
+
+export async function replayTransaction(txHash: string, flag: string) {
+  const replayPath = path.join(__dirname, '../../../validator/dist/src/debug/replayTX.js')
+  const transactionsFolder = path.join(__dirname, '../../transactions')
+
+  // Check if replay already exists
+  if (fs.existsSync(path.join(transactionsFolder, txHash + '_states.json'))) {
+    const child = spawn('node', [replayPath, path.join(transactionsFolder, txHash + '.json'), flag])
+
+    let output = ''
+
+    child.stdout.on('data', (data) => {
+      output += data
+    })
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        throw new Error('Replay script exited with non-zero exit code ' + code)
+      }
+      return JSON.parse(output)
+    })
+  }
+
+  // Check if replay script exists
+  if (!fs.existsSync(replayPath)) {
+    throw new Error('Replay script not found')
+  }
+
+  // Create transactions folder if it doesn't exist
+  if (!fs.existsSync(transactionsFolder)) {
+    fs.mkdirSync(transactionsFolder)
+  }
+
+  // Download TX file
+  let receipt
+  if (fs.existsSync(path.join(transactionsFolder, txHash + '.json'))) {
+    receipt = JSON.parse(fs.readFileSync(path.join(transactionsFolder, txHash + '.json'), 'utf8'))
+  } else {
+    receipt = await fetchTxReceipt(config.explorerUrl, txHash)
+    fs.writeFileSync(path.join(transactionsFolder, txHash + '.json'), JSON.stringify(receipt, undefined, 2))
+  }
+
+  if (!receipt) {
+    throw new Error('Transaction not found')
+  }
+
+  while (true) {
+    const missingData: {
+      status: string
+      type: number
+      shardusKey: string
+    }[] = []
+    const { stdout } = await execa('node', [replayPath, path.join(transactionsFolder, txHash + '.json')], {
+      reject: false,
+    })
+
+    if (stdout.trim() === 'Done') {
+      break
+    }
+
+    // Split stdout into lines
+    stdout
+      .split('\n')
+      .filter((line: string) => line !== '')
+      .forEach((line: string) => {
+        missingData.push(JSON.parse(line))
+      })
+
+    // Download missing data
+    const downloadedAccount = await fetchAccount(
+      { key: missingData[0].shardusKey, type: missingData[0].type },
+      receipt.timestamp
+    )
+
+    if (!downloadedAccount) {
+      throw new Error('Account not found')
+    }
+
+    // Write downloaded data to file
+    const statesFile = path.join(transactionsFolder, txHash + '_states.json')
+
+    const stateArray = fs.existsSync(statesFile) ? JSON.parse(fs.readFileSync(statesFile, 'utf8')) : []
+    stateArray.push(downloadedAccount)
+
+    fs.writeFileSync(statesFile, JSON.stringify(stateArray, undefined, 2))
+  }
+
+  const { stdout } = await execa('node', [replayPath, path.join(transactionsFolder, txHash + '.json'), flag])
+  return JSON.parse(stdout)
 }
 
 export enum TxStatusCode {

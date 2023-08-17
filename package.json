@@ -27,7 +27,7 @@
     "cors": "2.8.5",
     "eth-rpc-errors": "4.0.3",
     "ethereumjs-util": "7.1.3",
-    "execa": "6.1.0",
+    "execa": "^5.1.1",
     "express": "4.17.2",
     "got": "11.8.6",
     "jayson": "3.6.5",
