@@ -402,7 +402,8 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_syncing', args)
     }
-    const result = 'false'
+    // RPC talks only to active nodes, so result is always false.
+    const result = false
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
