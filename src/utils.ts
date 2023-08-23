@@ -1175,6 +1175,46 @@ export async function replayTransaction(txHash: string, flag: string) {
   return JSON.parse(stdout)
 }
 
+export function parseAndValidateStringInput(input: string): Buffer {
+  if (input.slice(0, 2).toLowerCase() !== '0x') {
+    throw new Error(
+      `Cannot wrap string value "${input}" as a json-rpc type; strings must be prefixed with "0x".`
+    )
+  }
+
+  let hexValue = input.slice(2)
+
+  // hexValue must be an even number of hexadecimal characters in order to correctly decode in Buffer.from
+  // see: https://nodejs.org/api/buffer.html#buffers-and-character-encodings
+  if (hexValue.length & 1) {
+    hexValue = `0${hexValue}`
+  }
+  const byteLength = Math.ceil(input.length / 2 - 1)
+
+  const _buffer = Buffer.from(hexValue, 'hex')
+  if (_buffer.length !== byteLength) {
+    // Buffer.from will return the result after encountering an input that does not conform to hexadecimal encoding.
+    // this means that an invalid input can never return a value with the expected bytelength.
+    throw new Error(
+      `Cannot wrap string value "${input}" as a json-rpc type; the input value contains an invalid hex character.`
+    )
+  }
+
+  return _buffer
+}
+
+export async function fetchStorage(txHash: string) {
+  const receipt = await fetchTxReceipt(config.explorerUrl, txHash)
+  const beforeStates: any[] = receipt.beforeStateAccounts
+  const storageRecords = beforeStates.map((account) => {
+    return {
+      key: `0x${account.data.key}`,
+      value: bufferToHex(account.data.value.data),
+    }
+  })
+  return storageRecords
+}
+
 export enum TxStatusCode {
   BAD_TX = 0,
   SUCCESS = 1,

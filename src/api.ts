@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { bufferToHex } from 'ethereumjs-util'
+import { bufferToHex, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -18,6 +18,8 @@ import {
   TxStatusCode,
   getCode,
   replayTransaction,
+  parseAndValidateStringInput,
+  fetchStorage,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -1617,6 +1619,33 @@ export const methods = {
     try {
       const result = await replayTransaction(args[0], '-s')
       callback(null, result)
+    } catch (e) {
+      console.log(`Error while making an eth call`, e)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback(errorBusy)
+    }
+  },
+  debug_storageRangeAt2: async function (args: any, callback: any) {
+    const api_name = 'debug_storageRangeAt2'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1], args[2], args[3])
+    if (verbose) {
+      console.log('Running debug_storageRangeAt2', args)
+    }
+
+    try {
+      const txHash = args[0]
+      const states = await fetchStorage(txHash)
+      const storageObject: { [key: string]: any } = {}
+      states.forEach((state) => {
+        const keyBuf = parseAndValidateStringInput(state.key)
+        const keyHash = keccak256(Buffer.from(keyBuf.buffer, keyBuf.byteOffset, keyBuf.length))
+        storageObject[bufferToHex(keyHash)] = state
+      })
+      callback(null, { storage: storageObject })
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
