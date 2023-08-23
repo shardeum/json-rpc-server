@@ -43,6 +43,8 @@ export let txStatuses: TxStatus[] = []
 const maxTxCountToStore = 10000
 const txMemPool: any = {}
 const nonceTracker: any = {}
+let totalResult = 0
+let nonceFailCount = 0
 
 type InjectResponse = {
   success: boolean
@@ -223,12 +225,19 @@ export function recordTxStatus(txStatus: TxStatus) {
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
   const { raw } = tx
   const { baseUrl } = getBaseUrl()
+  totalResult += 1
   return new Promise((resolve, reject) => {
     axios
       .post(`${baseUrl}/inject`, tx)
       .then((response) => {
         const injectResult: InjectResponse = response.data
-        console.log('inject tx result', txHash, response.data)
+
+        if (injectResult && injectResult.success === false && injectResult.reason.includes('Transaction nonce')) {
+          nonceFailCount += 1
+        }
+
+        console.log('inject tx result', txHash, injectResult)
+        console.log(`Total count: ${totalResult}, Nonce fail count: ${nonceFailCount}`)
         if (config.recordTxStatus === false) {
           return resolve({
             nodeUrl: baseUrl,
