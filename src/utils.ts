@@ -994,10 +994,16 @@ async function fetchAccountFromArchiver(key: string, timestamp: number) {
     0,
     true
   )
+  // TODO: Fix bug where timestamp are same. Latest transaction is being replayed.
   if (!res.data.accounts) {
     return undefined
   } else if (isContractAccount(res.data.accounts.data)) {
     // Contract Account
+    return {
+      accountId: res.data.accounts.accountId,
+      data: res.data.accounts.data,
+    }
+  } else if (res.data.accounts.timestamp < timestamp) {
     return {
       accountId: res.data.accounts.accountId,
       data: res.data.accounts.data,
@@ -1036,10 +1042,7 @@ async function fetchAccountFromArchiver(key: string, timestamp: number) {
       data: blankAccount,
     }
   } else {
-    return {
-      accountId: res.data.accounts.accountId,
-      data: res.data.accounts.data,
-    }
+    return undefined
   }
 }
 
