@@ -1610,7 +1610,7 @@ export const methods = {
     }
 
     // Check if tracer is defined
-    if (args[1].tracer) {
+    if (args[1] && args[1].tracer) {
       callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       return
@@ -1618,12 +1618,45 @@ export const methods = {
 
     try {
       const result = await replayTransaction(args[0], '-s')
-      callback(null, result)
+      callback(null, { structLogs: result })
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
     }
+  },
+  debug_storageRangeAt: async function (args: any, callback: any) {
+    const api_name = 'debug_storageRangeAt'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit(
+      'fn_start',
+      ticket,
+      api_name,
+      performance.now(),
+      args[0],
+      args[1],
+      args[2],
+      args[3],
+      args[4]
+    )
+    if (verbose) {
+      console.log('Running debug_storageRangeAt', args)
+    }
+
+    // Fetch blockNumber by using eth_getBlockByHash
+    const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
+    const blockNumber = res.data.block.number
+
+    const request: Types.LogQueryRequest = {
+      address: args[2],
+      fromBlock: blockNumber,
+    }
+    const logs = await getLogsFromExplorer(request)
+    console.log('THE LOGS ARE', logs)
+    callback(null, { storage: {} })
   },
   debug_storageRangeAt2: async function (args: any, callback: any) {
     const api_name = 'debug_storageRangeAt2'
