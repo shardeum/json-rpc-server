@@ -20,6 +20,7 @@ import {
   replayTransaction,
   parseAndValidateStringInput,
   fetchStorage,
+  replayGas,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -234,7 +235,11 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
       .then((response) => {
         const injectResult: InjectResponse = response.data
 
-        if (injectResult && injectResult.success === false && injectResult.reason.includes('Transaction nonce')) {
+        if (
+          injectResult &&
+          injectResult.success === false &&
+          injectResult.reason.includes('Transaction nonce')
+        ) {
           nonceFailCount += 1
         }
 
@@ -975,12 +980,13 @@ export const methods = {
       console.log('Running estimateGas', args)
     }
     // const result = '0x1C9C380' // 30 M gas
-    const result = '0x2DC6C0' // 3 M gas
+    let result = '0x2DC6C0' // 3 M gas
     try {
-      //   const res = await axios.post(`${getBaseUrl()}/eth_estimateGas`, args[0])
-      //   const gasUsed = res.data.result
-      //   if(verbose) console.log('Gas used', gasUsed)
-      //if(gasUsed) result = '0x' + gasUsed
+      if (!args[0]['to']) {
+        callback(null, result)
+        return
+      }
+      result = await replayGas(args[0])
     } catch (e) {
       console.log('Estimate gas error', e)
     }

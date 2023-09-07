@@ -1,4 +1,4 @@
-import { AccessListEIP2930Transaction, Transaction } from '@ethereumjs/tx'
+import { AccessListEIP2930Transaction, Transaction, TxData } from '@ethereumjs/tx'
 import { BN, bufferToHex, toBuffer } from 'ethereumjs-util'
 import { createRejectTxStatus, recordTxStatus } from './api'
 import whiteList from '../whitelist.json'
@@ -1046,6 +1046,38 @@ async function fetchAccountFromArchiver(key: string, timestamp: number) {
   }
 }
 
+async function fetchLatestAccount(key: string, type: number) {
+  console.log('Fetching latest account', key)
+  const res = await requestWithRetry(
+    RequestMethod.Get,
+    `${getArchiverUrl().url}/account?accountId=${key}`,
+    {},
+    0,
+    true
+  )
+
+  if (!res.data.accounts) {
+    if (type === 2) {
+      // Contract Code
+      return {
+        accountId: key,
+        data: {
+          accountType: 2,
+          ethAddress: '',
+          hash: '',
+          timestamp: 0,
+        },
+      }
+    }
+    return undefined
+  }
+
+  return {
+    accountId: res.data.accounts.accountId,
+    data: res.data.accounts.data,
+  }
+}
+
 async function fetchAccount(account: { type: number; key: string }, timestamp: number) {
   if (account.type === 0) {
     // EOA/CA
@@ -1085,6 +1117,87 @@ async function fetchAccount(account: { type: number; key: string }, timestamp: n
     return result
   } else {
     return undefined
+  }
+}
+
+export async function replayGas(tx: { from: string; maxFeePerGas: string; gas: string } & TxData) {
+  const gasLimit = tx.gas ? tx.gas : '0x2DC6C0'
+
+  const txData = {
+    ...tx,
+    gasLimit,
+  }
+
+  // Create estimate-receipt to pass to replay engine
+  const receiptObject = {
+    txData,
+  }
+
+  const replayPath = path.join(__dirname, '../../../validator/dist/src/debug/replayTX.js')
+  const transactionsFolder = path.join(__dirname, '../../transactions')
+
+  // Check if replay script exists
+  if (!fs.existsSync(replayPath)) {
+    throw new Error('Replay script not found')
+  }
+
+  // Create transactions folder if it doesn't exist
+  if (!fs.existsSync(transactionsFolder)) {
+    fs.mkdirSync(transactionsFolder)
+  }
+
+  fs.writeFileSync(
+    path.join(transactionsFolder, 'estimate.json'),
+    JSON.stringify(receiptObject, undefined, 2)
+  )
+
+  // Delete estimate_states.json if it exists
+  if (fs.existsSync(path.join(transactionsFolder, 'estimate_states.json'))) {
+    fs.unlinkSync(path.join(transactionsFolder, 'estimate_states.json'))
+  }
+
+  while (true) {
+    const missingData: {
+      status: string
+      type: number
+      shardusKey: string
+    }[] = []
+    const { stdout, stderr } = await execa(
+      'node',
+      [replayPath, path.join(transactionsFolder, 'estimate.json')],
+      {
+        reject: false,
+      }
+    )
+
+    // Check if stderr is empty
+    if (stderr === '') {
+      console.log('RESULT: ', stdout.split('\n')[0])
+      return stdout.split('\n')[0]
+    }
+
+    // Split stdout into lines
+    stdout
+      .split('\n')
+      .filter((line: string) => line !== '')
+      .forEach((line: string) => {
+        missingData.push(JSON.parse(line))
+      })
+
+    // Download missing data
+    const downloadedAccount = await fetchLatestAccount(missingData[0].shardusKey, missingData[0].type)
+
+    if (!downloadedAccount) {
+      throw new Error('Account not found')
+    }
+
+    // Write downloaded data to file
+    const statesFile = path.join(transactionsFolder, 'estimate_states.json')
+
+    const stateArray = fs.existsSync(statesFile) ? JSON.parse(fs.readFileSync(statesFile, 'utf8')) : []
+    stateArray.push(downloadedAccount)
+
+    fs.writeFileSync(statesFile, JSON.stringify(stateArray, undefined, 2))
   }
 }
 
