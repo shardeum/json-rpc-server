@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { bufferToHex, keccak256 } from 'ethereumjs-util'
+import { BN, bufferToHex, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -987,6 +987,10 @@ export const methods = {
         return
       }
       result = await replayGas(args[0])
+      const originalEstimate = new BN(result)
+      // Add 5% buffer
+      originalEstimate.imuln(1.05)
+      result = '0x' + originalEstimate.toString(16)
     } catch (e) {
       console.log('Estimate gas error', e)
     }
