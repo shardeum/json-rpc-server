@@ -1057,7 +1057,53 @@ async function fetchLatestAccount(key: string, type: number) {
   )
 
   if (!res.data.accounts) {
-    if (type === 2) {
+    if (type === 0) {
+      // EOA/CA
+      const blankAccount = {
+        timestamp: 0,
+        account: {
+          nonce: '00',
+          balance: '00',
+          stateRoot: {
+            type: 'Buffer',
+            data: [
+              86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153,
+              108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33,
+            ],
+          },
+          codeHash: {
+            type: 'Buffer',
+            data: [
+              197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202,
+              130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+            ],
+          },
+        },
+        ethAddress: `0x${key.slice(0, -24)}`,
+        accountType: 0,
+        hash: 'd89934f85367efac5f0c1cd4789e6b20f7c529f91b6eff4a626185c0c7fddd76',
+      }
+
+      return {
+        accountId: key,
+        data: blankAccount,
+      }
+    } else if (type === 1) {
+      // Contract Storage
+      return {
+        accountId: key,
+        data: {
+          accountType: 1,
+          ethAddress: '',
+          hash: '',
+          timestamp: 0,
+          value: {
+            data: [],
+            type: 'Buffer',
+          },
+        },
+      }
+    } else if (type === 2) {
       // Contract Code
       return {
         accountId: key,
@@ -1068,8 +1114,9 @@ async function fetchLatestAccount(key: string, type: number) {
           timestamp: 0,
         },
       }
+    } else {
+      return undefined
     }
-    return undefined
   }
 
   return {
