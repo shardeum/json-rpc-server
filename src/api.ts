@@ -475,9 +475,16 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_gasPrice', args)
     }
-    const { result } = await getGasPrice()
+    const fallbackGasPrice = '0x3f84fc7516' // 1 Gwei
+    try {
+      const { result } = await getGasPrice()
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, result)
+    } catch (e) {
+      console.log('Unable to get gas price', e)
+    }
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
+    callback(null, fallbackGasPrice)
   },
   eth_accounts: async function (args: any, callback: any) {
     const api_name = 'eth_accounts'
