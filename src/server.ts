@@ -29,6 +29,8 @@ import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
 import { setupEvmLogProviderConnectionStream } from './websocket/distributor'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
+import { setDefaultResultOrder } from 'dns'
+setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
