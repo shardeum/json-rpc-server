@@ -1,8 +1,7 @@
 export interface GasEstimate {
   contractAddress: string
   functionSignature: string
-  gasUsed: string
-  gasRefund: string
+  gasEstimate: string
   timestamp: number
 }
 
