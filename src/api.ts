@@ -30,6 +30,7 @@ import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/distributor'
 import * as Types from './types'
+import { addEntry, checkEntry, getGasEstimate } from './service/gasEstimate'
 
 export const verbose = config.verbose
 
@@ -986,11 +987,37 @@ export const methods = {
         callback(null, result)
         return
       }
+      if (!args[0]['data']) {
+        // return 21000
+        callback(null, '0x5208')
+        return
+      }
+      if (args[0]['to'] === '0x0000000000000000000000000000000000000001') {
+        // TODO: Calculate according to formula
+        callback(null, result)
+        return
+      }
+
+      if (checkEntry(args[0]['to'], args[0]['data'].slice(0, 9))) {
+        const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
+        const gasEstimate = new BN(savedEstimate.gasEstimate)
+        gasEstimate.imuln(1.2)
+        result = '0x' + gasEstimate.toString(16)
+        callback(null, result)
+        return
+      }
+
       result = await replayGas(args[0])
       const originalEstimate = new BN(result)
       // Add 5% buffer
       originalEstimate.imuln(1.05)
       result = '0x' + originalEstimate.toString(16)
+      addEntry({
+        contractAddress: args[0]['to'],
+        functionSignature: args[0]['data'].slice(0, 9),
+        gasEstimate: result,
+        timestamp: Date.now() + 1000 * 60 * 60 * 12,
+      })
     } catch (e) {
       console.log('Estimate gas error', e)
     }
