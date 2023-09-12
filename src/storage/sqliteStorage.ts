@@ -27,8 +27,9 @@ async function createTables() {
   )
 
   await db.exec(
-    'CREATE TABLE IF NOT EXISTS gas_estimate_cache ' +
-      '(`contract_address` VARCHAR, `function_signature` VARCHAR, `gasUsed` BIGINT, `gasRefund` BIGINT, `timestamp` BIGINT)'
+    'CREATE TABLE IF NOT EXISTS gas_estimations ' +
+      '(`contract_address` VARCHAR, `function_signature` VARCHAR, `gasUsed` BIGINT, `gasRefund` BIGINT, `timestamp` BIGINT, ' +
+      'PRIMARY KEY (`contract_address`, `function_signature`))'
   )
 }
 

@@ -1,3 +1,5 @@
+import { db } from '../storage/sqliteStorage'
+
 export interface GasEstimate {
   contractAddress: string
   functionSignature: string
@@ -6,15 +8,43 @@ export interface GasEstimate {
 }
 
 export function checkEntry(contractAddress: string, functionSig: string): boolean {
-  return true
+  const entry = findEntryByContractAndSignature(contractAddress, functionSig)
+  return entry !== undefined
 }
 
 export function addEntry(entry: GasEstimate): void {
-  // placeholder
-  // Add new entry
-  // If present, always overwrite
+  insertOrUpdateGasEstimate(entry)
 }
 
 export function getGasEstimate(contractAddress: string, functionSig: string): GasEstimate {
-  throw new Error('Function not implemented')
+  const entry = findEntryByContractAndSignature(contractAddress, functionSig)
+  if (!entry) {
+    throw new Error('Entry not found')
+  }
+  return entry
+}
+
+function findEntryByContractAndSignature(
+  contract_address: string,
+  function_signature: string
+): GasEstimate | undefined {
+  const stmt = db.prepare(
+    'SELECT * FROM gas_estimations WHERE contract_address = ? AND function_signature = ?'
+  )
+  const result = stmt.get(contract_address, function_signature)
+  return result
+    ? {
+        contractAddress: result.contract_address,
+        functionSignature: result.function_signature,
+        gasEstimate: result.gasEstimate,
+        timestamp: result.timestamp,
+      }
+    : undefined
+}
+
+function insertOrUpdateGasEstimate(entry: GasEstimate): void {
+  const stmt = db.prepare(
+    'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasEstiamte, timestamp) VALUES (?, ?, ?, ?, ?)'
+  )
+  stmt.run(entry.contractAddress, entry.functionSignature, entry.gasEstimate, entry.timestamp)
 }
