@@ -18,11 +18,17 @@ async function init() {
 async function createTables() {
   await db.exec(
     'CREATE TABLE IF NOT EXISTS transactions ' +
-      '(`id` INTEGER PRIMARY KEY AUTOINCREMENT, `hash` VARCHAR NOT NULL UNIQUE, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL,`reason` VARCHAR, `ip` VARCHAR, `timestamp` BIGINT, `nodeUrl` VARCHAR)'
+      '(`id` INTEGER PRIMARY KEY AUTOINCREMENT, `hash` VARCHAR NOT NULL UNIQUE, `type` VARCHAR, `to` VARCHAR, `from` VARCHAR, `injected` BOOLEAN, `accepted` NUMBER NOT NULL, `reason` VARCHAR, `ip` VARCHAR, `timestamp` BIGINT, `nodeUrl` VARCHAR)'
   )
+
   await db.exec(
     'CREATE TABLE IF NOT EXISTS interface_stats ' +
       '(`id` INTEGER PRIMARY KEY AUTOINCREMENT, `api_name` VARCHAR NOT NULL, `tfinal` BIGINT, `timestamp` BIGINT, `nodeUrl` VARCHAR, `success` boolean, `reason` VARCHAR, `hash` VARCHAR)'
+  )
+
+  await db.exec(
+    'CREATE TABLE IF NOT EXISTS gas_estimate_cache ' +
+      '(`contract_address` VARCHAR, `function_signature` VARCHAR, `gasUsed` BIGINT, `gasRefund` BIGINT, `timestamp` BIGINT)'
   )
 }
 
