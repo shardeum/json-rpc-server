@@ -44,7 +44,7 @@ function findEntryByContractAndSignature(
 
 function insertOrUpdateGasEstimate(entry: GasEstimate): void {
   const stmt = db.prepare(
-    'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasEstiamte, timestamp) VALUES (?, ?, ?, ?, ?)'
+    'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasEstimate, timestamp) VALUES (?, ?, ?, ?)'
   )
   stmt.run(entry.contractAddress, entry.functionSignature, entry.gasEstimate, entry.timestamp)
 }

@@ -21,6 +21,7 @@ import {
   parseAndValidateStringInput,
   fetchStorage,
   replayGas,
+  hexToBN,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -1000,7 +1001,7 @@ export const methods = {
 
       if (checkEntry(args[0]['to'], args[0]['data'].slice(0, 9))) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
-        const gasEstimate = new BN(savedEstimate.gasEstimate)
+        const gasEstimate = hexToBN(savedEstimate.gasEstimate)
         gasEstimate.imuln(1.2)
         result = '0x' + gasEstimate.toString(16)
         callback(null, result)
@@ -1008,7 +1009,7 @@ export const methods = {
       }
 
       result = await replayGas(args[0])
-      const originalEstimate = new BN(result)
+      const originalEstimate = hexToBN(result)
       // Add 5% buffer
       originalEstimate.imuln(1.05)
       result = '0x' + originalEstimate.toString(16)

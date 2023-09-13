@@ -1409,3 +1409,10 @@ export function getReasonEnumCode(reason: string) {
 
   return code ? code : TxStatusCode.OTHER_FAILURE
 }
+
+export function hexToBN(hexString: string): BN {
+  if (hexString.startsWith('0x')) {
+    hexString = hexString.slice(2) // remove the '0x' prefix
+  }
+  return new BN(hexString, 16)
+}
