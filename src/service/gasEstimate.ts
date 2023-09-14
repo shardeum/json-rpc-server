@@ -3,7 +3,8 @@ import { db } from '../storage/sqliteStorage'
 export interface GasEstimate {
   contractAddress: string
   functionSignature: string
-  gasEstimate: string
+  gasUsed: string
+  gasRefund: string
   timestamp: number
 }
 
@@ -36,7 +37,8 @@ function findEntryByContractAndSignature(
     ? {
         contractAddress: result.contract_address,
         functionSignature: result.function_signature,
-        gasEstimate: result.gasEstimate,
+        gasUsed: result.gasUsed,
+        gasRefund: result.gasRefund,
         timestamp: result.timestamp,
       }
     : undefined
@@ -44,7 +46,7 @@ function findEntryByContractAndSignature(
 
 function insertOrUpdateGasEstimate(entry: GasEstimate): void {
   const stmt = db.prepare(
-    'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasEstimate, timestamp) VALUES (?, ?, ?, ?)'
+    'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasUsed, gasRefund, timestamp) VALUES (?, ?, ?, ?, ?)'
   )
-  stmt.run(entry.contractAddress, entry.functionSignature, entry.gasEstimate, entry.timestamp)
+  stmt.run(entry.contractAddress, entry.functionSignature, entry.gasUsed, entry.gasRefund, entry.timestamp)
 }

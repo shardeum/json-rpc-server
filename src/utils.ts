@@ -1220,7 +1220,7 @@ export async function replayGas(tx: { from: string; maxFeePerGas: string; gas: s
     // Check if stderr is empty
     if (stderr === '') {
       console.log('RESULT: ', stdout.split('\n')[0])
-      return stdout.split('\n')[0]
+      return stdout.split('\n').slice(0, 2)
     }
 
     // Split stdout into lines

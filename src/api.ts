@@ -1001,22 +1001,27 @@ export const methods = {
 
       if (checkEntry(args[0]['to'], args[0]['data'].slice(0, 9))) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
-        const gasEstimate = hexToBN(savedEstimate.gasEstimate)
+        const gasUsed = hexToBN(savedEstimate.gasUsed)
+        const gasRefund = hexToBN(savedEstimate.gasRefund)
+        const gasEstimate = gasUsed.add(gasRefund)
         gasEstimate.imuln(1.2)
         result = '0x' + gasEstimate.toString(16)
         callback(null, result)
         return
       }
 
-      result = await replayGas(args[0])
-      const originalEstimate = hexToBN(result)
+      const replayOutput = await replayGas(args[0])
+      const gasUsed = hexToBN(replayOutput[0])
+      const gasRefund = hexToBN(replayOutput[1])
+      const originalEstimate = gasUsed.add(gasRefund)
       // Add 5% buffer
       originalEstimate.imuln(1.05)
       result = '0x' + originalEstimate.toString(16)
       addEntry({
         contractAddress: args[0]['to'],
         functionSignature: args[0]['data'].slice(0, 9),
-        gasEstimate: result,
+        gasUsed: result[0],
+        gasRefund: result[1],
         timestamp: Date.now() + 1000 * 60 * 60 * 12,
       })
     } catch (e) {
