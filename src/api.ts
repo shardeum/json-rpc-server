@@ -982,6 +982,11 @@ export const methods = {
       console.log('Running estimateGas', args)
     }
     // const result = '0x1C9C380' // 30 M gas
+    if (config.staticGasEstimate) {
+      callback(null, config.staticGasEstimate)
+      return
+    }
+
     let result = '0x2DC6C0' // 3 M gas
     try {
       if (!args[0]['to']) {
@@ -999,7 +1004,9 @@ export const methods = {
         return
       }
 
-      if (checkEntry(args[0]['to'], args[0]['data'].slice(0, 9))) {
+      if (
+        checkEntry(args[0]['to'], args[0]['data'].slice(0, 9), config.gasEstimateInvalidationIntervalInMs)
+      ) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
         const gasUsed = hexToBN(savedEstimate.gasUsed)
         const gasRefund = hexToBN(savedEstimate.gasRefund)
@@ -1022,7 +1029,7 @@ export const methods = {
         functionSignature: args[0]['data'].slice(0, 9),
         gasUsed: result[0],
         gasRefund: result[1],
-        timestamp: Date.now() + 1000 * 60 * 60 * 12,
+        timestamp: Date.now(),
       })
     } catch (e) {
       console.log('Estimate gas error', e)

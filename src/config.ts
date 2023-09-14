@@ -33,6 +33,8 @@ type Config = {
   defaultRequestTimeout: any
   recordTxStatus: boolean
   rateLimit: boolean
+  staticGasEstimate?: string
+  gasEstimateInvalidationIntervalInMs: number
   rateLimitOption: {
     limitFromAddress: boolean
     limitToAddress: boolean
@@ -96,6 +98,8 @@ export const CONFIG: Config = {
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
   defaultRequestRetry: 5,
+  staticGasEstimate: '0x2DC6C0',
+  gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,

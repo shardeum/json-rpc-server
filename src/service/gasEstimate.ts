@@ -8,9 +8,16 @@ export interface GasEstimate {
   timestamp: number
 }
 
-export function checkEntry(contractAddress: string, functionSig: string): boolean {
+export function checkEntry(
+  contractAddress: string,
+  functionSig: string,
+  gasEstimateInvalidationIntervalInMs: number
+): boolean {
   const entry = findEntryByContractAndSignature(contractAddress, functionSig)
-  return entry !== undefined
+  if (entry == null) {
+    return false
+  }
+  return Date.now() - entry.timestamp <= gasEstimateInvalidationIntervalInMs
 }
 
 export function addEntry(entry: GasEstimate): void {
