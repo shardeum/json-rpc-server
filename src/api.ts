@@ -22,6 +22,7 @@ import {
   fetchStorage,
   replayGas,
   hexToBN,
+  fetchTxReceipt,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -742,6 +743,7 @@ export const methods = {
     }
     let nodeUrl: any
     let txHash = ''
+    let gasLimit = ''
     try {
       const { isInternalTx } = args[0]
       let tx: any
@@ -760,6 +762,7 @@ export const methods = {
         const transaction = getTransactionObj(tx)
 
         txHash = bufferToHex(transaction.hash())
+        gasLimit = transaction.gasLimit.toString(16)
         const currentTxNonce = transaction.nonce.toNumber()
         const sender = transaction.getSenderAddress().toString()
         let memPoolTx = txMemPool[String(sender)]
@@ -850,6 +853,56 @@ export const methods = {
           )
           callback(e, null)
         })
+
+      // gas cache verification
+      if (config.gasEstimateUseCache) {
+        fetchTxReceipt(config.explorerUrl, txHash, true)
+          .then((receipt: any) => {
+            const readableReceipt = receipt?.wrappedEVMAccount?.readableReceipt
+            const reason = readableReceipt?.reason
+            const gasUsed = readableReceipt?.gasUsed
+
+            if (reason === 'out of gas' || gasUsed === gasLimit) {
+              console.log('Transaction failed because of out of gas')
+              console.log('Re-estimating gas price')
+
+              // TODO: Re-estimate gas price here
+              // Add new entry in cache
+              const transaction = getTransactionObj(tx)
+              const txData = {
+                from: '',
+                to: transaction.to.toString(),
+                value: transaction.value.toString(16),
+                data: bufferToHex(transaction.data),
+                gas: transaction.gasLimit.toString(16),
+                gasPrice: transaction.gasPrice.toString(16),
+              }
+              return replayGas(txData)
+            } else {
+              return []
+            }
+          })
+          .then((gasEstimates) => {
+            // Return if no gas estimates
+            if (gasEstimates.length === 0) return
+
+            // Update gas prices
+            const originalEstimate = hexToBN(gasEstimates[0])
+            originalEstimate.imuln(1.05)
+            let result = '0x' + originalEstimate.toString('hex')
+            const transaction = getTransactionObj(tx)
+
+            addEntry({
+              contractAddress: transaction.to.toString(),
+              functionSignature: bufferToHex(transaction.data).slice(0, 9),
+              gasEstimate: result,
+              timestamp: Date.now(),
+            })
+          })
+          .catch((e) => {
+            console.log("gas verification failed, can't update gas price", e)
+          })
+      }
     } catch (e: any) {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit(

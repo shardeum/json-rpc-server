@@ -918,17 +918,19 @@ export function parseFilterDetails(filter: any) {
   return { address: addresses[0], topics }
 }
 
-async function fetchTxReceipt(explorerUrl: string, txHash: string) {
+export async function fetchTxReceipt(explorerUrl: string, txHash: string, hashReceipt = false) {
   const apiQuery = `${explorerUrl}/api/transaction?txHash=${txHash}`
-  const txId = await axios
-    .get(apiQuery)
-    .then((response) => {
-      if (!response) {
-        throw new Error('Failed to fetch transaction')
-      } else return response
-    })
-    .then((response) => response.data.transactions[0].txId)
+  const response = await axios.get(apiQuery).then((response) => {
+    if (!response) {
+      throw new Error('Failed to fetch transaction')
+    } else return response
+  })
 
+  if (hashReceipt) {
+    return response.data.transactions[0]
+  }
+
+  const txId = response.data.transactions[0].txId
   const receiptQuery = `${explorerUrl}/api/receipt?txId=${txId}`
   const receipt = await axios.get(receiptQuery).then((response) => response.data.receipts)
   return receipt
@@ -1167,7 +1169,7 @@ async function fetchAccount(account: { type: number; key: string }, timestamp: n
   }
 }
 
-export async function replayGas(tx: { from: string; maxFeePerGas: string; gas: string } & TxData) {
+export async function replayGas(tx: { from: string; gas: string } & TxData) {
   const gasLimit = tx.gas ? tx.gas : '0x2DC6C0'
 
   const txData = {
