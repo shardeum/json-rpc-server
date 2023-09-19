@@ -1005,43 +1005,37 @@ export const methods = {
         return
       }
 
+      const BUFFER = 1.05
       if (
         checkEntry(args[0]['to'], args[0]['data'].slice(0, 9), config.gasEstimateInvalidationIntervalInMs)
       ) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
-        const gasUsed = hexToBN(savedEstimate.gasUsed)
-        const gasRefund = hexToBN(savedEstimate.gasRefund)
-        const gasEstimate = gasUsed.add(gasRefund)
-        gasEstimate.imuln(1.2)
+        const gasEstimate = hexToBN(savedEstimate.gasEstimate)
+        gasEstimate.imuln(BUFFER)
         result = '0x' + gasEstimate.toString(16)
         callback(null, result)
         return
       }
-      let gasUsed, gasRefund
 
+      let originalEstimate = new BN(0)
       if (config.gasEstimateMethod === 'replayEngine') {
         const replayOutput = await replayGas(args[0])
-        gasUsed = hexToBN(replayOutput[0])
-        gasRefund = hexToBN(replayOutput[1])
-        const originalEstimate = gasUsed.add(gasRefund)
-        // Add 5% buffer
-        originalEstimate.imuln(1.05)
-        result = '0x' + originalEstimate.toString(16)
+        originalEstimate = hexToBN(replayOutput[0])
       } else if (config.gasEstimateMethod === 'validator') {
         let gasEstimateParam = args[0]
         let res = await requestWithRetry(RequestMethod.Post, `/contract/estimateGas`, gasEstimateParam)
-        console.log('estimate gas result', result)
         if (res.data?.estimateGas) {
-          result = res.data.estimateGas
+          originalEstimate = hexToBN(res.data.estimateGas)
         }
       }
 
+      originalEstimate.imuln(BUFFER)
+      result = '0x' + originalEstimate.toString('hex')
 
       addEntry({
         contractAddress: args[0]['to'],
         functionSignature: args[0]['data'].slice(0, 9),
-        gasUsed: result[0],
-        gasRefund: result[1],
+        gasEstimate: result,
         timestamp: Date.now(),
       })
     } catch (e) {
