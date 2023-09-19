@@ -487,6 +487,7 @@ export const methods = {
       const { result } = await getGasPrice()
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
+      return
     } catch (e) {
       console.log('Unable to get gas price', e)
     }
@@ -989,7 +990,7 @@ export const methods = {
 
     let result = '0x2DC6C0' // 3 M gas
     try {
-      if (!args[0]['to']) {
+      if (!args[0]['to'] && !args[0]['data']) {
         callback(null, result)
         return
       }
@@ -1016,14 +1017,26 @@ export const methods = {
         callback(null, result)
         return
       }
+      let gasUsed, gasRefund
 
-      const replayOutput = await replayGas(args[0])
-      const gasUsed = hexToBN(replayOutput[0])
-      const gasRefund = hexToBN(replayOutput[1])
-      const originalEstimate = gasUsed.add(gasRefund)
-      // Add 5% buffer
-      originalEstimate.imuln(1.05)
-      result = '0x' + originalEstimate.toString(16)
+      if (config.gasEstimateMethod === 'replayEngine') {
+        const replayOutput = await replayGas(args[0])
+        gasUsed = hexToBN(replayOutput[0])
+        gasRefund = hexToBN(replayOutput[1])
+        const originalEstimate = gasUsed.add(gasRefund)
+        // Add 5% buffer
+        originalEstimate.imuln(1.05)
+        result = '0x' + originalEstimate.toString(16)
+      } else if (config.gasEstimateMethod === 'validator') {
+        let gasEstimateParam = args[0]
+        let res = await requestWithRetry(RequestMethod.Post, `/contract/estimateGas`, gasEstimateParam)
+        console.log('estimate gas result', result)
+        if (res.data?.estimateGas) {
+          result = res.data.estimateGas
+        }
+      }
+
+
       addEntry({
         contractAddress: args[0]['to'],
         functionSignature: args[0]['data'].slice(0, 9),
