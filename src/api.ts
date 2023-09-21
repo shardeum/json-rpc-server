@@ -1061,6 +1061,7 @@ export const methods = {
 
       const BUFFER = 1.05
       if (
+        config.gasEstimateUseCache &&
         checkEntry(args[0]['to'], args[0]['data'].slice(0, 9), config.gasEstimateInvalidationIntervalInMs)
       ) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
@@ -1095,15 +1096,29 @@ export const methods = {
 
           result = '0x' + originalEstimate.toString('hex')
 
-          addEntry({
-            contractAddress: args[0]['to'],
-            functionSignature: args[0]['data'].slice(0, 9),
-            gasEstimate: result,
-            timestamp: Date.now(),
-          })
+          if (config.gasEstimateUseCache) {
+            addEntry({
+              contractAddress: args[0]['to'],
+              functionSignature: args[0]['data'].slice(0, 9),
+              gasEstimate: result,
+              timestamp: Date.now(),
+            })
+          }
         } else {
           console.log('Estimate gas error from validator', res.data)
         }
+      }
+
+      originalEstimate.imuln(BUFFER)
+      result = '0x' + originalEstimate.toString('hex')
+
+      if (config.gasEstimateUseCache) {
+        addEntry({
+          contractAddress: args[0]['to'],
+          functionSignature: args[0]['data'].slice(0, 9),
+          gasEstimate: result,
+          timestamp: Date.now(),
+        })
       }
     } catch (e) {
       console.log('Estimate gas error', e)

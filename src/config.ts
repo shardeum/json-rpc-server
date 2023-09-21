@@ -36,6 +36,7 @@ type Config = {
   staticGasEstimate?: string
   gasEstimateMethod: string
   gasEstimateInvalidationIntervalInMs: number
+  gasEstimateUseCache: boolean
   rateLimitOption: {
     limitFromAddress: boolean
     limitToAddress: boolean
@@ -101,6 +102,7 @@ export const CONFIG: Config = {
   defaultRequestRetry: 5,
   gasEstimateMethod: 'validator',
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
+  gasEstimateUseCache: true,
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
