@@ -1036,7 +1036,8 @@ export const methods = {
           originalEstimate.imuln(BUFFER)
 
           if (originalEstimate.gt(MAX_ESTIMATE_GAS)) {
-            originalEstimate = MAX_ESTIMATE_GAS
+            callback(null, '0x' + MAX_ESTIMATE_GAS.toString('hex'))
+            return
           }
 
           result = '0x' + originalEstimate.toString('hex')
