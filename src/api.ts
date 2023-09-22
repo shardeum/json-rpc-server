@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex, keccak256 } from 'ethereumjs-util'
+import { BN, bufferToHex, isHexPrefixed, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -979,7 +979,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
+    if (true) {
       console.log('Running estimateGas', args)
     }
     // const result = '0x1C9C380' // 30 M gas
@@ -1024,20 +1024,27 @@ export const methods = {
       } else if (config.gasEstimateMethod === 'validator') {
         let gasEstimateParam = args[0]
         let res = await requestWithRetry(RequestMethod.Post, `/contract/estimateGas`, gasEstimateParam)
+
         if (res.data?.estimateGas) {
           originalEstimate = hexToBN(res.data.estimateGas)
+        } else if (typeof res.data === 'string' && isHexPrefixed(res.data) && res.data !== '0x') {
+          originalEstimate = hexToBN(res.data)
+        }
+         
+        if (originalEstimate.isZero() === false) {
+          originalEstimate.imuln(BUFFER)
+          result = '0x' + originalEstimate.toString('hex')
+    
+          addEntry({
+            contractAddress: args[0]['to'],
+            functionSignature: args[0]['data'].slice(0, 9),
+            gasEstimate: result,
+            timestamp: Date.now(),
+          })
+        } else {
+          console.log('Estimate gas error from validator', res.data)
         }
       }
-
-      originalEstimate.imuln(BUFFER)
-      result = '0x' + originalEstimate.toString('hex')
-
-      addEntry({
-        contractAddress: args[0]['to'],
-        functionSignature: args[0]['data'].slice(0, 9),
-        gasEstimate: result,
-        timestamp: Date.now(),
-      })
     } catch (e) {
       console.log('Estimate gas error', e)
     }

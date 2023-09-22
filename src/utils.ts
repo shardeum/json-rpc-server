@@ -196,11 +196,11 @@ export async function requestWithRetry(
       if (res.status === 200 && !res.data.error) {
         // success = true
         // we want to know which validator this is being injected to for debugging purposes
-        res.data.nodeUrl = nodeUrl
+        if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
         return res //break
       }
     } catch (e: any) {
-      console.log('Error: requestWithRetry', e.message)
+      console.log('Error: requestWithRetry', e, e.message)
       let badNodePercentage = badNodesMap.size / nodeList.length
       let shouldAddToBadNodeList = route.includes('eth_blockNumber')
       console.log(
