@@ -1175,7 +1175,7 @@ async function fetchAccount(account: { type: number; key: string }, timestamp: n
 }
 
 export async function replayGas(tx: { from: string; gas: string } & TxData) {
-  const gasLimit = tx.gas ? tx.gas : '0x2DC6C0'
+  const gasLimit = tx.gas ? tx.gas : '0x1C9C380'
 
   const txData = {
     ...tx,
