@@ -1054,7 +1054,7 @@ async function fetchLatestAccount(key: string, type: number) {
     RequestMethod.Get,
     `${getArchiverUrl().url}/account?accountId=${key}`,
     {},
-    0,
+    3,
     true
   )
 
@@ -1114,6 +1114,14 @@ async function fetchLatestAccount(key: string, type: number) {
           ethAddress: '',
           hash: '',
           timestamp: 0,
+          codeHash: {
+            data: [],
+            type: 'Buffer',
+          },
+          codeByte: {
+            data: [],
+            type: 'Buffer',
+          },
         },
       }
     } else {
