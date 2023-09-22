@@ -153,7 +153,7 @@ export async function waitRandomSecond() {
 }
 
 function getTimeout(route: string) {
-  let root = route.split('/')[1] ? route.split('/')[1].split('?')[0] : null
+  let root = route.split('//')[1] ? route.split('//')[1].split('/')[1].split('?')[0] : null
   if (root && config.defaultRequestTimeout[root]) return config.defaultRequestTimeout[root]
   if (route.includes('full-nodelist')) return config.defaultRequestTimeout['full_nodelist']
   return config.defaultRequestTimeout[`default`]
