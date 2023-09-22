@@ -1085,40 +1085,28 @@ export const methods = {
         } else if (typeof res.data === 'string' && isHexPrefixed(res.data) && res.data !== '0x') {
           originalEstimate = hexToBN(res.data)
         }
-
-        if (originalEstimate.isZero() === false) {
-          originalEstimate.imuln(BUFFER)
-
-          if (originalEstimate.gt(MAX_ESTIMATE_GAS)) {
-            callback(null, '0x' + MAX_ESTIMATE_GAS.toString('hex'))
-            return
-          }
-
-          result = '0x' + originalEstimate.toString('hex')
-
-          if (config.gasEstimateUseCache) {
-            addEntry({
-              contractAddress: args[0]['to'],
-              functionSignature: args[0]['data'].slice(0, 9),
-              gasEstimate: result,
-              timestamp: Date.now(),
-            })
-          }
-        } else {
-          console.log('Estimate gas error from validator', res.data)
-        }
       }
 
-      originalEstimate.imuln(BUFFER)
-      result = '0x' + originalEstimate.toString('hex')
+      if (!originalEstimate.isZero()) {
+        originalEstimate.imuln(BUFFER)
 
-      if (config.gasEstimateUseCache) {
-        addEntry({
-          contractAddress: args[0]['to'],
-          functionSignature: args[0]['data'].slice(0, 9),
-          gasEstimate: result,
-          timestamp: Date.now(),
-        })
+        if (originalEstimate.gt(MAX_ESTIMATE_GAS)) {
+          callback(null, '0x' + MAX_ESTIMATE_GAS.toString('hex'))
+          return
+        }
+
+        result = '0x' + originalEstimate.toString('hex')
+
+        if (config.gasEstimateUseCache) {
+          addEntry({
+            contractAddress: args[0]['to'],
+            functionSignature: args[0]['data'].slice(0, 9),
+            gasEstimate: result,
+            timestamp: Date.now(),
+          })
+        }
+      } else {
+        console.log('Estimate gas error - gas estimate is zero')
       }
     } catch (e) {
       console.log('Estimate gas error', e)
