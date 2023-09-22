@@ -1099,10 +1099,7 @@ async function fetchLatestAccount(key: string, type: number) {
           ethAddress: '',
           hash: '',
           timestamp: 0,
-          value: {
-            data: [],
-            type: 'Buffer',
-          },
+          value: {},
         },
       }
     } else if (type === 2) {
