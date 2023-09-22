@@ -34,6 +34,7 @@ import * as Types from './types'
 import { addEntry, checkEntry, getGasEstimate } from './service/gasEstimate'
 
 export const verbose = config.verbose
+const MAX_ESTIMATE_GAS = new BN(30_000_000)
 
 const lastCycleCounter = '0x0'
 let lastBlockInfo = {
@@ -979,7 +980,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (true) {
+    if (verbose) {
       console.log('Running estimateGas', args)
     }
     // const result = '0x1C9C380' // 30 M gas
@@ -1030,11 +1031,16 @@ export const methods = {
         } else if (typeof res.data === 'string' && isHexPrefixed(res.data) && res.data !== '0x') {
           originalEstimate = hexToBN(res.data)
         }
-         
+
         if (originalEstimate.isZero() === false) {
           originalEstimate.imuln(BUFFER)
+
+          if (originalEstimate.gt(MAX_ESTIMATE_GAS)) {
+            originalEstimate = MAX_ESTIMATE_GAS
+          }
+
           result = '0x' + originalEstimate.toString('hex')
-    
+
           addEntry({
             contractAddress: args[0]['to'],
             functionSignature: args[0]['data'].slice(0, 9),
