@@ -102,7 +102,7 @@ export const CONFIG: Config = {
   defaultRequestRetry: 5,
   gasEstimateMethod: 'validator',
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
-  gasEstimateUseCache: true,
+  gasEstimateUseCache: false,
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
