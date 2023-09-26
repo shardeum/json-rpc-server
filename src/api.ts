@@ -858,15 +858,22 @@ export const methods = {
         .then((res: any) => {
           // Gas cache verification starts here
 
+          // Return if transaction was successful or if cache is disabled
+          if (config.gasEstimateUseCache === false) {
+            throw new Error('Verification not required: gas cache is disabled')
+          }
+
           // Return if transaction was not injected
-          if (!res) {
+          if (!res || res.success !== true) {
             throw new Error('Gas verification error: Unable to determine inject response')
           }
 
-          // Return if transaction was successful or if cache is disabled
-          if (res.success === true || config.gasEstimateUseCache === false) {
-            throw new Error('Verification not required: Transaction was successful or gas cache is disabled')
-          } else return fetchTxReceiptFromArchiver(txHash)
+          const transaction = getTransactionObj(tx)
+          if (!transaction.to) {
+            throw new Error('Gas verification not required: Contract creation transaction')
+          }
+
+          return fetchTxReceiptFromArchiver(txHash)
         })
         .then((transaction: any) => {
           if (!transaction?.data?.readableReceipt) {
@@ -878,16 +885,7 @@ export const methods = {
             throw new Error(`Gas verification not required: Transaction was successful`)
           } else if (readableReceipt.reason === 'out of gas' || readableReceipt.gasUsed === gasLimit) {
             // Remove entry from gasCache
-            const transaction = getTransactionObj(tx)
-            const txData = {
-              from: '',
-              to: transaction.to.toString(),
-              value: transaction.value.toString(16),
-              data: bufferToHex(transaction.data),
-              gas: transaction.gasLimit.toString(16),
-              gasPrice: transaction.gasPrice.toString(16),
-            }
-            removeEntry(txData.to, txData.data.slice(0, 8))
+            removeEntry(readableReceipt.to, readableReceipt.data.slice(0, 8))
           }
         })
         .catch((e) => {
