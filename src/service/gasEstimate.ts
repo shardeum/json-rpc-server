@@ -19,6 +19,11 @@ export function checkEntry(
   return Date.now() - entry.timestamp <= gasEstimateInvalidationIntervalInMs
 }
 
+export function removeEntry(contractAddress: string, functionSig: string): void {
+  const stmt = db.prepare('DELETE FROM gas_estimations WHERE contract_address = ? AND function_signature = ?')
+  stmt.run(contractAddress, functionSig)
+}
+
 export function addEntry(entry: GasEstimate): void {
   insertOrUpdateGasEstimate(entry)
 }

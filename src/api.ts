@@ -22,7 +22,7 @@ import {
   fetchStorage,
   replayGas,
   hexToBN,
-  fetchTxReceipt,
+  fetchTxReceiptFromArchiver,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -32,7 +32,7 @@ import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/distributor'
 import * as Types from './types'
-import { addEntry, checkEntry, getGasEstimate } from './service/gasEstimate'
+import { addEntry, checkEntry, getGasEstimate, removeEntry } from './service/gasEstimate'
 
 export const verbose = config.verbose
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
@@ -838,6 +838,7 @@ export const methods = {
               null
             )
           }
+          return res
         })
         .catch((e) => {
           logEventEmitter.emit(
@@ -852,57 +853,46 @@ export const methods = {
             performance.now()
           )
           callback(e, null)
+          return undefined
         })
+        .then((res: any) => {
+          // Gas cache verification starts here
 
-      // gas cache verification
-      if (config.gasEstimateUseCache) {
-        fetchTxReceipt(config.explorerUrl, txHash, true)
-          .then((receipt: any) => {
-            const readableReceipt = receipt?.wrappedEVMAccount?.readableReceipt
-            const reason = readableReceipt?.reason
-            const gasUsed = readableReceipt?.gasUsed
+          // Return if transaction was not injected
+          if (!res) {
+            throw new Error('Gas verification error: Unable to determine inject response')
+          }
 
-            if (reason === 'out of gas' || gasUsed === gasLimit) {
-              console.log('Transaction failed because of out of gas')
-              console.log('Re-estimating gas price')
+          // Return if transaction was successful or if cache is disabled
+          if (res.success === true || config.gasEstimateUseCache === false) {
+            throw new Error('Verification not required: Transaction was successful or gas cache is disabled')
+          } else return fetchTxReceiptFromArchiver(txHash)
+        })
+        .then((transaction: any) => {
+          if (!transaction?.data?.readableReceipt) {
+            throw new Error(`Gas verification error: Unable to fetch transaction receipt for ${txHash}`)
+          }
 
-              // TODO: Re-estimate gas price here
-              // Add new entry in cache
-              const transaction = getTransactionObj(tx)
-              const txData = {
-                from: '',
-                to: transaction.to.toString(),
-                value: transaction.value.toString(16),
-                data: bufferToHex(transaction.data),
-                gas: transaction.gasLimit.toString(16),
-                gasPrice: transaction.gasPrice.toString(16),
-              }
-              return replayGas(txData)
-            } else {
-              return []
-            }
-          })
-          .then((gasEstimates) => {
-            // Return if no gas estimates
-            if (gasEstimates.length === 0) return
-
-            // Update gas prices
-            const originalEstimate = hexToBN(gasEstimates[0])
-            originalEstimate.imuln(1.05)
-            let result = '0x' + originalEstimate.toString('hex')
+          const readableReceipt = transaction.data.readableReceipt
+          if (readableReceipt.status !== 0) {
+            throw new Error(`Gas verification not required: Transaction was successful`)
+          } else if (readableReceipt.reason === 'out of gas' || readableReceipt.gasUsed === gasLimit) {
+            // Remove entry from gasCache
             const transaction = getTransactionObj(tx)
-
-            addEntry({
-              contractAddress: transaction.to.toString(),
-              functionSignature: bufferToHex(transaction.data).slice(0, 9),
-              gasEstimate: result,
-              timestamp: Date.now(),
-            })
-          })
-          .catch((e) => {
-            console.log("gas verification failed, can't update gas price", e)
-          })
-      }
+            const txData = {
+              from: '',
+              to: transaction.to.toString(),
+              value: transaction.value.toString(16),
+              data: bufferToHex(transaction.data),
+              gas: transaction.gasLimit.toString(16),
+              gasPrice: transaction.gasPrice.toString(16),
+            }
+            removeEntry(txData.to, txData.data.slice(0, 8))
+          }
+        })
+        .catch((e) => {
+          console.log(`Gas verification error: ${e.message}`)
+        })
     } catch (e: any) {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit(

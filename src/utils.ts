@@ -918,6 +918,16 @@ export function parseFilterDetails(filter: any) {
   return { address: addresses[0], topics }
 }
 
+export async function fetchTxReceiptFromArchiver(txHash: string) {
+  const query = `${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`
+  const response = await axios.get(query).then((response) => {
+    if (!response.data.transactions) {
+      throw new Error('Failed to fetch transaction')
+    } else return response
+  })
+  return response.data.transactions
+}
+
 export async function fetchTxReceipt(explorerUrl: string, txHash: string, hashReceipt = false) {
   const apiQuery = `${explorerUrl}/api/transaction?txHash=${txHash}`
   const response = await axios.get(apiQuery).then((response) => {
