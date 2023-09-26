@@ -1052,9 +1052,9 @@ export const methods = {
       const BUFFER = 1.05
       if (
         config.gasEstimateUseCache &&
-        checkEntry(args[0]['to'], args[0]['data'].slice(0, 9), config.gasEstimateInvalidationIntervalInMs)
+        checkEntry(args[0]['to'], args[0]['data'].slice(0, 8), config.gasEstimateInvalidationIntervalInMs)
       ) {
-        const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 9))
+        const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 8))
         const gasEstimate = hexToBN(savedEstimate.gasEstimate)
         gasEstimate.imuln(BUFFER)
         result = '0x' + gasEstimate.toString(16)
@@ -1090,7 +1090,7 @@ export const methods = {
         if (config.gasEstimateUseCache) {
           addEntry({
             contractAddress: args[0]['to'],
-            functionSignature: args[0]['data'].slice(0, 9),
+            functionSignature: args[0]['data'].slice(0, 8),
             gasEstimate: result,
             timestamp: Date.now(),
           })
