@@ -12,6 +12,9 @@ export function checkEntry(
   functionSig: string,
   gasEstimateInvalidationIntervalInMs: number
 ): boolean {
+  if (!contractAddress || !functionSig) {
+    return false
+  }
   const entry = findEntryByContractAndSignature(contractAddress, functionSig)
   if (entry == null) {
     return false
@@ -20,6 +23,9 @@ export function checkEntry(
 }
 
 export function removeEntry(contractAddress: string, functionSig: string): void {
+  if (!contractAddress || !functionSig) {
+    return
+  }
   const stmt = db.prepare('DELETE FROM gas_estimations WHERE contract_address = ? AND function_signature = ?')
   stmt.run(contractAddress, functionSig)
 }
@@ -55,6 +61,9 @@ function findEntryByContractAndSignature(
 }
 
 function insertOrUpdateGasEstimate(entry: GasEstimate): void {
+  if (!entry.contractAddress || !entry.functionSignature) {
+    return
+  }
   const stmt = db.prepare(
     'INSERT OR REPLACE INTO gas_estimations (contract_address, function_signature, gasEstimate, timestamp) VALUES (?, ?, ?, ?)'
   )
