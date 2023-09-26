@@ -918,10 +918,41 @@ export function parseFilterDetails(filter: any) {
   return { address: addresses[0], topics }
 }
 
+export async function fetchQueryExpb(query: string, maxRetries = 6) {
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await axios.get(query)
+
+      // if response indicates failure
+      if (!response.data.transactions) {
+        if (i === maxRetries) {
+          throw new Error(`Failed to fetch after ${maxRetries} attempts: ${response.data.error}`)
+        }
+
+        // wait for a bit before retrying
+        console.log(`Failed to fetch, retrying in ${Math.pow(2, i)} seconds...`)
+        console.log(`Query is ${query}`)
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, i) * 1000))
+        continue
+      }
+
+      return response
+    } catch (error) {
+      // if max attempts reached, rethrow the error
+      if (i === maxRetries) {
+        throw error
+      }
+
+      // wait for a bit before retrying
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, i) * 1000))
+    }
+  }
+}
+
 export async function fetchTxReceiptFromArchiver(txHash: string) {
   const query = `${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`
-  const response = await axios.get(query).then((response) => {
-    if (!response.data.transactions) {
+  const response = await fetchQueryExpb(query).then((response) => {
+    if (!response?.data?.transactions) {
       throw new Error('Failed to fetch transaction')
     } else return response
   })
