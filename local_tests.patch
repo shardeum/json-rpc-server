@@ -1,0 +1,14 @@
+diff --git forkSrcPrefix/src/config.ts forkDstPrefix/src/config.ts
+index 8b1e6e2e2362e91b7ea955d64c287a6e61f51c48..66202ad5a7f555695c9e7cb04db7a86b0455d4a7 100644
+--- forkSrcPrefix/src/config.ts
++++ forkDstPrefix/src/config.ts
+@@ -100,7 +100,8 @@ export const CONFIG: Config = {
+   generateTxTimestamp: true,
+   nodelistRefreshInterval: 5000,
+   defaultRequestRetry: 5,
+-  gasEstimateMethod: 'validator',
++  staticGasEstimate: '0x2DC6C0',
++  gasEstimateMethod: 'replayEngine',
+   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
+   gasEstimateUseCache: true,
+   defaultRequestTimeout: {
