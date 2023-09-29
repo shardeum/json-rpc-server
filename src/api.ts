@@ -1036,15 +1036,19 @@ export const methods = {
         callback(null, result)
         return
       }
-      if (!args[0]['data']) {
-        // return 21000
-        callback(null, '0x5208')
-        return
-      }
       if (args[0]['to'] === '0x0000000000000000000000000000000000000001') {
         // TODO: Calculate according to formula
         callback(null, result)
         return
+      }
+      if (!args[0]['data']) {
+        // Check if receiver is an EOA. If so, return 21000
+        const res = await getCode(args[0]['to'])
+        if (res.contractCode === '0x') {
+          // return 21000
+          callback(null, '0x5208')
+          return
+        }
       }
 
       const BUFFER = 1.05
