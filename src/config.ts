@@ -26,7 +26,6 @@ type Config = {
   queryFromArchiver: boolean
   explorerUrl: string
   queryFromExplorer: boolean
-  rpcDataServerUrl: string
   generateTxTimestamp: boolean
   nodelistRefreshInterval: number
   defaultRequestRetry: number
@@ -110,7 +109,6 @@ export const CONFIG: Config = {
   queryFromArchiver: false,
   explorerUrl: 'http://127.0.0.1:6001',
   queryFromExplorer: false,
-  rpcDataServerUrl: 'http://127.0.0.1:4445',
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
   defaultRequestRetry: 5,

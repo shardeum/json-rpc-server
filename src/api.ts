@@ -417,8 +417,6 @@ export async function saveTxStatus() {
   const txStatusesClone = [...txStatuses]
   txStatuses = []
   logEventEmitter.emit('tx_insert_db', txStatusesClone)
-  const response = await axios.post(`${config.rpcDataServerUrl}/tx/status`, txStatusesClone)
-  console.log('forward Tx Status To Explorer', response.data)
 }
 
 export const methods = {
