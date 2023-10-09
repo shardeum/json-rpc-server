@@ -13,7 +13,7 @@ type Config = {
     enabled: boolean
     serveSubscriptions: boolean
   }
-  distributor: {
+  log_server: {
     ip: string
     port: number
   }
@@ -90,7 +90,7 @@ export const CONFIG: Config = {
     enabled: false,
     serveSubscriptions: false,
   },
-  distributor: {
+  log_server: {
     ip: '0.0.0.0',
     port: 4446,
   },

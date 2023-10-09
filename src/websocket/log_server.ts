@@ -6,21 +6,21 @@ import { logSubscriptionList } from './clients'
 
 export let evmLogProvider_ConnectionStream: WebSocket | null = null
 
-const distributor_ws_url = `ws://${CONFIG.distributor.ip}:${CONFIG.distributor.port}`
+const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port}`
 
 export const setupEvmLogProviderConnectionStream = () => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
   if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0)
     return
 
-  evmLogProvider_ConnectionStream = new WebSocket.WebSocket(distributor_ws_url + '/evm_log_subscription')
+  evmLogProvider_ConnectionStream = new WebSocket.WebSocket(log_server_ws_url + '/evm_log_subscription')
   evmLogProvider_ConnectionStream.on('error', (e) => {
     // console.error(e);
     evmLogProvider_ConnectionStream?.close()
   })
 
   evmLogProvider_ConnectionStream.on('open', function open() {
-    console.log('Distributor Websocket Connection Established')
+    console.log('LogServer Websocket Connection Established')
   })
 
   evmLogProvider_ConnectionStream.on('close', function close() {
@@ -30,7 +30,7 @@ export const setupEvmLogProviderConnectionStream = () => {
       value.socket.close()
     })
 
-    console.log('Attempting to establish websocket stream to distributor')
+    console.log('Attempting to establish websocket stream to log_server...')
     setTimeout(setupEvmLogProviderConnectionStream, 5000)
   })
   evmLogProvider_ConnectionStream.on('message', function message(data) {

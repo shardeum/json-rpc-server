@@ -5,7 +5,7 @@ import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { ipport } from '../server'
-import { evmLogProvider_ConnectionStream } from './distributor'
+import { evmLogProvider_ConnectionStream } from './log_server'
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   socket.on('message', (message: string) => {
@@ -187,7 +187,7 @@ export const setupSubscriptionEventHandlers = (): void => {
     ipport: string
   }
   subscriptionEventEmitter.on('evm_log_subscribe', async (payload: SUBSCRIPTION_PAYLOAD) => {
-    console.log('Sending subscription request to distributor')
+    console.log('Sending subscription request to log server')
     const method = 'subscribe'
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: payload }))
   })

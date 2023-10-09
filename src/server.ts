@@ -27,7 +27,7 @@ import spammerList from '../spammerlist.json'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
-import { setupEvmLogProviderConnectionStream } from './websocket/distributor'
+import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 setDefaultResultOrder('ipv4first')
