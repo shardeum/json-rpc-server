@@ -1051,9 +1051,18 @@ export const methods = {
         }
       }
 
+      let useCache
+      if (!config.gasEstimateUseCache) useCache = false
+      else {
+        const gasPrice = await getGasPrice()
+        const gasPriceBN = hexToBN(gasPrice.result ?? '0x0')
+        const givenGasPrice = hexToBN(args['gasPrice'])
+        useCache = givenGasPrice.gt(gasPriceBN) ? false : true
+      }
+
       const BUFFER = 1.05
       if (
-        config.gasEstimateUseCache &&
+        useCache &&
         checkEntry(args[0]['to'], args[0]['data'].slice(0, 8), config.gasEstimateInvalidationIntervalInMs)
       ) {
         const savedEstimate = getGasEstimate(args[0]['to'], args[0]['data'].slice(0, 8))
