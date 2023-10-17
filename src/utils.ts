@@ -1247,8 +1247,8 @@ export async function replayGas(tx: { from: string; gas: string } & TxData) {
   )
 
   // Delete estimate_states.json if it exists
-  if (fs.existsSync(path.join(transactionsFolder, `estimate__${tx.from}_states.json`))) {
-    fs.unlinkSync(path.join(transactionsFolder, `estimate__${tx.from}_states.json`))
+  if (fs.existsSync(path.join(transactionsFolder, `estimate_${tx.from}_states.json`))) {
+    fs.unlinkSync(path.join(transactionsFolder, `estimate_${tx.from}_states.json`))
   }
 
   while (true) {
@@ -1287,7 +1287,7 @@ export async function replayGas(tx: { from: string; gas: string } & TxData) {
     }
 
     // Write downloaded data to file
-    const statesFile = path.join(transactionsFolder, `estimate__${tx.from}_states.json`)
+    const statesFile = path.join(transactionsFolder, `estimate_${tx.from}_states.json`)
 
     const stateArray = fs.existsSync(statesFile) ? JSON.parse(fs.readFileSync(statesFile, 'utf8')) : []
     stateArray.push(downloadedAccount)
