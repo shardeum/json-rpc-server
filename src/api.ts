@@ -1532,6 +1532,9 @@ export const methods = {
       // result found, skipping querying from archiver, validator and explorer.
       success = true
       retry = 100
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, result)
+      return
     }
     let nodeUrl
     while (retry < 10 && !success) {
