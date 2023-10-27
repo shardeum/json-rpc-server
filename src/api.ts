@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex, isHexPrefixed, keccak256 } from 'ethereumjs-util'
+import { BN, bufferToHex, isHexPrefixed, isValidAddress, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -33,6 +33,8 @@ import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/distributor'
 import * as Types from './types'
 import { addEntry, checkEntry, getGasEstimate, removeEntry } from './service/gasEstimate'
+import { collectorAPI } from './external/Collector'
+import { serviceValidator } from './external/ServiceValidator'
 
 export const verbose = config.verbose
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
@@ -147,8 +149,8 @@ function extractTransactionReceiptObject(bigTransaction: any, transactionIndexAr
   }
 }
 
-function buildLogAPIUrl(request: Types.LogQueryRequest) {
-  const apiUrl = `${config.explorerUrl}/api/log`
+export function buildLogAPIUrl(request: Types.LogQueryRequest, baseDomain = config.explorerUrl) {
+  const apiUrl = `${baseDomain}/api/log`
   const queryParams = []
 
   // Check if each query parameter exists in the request object and add it to the queryParams array if it does
@@ -577,6 +579,14 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_gasPrice', args)
     }
+
+    const gasPrice = await serviceValidator.getGasPrice()
+    if (gasPrice) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, gasPrice)
+      return
+    }
+
     const fallbackGasPrice = '0x3f84fc7516' // 1 Gwei
     try {
       const { result } = await getGasPrice()
@@ -634,10 +644,33 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_getBalance', args)
     }
-    let balance = '0x0'
+
+    let address
+    try {
+      address = args[0]
+    } catch (e) {
+      if (verbose) console.log('Unable to get address', e)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+    if (!isValidAddress(address)) {
+      if (verbose) console.log('Invalid address', address)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+
+    let balance = await serviceValidator.getBalance(address)
+    if (balance) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, intStringToHex(balance))
+      return
+    }
+
+    balance = '0x0'
     let nodeUrl
     try {
-      const address = args[0]
       if (verbose) console.log('address', address)
       if (verbose) console.log('ETH balance', typeof balance, balance)
       const res = await getAccount(address)
@@ -681,6 +714,30 @@ export const methods = {
     if (verbose) {
       console.log('Running getTransactionCount', args)
     }
+
+    let address
+    try {
+      address = args[0]
+    } catch (e) {
+      if (verbose) console.log('Unable to get address', e)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+    if (!isValidAddress(address)) {
+      if (verbose) console.log('Invalid address', address)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+
+    let nonce = await serviceValidator.getTransactionCount(address)
+    if (nonce) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, intStringToHex(nonce))
+      return
+    }
+
     let nodeUrl
     try {
       const address = args[0]
@@ -828,6 +885,30 @@ export const methods = {
     if (verbose) {
       console.log('Running getCode', args)
     }
+
+    let contractAddress
+    try {
+      contractAddress = args[0]
+    } catch (e) {
+      console.log('Unable to get contract address', e)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+    if (!isValidAddress(contractAddress)) {
+      console.log('Invalid contract address', contractAddress)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x')
+      return
+    }
+
+    const code = await serviceValidator.getContractCode(args[0])
+    if (code) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, code)
+      return
+    }
+
     let nodeUrl
     try {
       const res = await getCode(args[0])
@@ -1138,6 +1219,14 @@ export const methods = {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
     }
     if (verbose) console.log('callObj', callObj)
+
+    let response = await serviceValidator.ethCall(callObj)
+    if (response) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x' + response)
+      return
+    }
+
     try {
       const res = await requestWithRetry(RequestMethod.Post, `/contract/call`, callObj)
       const nodeUrl = res.data.nodeUrl
@@ -1222,6 +1311,9 @@ export const methods = {
         } else if (typeof res.data === 'string' && isHexPrefixed(res.data) && res.data !== '0x') {
           originalEstimate = hexToBN(res.data)
         }
+      } else if (config.gasEstimateMethod === 'serviceValidator') {
+        const gasEstimate = await serviceValidator.estimateGas(args[0])
+        if (gasEstimate) originalEstimate = hexToBN(gasEstimate)
       }
 
       if (!originalEstimate.isZero()) {
@@ -1261,13 +1353,18 @@ export const methods = {
     if (verbose) {
       console.log('Running getBlockByHash', args)
     }
+    let result: any = null
     //getCurrentBlock handles errors, no try catch needed
+    result = await collectorAPI.getBlock(args[0], 'hash', args[1])
+    if (!result) {
     // since there are no transactions included when we query from validator,
     // the transaction_detail_flag is not used
-    const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
+      const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
+      result = res.data.block
+    }
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, res.data.block)
+    callback(null, result)
   },
   eth_getBlockByNumber: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockByNumber'
@@ -1279,21 +1376,28 @@ export const methods = {
     if (verbose) {
       console.log('Running getBlockByNumber', args)
     }
+    let result: any = null
+    let nodeUrl = null
     let blockNumber = args[0]
-    // since there are no transactions included when we query from validator,
-    // the transaction_detail_flag is not used
-    if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
-    const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
-    const nodeUrl = res.data.nodeUrl
-    const result = res.data.block
+    if (args[0] == 'latest' || args[0] == 'earliest') {
+      blockNumber = blockNumber
+    } else {
+      blockNumber = parseInt(blockNumber)
+    }
+
+    result = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
+    if (!result) {
+      console.log(blockNumber, args[0])
+      const res = await requestWithRetry(
+        RequestMethod.Get,
+        `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+      )
+      result = res.data.block
+      nodeUrl = res.data.nodeUrl
+    }
     if (verbose) console.log('BLOCK DETAIL', result)
     callback(null, result)
-    logEventEmitter.emit(
-      'fn_end',
-      ticket,
-      { nodeUrl, success: res.data.block ? true : false },
-      performance.now()
-    )
+    logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: result ? true : false }, performance.now())
   },
   eth_getBlockReceipts: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockReceipts'
@@ -1423,6 +1527,12 @@ export const methods = {
     let retry = 0
     let success = false
     let result = null
+    result = await collectorAPI.getTransactionByHash(txHash)
+    if (result) {
+      // result found, skipping querying from archiver, validator and explorer.
+      success = true
+      retry = 100
+    }
     let nodeUrl
     while (retry < 10 && !success) {
       try {
@@ -1490,6 +1600,17 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_getTransactionByBlockHashAndIndex', args)
     }
+    
+    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+    let result: any = null
+
+    try {
+      result = await collectorAPI.getBlock(args[0], 'hash', true)
+      result = result?.transactions[Number(args[1])]
+    } catch (e) {
+      callback(errorBusy)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+    }
     let blockHash = args[0]
     const index = parseInt(args[1], 16)
     //if (blockHash !== 'latest') blockHash = parseInt(blockHash, 16)
@@ -1522,6 +1643,8 @@ export const methods = {
       callback(null, [])
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
+    callback(null, result)
+    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getTransactionByBlockNumberAndIndex: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
@@ -1530,6 +1653,15 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+
+    let result: any = null
+    try {
+      result = await collectorAPI.getBlock(args[0], 'hex_num', true)
+      result = result?.transactions[Number(args[1])]
+    } catch (e) {
+      callback(errorBusy)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+    }
     if (verbose) {
       console.log('Running eth_getTransactionByBlockNumberAndIndex', args)
     }
@@ -1561,6 +1693,8 @@ export const methods = {
       callback(null, [])
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
+    callback(null, result)
+    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getTransactionReceipt: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionReceipt'
@@ -1576,7 +1710,9 @@ export const methods = {
       let res
       let result
       const txHash = args[0]
-      if (config.queryFromValidator) {
+      result = await collectorAPI.getTransactionReceipt(txHash)
+
+      if (config.queryFromValidator && !result) {
         res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
         if (!result && res.data && res.data.error) {
           if (verbose) console.log(`eth_getTransactionReceipt from validator error: ${res.data.error} `)
@@ -1595,7 +1731,9 @@ export const methods = {
 
         result = res.data.transactions ? res.data.transactions.data : null
       } else if (!result && config.queryFromExplorer) {
-        console.log('querying eth_getTransactionReceipt from explorer', txHash)
+        if (verbose) {
+          console.log('querying eth_getTransactionReceipt from explorer', txHash)
+        }
         const explorerUrl = config.explorerUrl
         res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
         /* prettier-ignore */ if (verbose) console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`,'res', JSON.stringify(res.data))
@@ -1827,7 +1965,7 @@ export const methods = {
     let filterId = args[0]
 
     const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString())
-    let updates = []
+    let updates: any[] = []
     if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
       let logFilter = internalFilter.filter as Types.LogFilter
       let request: Types.LogQueryRequest = {
@@ -1835,8 +1973,17 @@ export const methods = {
         topics: logFilter.topics,
         fromBlock: String(logFilter.lastQueriedBlock + 1),
       }
-      console.log('filter changes request', request)
-      updates = await getLogsFromExplorer(request)
+      if (verbose) {
+        console.log('filter changes request', request)
+      }
+      // try sourcing from collector api server
+      const updatesFromCollector = await collectorAPI.getLogsByFilter(request)
+      if (!updatesFromCollector) {
+        // fallback to explorer
+        updates = await getLogsFromExplorer(request)
+      } else {
+        updates = updatesFromCollector
+      }
       internalFilter.updates = []
       let currentBlock = await getCurrentBlock()
       // this could potentially have issue because explorer server is a bit behind validator in terms of tx receipt or block number
@@ -1895,7 +2042,7 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     let filterId = args[0]
-    let logs = []
+    let logs: any[] = []
 
     const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString())
     if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
@@ -1907,6 +2054,14 @@ export const methods = {
       }
       if (logFilter.fromBlock) {
         request.fromBlock = String(logFilter.fromBlock)
+      }
+      if (CONFIG.collectorSourcing.enabled) {
+        const logsFromCollector = await collectorAPI.getLogsByFilter(request)
+        if (logsFromCollector) {
+          callback(null, logsFromCollector)
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          return
+        }
       }
       logs = await getLogsFromExplorer(request)
     } else {
@@ -1929,7 +2084,7 @@ export const methods = {
       console.log('Running getLogs', args)
     }
     let request = args[0]
-    let logs = []
+    let logs: any[] = []
     if (request.fromBlock === 'earliest') {
       request.fromBlock = '0'
     }
@@ -1971,6 +2126,14 @@ export const methods = {
       if (res.data && res.data.block) {
         request.fromBlock = res.data.block.number
         request.toBlock = res.data.block.number
+      }
+    }
+    if (CONFIG.collectorSourcing.enabled) {
+      const logsFromCollector = await collectorAPI.getLogsByFilter(request)
+      if (logsFromCollector) {
+        callback(null, logsFromCollector)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
       }
     }
     logs = await getLogsFromExplorer(request)
@@ -2070,7 +2233,9 @@ export const methods = {
       fromBlock: blockNumber,
     }
     const logs = await getLogsFromExplorer(request)
-    console.log('THE LOGS ARE', logs)
+    if (verbose) {
+      console.log('THE LOGS ARE', logs)
+    }
     callback(null, { storage: {} })
   },
   debug_storageRangeAt2: async function (args: any, callback: any) {
@@ -2086,7 +2251,10 @@ export const methods = {
 
     try {
       const txHash = args[0]
-      const states = await fetchStorage(txHash)
+      let states = await collectorAPI.getStorage(txHash)
+      if (!states) {
+        states = await fetchStorage(txHash)
+      }
       const storageObject: { [key: string]: any } = {}
       states.forEach((state) => {
         const keyBuf = parseAndValidateStringInput(state.key)
@@ -2298,6 +2466,13 @@ export const methods = {
       callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
     }
     console.log('callObj', callObj)
+
+    const accessList = await serviceValidator.getAccessList(callObj)
+    if (accessList) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, accessList)
+      return
+    }
 
     let nodeUrl
     try {

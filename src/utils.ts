@@ -12,6 +12,8 @@ import { getArchiverList, getFromArchiver } from '@shardus/archiver-discovery'
 import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
 import execa from 'execa'
 import { spawn } from 'child_process'
+import { collectorAPI } from './external/Collector'
+import { serviceValidator } from './external/ServiceValidator'
 
 const crypto = require('@shardus/crypto-utils')
 
@@ -1173,6 +1175,41 @@ async function fetchLatestAccount(key: string, type: number) {
   }
 }
 
+async function fetchAccountFromCollector(account: { type: number; key: string }, timestamp: number) {
+  if (account.type === 0) {
+    // EOA/CA
+    console.log('Getting data account.type === 0')
+    return await collectorAPI.fetchAccount(account.key, timestamp)
+  } else if (account.type === 1) {
+    // Contract Storage
+    // throw new Error('Replay engine should never get here')
+    return undefined
+  } else if (account.type === 2) {
+    // Contract Code
+    let result, res
+    if (verbose) {
+      console.log('Getting data account.type === 2')
+    }
+    res = await serviceValidator.getAccount(account.key)
+    if (!res.data.accounts) {
+      result = {
+        accountId: account.key,
+        data: {
+          accountType: 2,
+          ethAddress: '',
+          hash: '',
+          timestamp: 0,
+        },
+      }
+    } else {
+      result = { accountId: account.key, data: res.data.accounts.data }
+    }
+    return result
+  } else {
+    return undefined
+  }
+}
+
 async function fetchAccount(account: { type: number; key: string }, timestamp: number) {
   if (account.type === 0) {
     // EOA/CA
@@ -1333,7 +1370,10 @@ export async function replayTransaction(txHash: string, flag: string) {
   if (fs.existsSync(path.join(transactionsFolder, txHash + '.json'))) {
     receipt = JSON.parse(fs.readFileSync(path.join(transactionsFolder, txHash + '.json'), 'utf8'))
   } else {
-    receipt = await fetchTxReceipt(config.explorerUrl, txHash)
+    receipt = await collectorAPI.getTxReceiptDetails(txHash)
+    if (!receipt) {
+      receipt = await fetchTxReceipt(config.explorerUrl, txHash)
+    }
     fs.writeFileSync(path.join(transactionsFolder, txHash + '.json'), JSON.stringify(receipt, undefined, 2))
   }
 
@@ -1364,10 +1404,18 @@ export async function replayTransaction(txHash: string, flag: string) {
       })
 
     // Download missing data
-    const downloadedAccount = await fetchAccount(
+    let downloadedAccount = await fetchAccountFromCollector(
       { key: missingData[0].shardusKey, type: missingData[0].type },
       receipt.timestamp
     )
+
+    if (!downloadedAccount) {
+      // this fetches data from the archiver or the explorer in case the collector fails
+      downloadedAccount = await fetchAccount(
+        { key: missingData[0].shardusKey, type: missingData[0].type },
+        receipt.timestamp
+      )
+    }
 
     if (!downloadedAccount) {
       throw new Error('Account not found')
