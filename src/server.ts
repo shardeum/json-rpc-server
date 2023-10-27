@@ -114,6 +114,17 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 const requestersList = new RequestersList(blackList, spammerList)
 
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404) {
+      let formattedError = {
+        status: err.statusCode,
+        message: err.message
+      }
+      return res.status(err.statusCode).json(formattedError); // Bad request
+  }
+  next();
+});
+
 app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (!config.rateLimit) {
     next()
