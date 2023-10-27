@@ -786,7 +786,11 @@ export const methods = {
         console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
         console.log('res', JSON.stringify(res.data))
       }
-
+      if (!res.data.transactions) {
+        callback(null, res.data.error)
+        const nodeUrl = config.explorerUrl
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
+      }
       let result = '0x' + res.data.transactions.length.toString(16)
 
       const nodeUrl = config.explorerUrl
@@ -801,7 +805,7 @@ export const methods = {
     } else {
       console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
       callback(null, [])
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
   eth_getBlockTransactionCountByNumber: async function (args: any, callback: any) {
