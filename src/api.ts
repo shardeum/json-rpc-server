@@ -1715,6 +1715,14 @@ export const methods = {
       const txHash = args[0]
       result = await collectorAPI.getTransactionReceipt(txHash)
 
+      // local pull successful early returns
+      if(result) {
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+        return
+        // WARNING DO NOT PUT collector returns into extractTransactionReceiptObject() func
+      }
+
       if (config.queryFromValidator && !result) {
         res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
         if (!result && res.data && res.data.error) {
