@@ -71,7 +71,7 @@ class ServiceValidator extends BaseExternal {
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getTransactionCount call for address: ${address}`)
     try {
       const account = await this.getAccount(address)
-      if (!account) return '0x0'
+      if (!account) return '0'
       return account.nonce
     } catch (e) {
       console.error(`ServiceValidator: Error getting transaction count`, e)
