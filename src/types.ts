@@ -24,7 +24,7 @@ export type InternalFilter = {
   type: FilterTypes
   updates: any[]
   unsubscribe: Function
-  filter: LogFilter | BlockFilter
+  filter: LogFilter | BlockFilter | PendingTransactionFilter
 }
 
 export interface LogQueryRequest {
@@ -32,4 +32,10 @@ export interface LogQueryRequest {
   topics?: Topic[]
   fromBlock?: string
   toBlock?: string
+}
+
+export type PendingTransactionFilter = BaseFilterArgs & {
+  lastQueriedTimestamp: number
+  lastQueriedBlock: number
+  createdBlock: number
 }
