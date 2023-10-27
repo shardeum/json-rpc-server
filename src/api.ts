@@ -1357,8 +1357,8 @@ export const methods = {
     //getCurrentBlock handles errors, no try catch needed
     result = await collectorAPI.getBlock(args[0], 'hash', args[1])
     if (!result) {
-    // since there are no transactions included when we query from validator,
-    // the transaction_detail_flag is not used
+      // since there are no transactions included when we query from validator,
+      // the transaction_detail_flag is not used
       const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
       result = res.data.block
     }
@@ -1600,7 +1600,7 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_getTransactionByBlockHashAndIndex', args)
     }
-    
+
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     let result: any = null
 
