@@ -4,11 +4,11 @@ import { verbose } from '../api'
 import { CONFIG } from '../config'
 import { LogQueryRequest } from '../types'
 import { BaseExternal, axiosWithRetry } from './BaseExternal'
-import { 
-  TransactionFactory, 
-  FeeMarketEIP1559Transaction, 
-  AccessListEIP2930Transaction, 
-  AccessList
+import {
+  TransactionFactory,
+  FeeMarketEIP1559Transaction,
+  AccessListEIP2930Transaction,
+  AccessList,
 } from '@ethereumjs/tx'
 import { bufferToHex, toBuffer } from 'ethereumjs-util'
 
@@ -55,22 +55,18 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash res: ${JSON.stringify(res.data)}`)
       if (!res.data.success) return null
 
-
-      let tx = (res.data.transactions && res.data.transactions[0])  ? res.data.transactions[0] : null 
-
+      const tx = res.data.transactions && res.data.transactions[0] ? res.data.transactions[0] : null
 
       const readableReceipt = tx.wrappedEVMAccount.readableReceipt
 
       const raw = tx.originalTxData.raw as string
 
-
-
       let result: any = null
       let txObj = null
 
-      try{
+      try {
         txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
-      }catch(e){
+      } catch (e) {
         // ok raw tx seem alien to @ethereum/tx version we have locked
         // fallback to collectors readable receipt
         // v, r, s are not available in readableReceipt
@@ -86,15 +82,15 @@ class Collector extends BaseExternal {
           value: readableReceipt.value,
           input: readableReceipt.input,
           gasPrice: readableReceipt.gasPrice,
-          chainId: '0x' + CONFIG.chainId.toString(16), 
+          chainId: '0x' + CONFIG.chainId.toString(16),
           transactionIndex: readableReceipt.transactionIndex,
-          v:'0x',
-          r:'0x',
-          s:'0x',
+          v: '0x',
+          r: '0x',
+          s: '0x',
         } as readableLegacyTransaction
       }
 
-      console.log(txObj);
+      console.log(txObj)
       // Legacy Transaction
       result = {
         hash: readableReceipt.transactionHash,
@@ -108,15 +104,15 @@ class Collector extends BaseExternal {
         value: '0x' + txObj.value.toString('hex'),
         input: '0x' + txObj.data.toString('hex'),
         gasPrice: '0x' + txObj.getBaseFee().toString(16),
-        chainId: '0x' + CONFIG.chainId.toString(16), 
+        chainId: '0x' + CONFIG.chainId.toString(16),
         transactionIndex: readableReceipt.transactionIndex,
-        v:'0x' + txObj.v?.toString('hex'),
-        r:'0x' + txObj.r?.toString('hex'),
-        s:'0x' + txObj.s?.toString('hex'),
+        v: '0x' + txObj.v?.toString('hex'),
+        r: '0x' + txObj.r?.toString('hex'),
+        s: '0x' + txObj.s?.toString('hex'),
       } as readableLegacyTransaction
 
       // EIP-2930 Transaction
-      if(txObj?.type === 1) {
+      if (txObj?.type === 1) {
         //typecast so that we can access AccessListJSON
         txObj = txObj as AccessListEIP2930Transaction
         result.accessList = txObj.AccessListJSON // <--- this is difference
@@ -125,24 +121,23 @@ class Collector extends BaseExternal {
       }
 
       // EIP-1559 Transaction
-      if(txObj?.type === 2) {
+      if (txObj?.type === 2) {
         //typecast so that we can access AccessListJSON, maxPriorityFeePerGas, maxFeePerGas
         txObj = txObj as FeeMarketEIP1559Transaction
         result.type = '0x' + txObj.type.toString(16)
         result.maxPriorityFeePerGas = '0x' + txObj.maxPriorityFeePerGas.toString(16)
         result.maxFeePerGas = '0x' + txObj.maxFeePerGas.toString(16)
-        result.accessList = txObj.AccessListJSON 
+        result.accessList = txObj.AccessListJSON
         result = result as readableEIP1559Transaction
       }
 
       // EIP-4844 Transaction
       // if(txObj?.type === 3) {
-        // seem to be very new and not supported by the version of @ethereum/tx yet 
-        // we locked the version to 3.4.0
-        // have to update the dependency to support this
-        // which is not a priority at the moment and possibily be backward incompatible
+      // seem to be very new and not supported by the version of @ethereum/tx yet
+      // we locked the version to 3.4.0
+      // have to update the dependency to support this
+      // which is not a priority at the moment and possibily be backward incompatible
       // }
-
 
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash result: ${JSON.stringify(result)}`)
       return result
