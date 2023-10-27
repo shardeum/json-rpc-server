@@ -81,6 +81,7 @@ class Collector extends BaseExternal {
           type: '0x0',
           nonce: readableReceipt.nonce,
           to: readableReceipt.to,
+          from: readableReceipt.from,
           gas: readableReceipt.gasUsed,
           value: readableReceipt.value,
           input: readableReceipt.input,
@@ -102,6 +103,7 @@ class Collector extends BaseExternal {
         type: '0x' + txObj.type.toString(16), // <--- legacy tx is type 0
         nonce: '0x' + txObj.nonce.toString(16),
         to: txObj?.to?.toString(),
+        from: txObj.getSenderAddress().toString(),
         gas: '0x' + txObj.gasLimit.toString(16),
         value: '0x' + txObj.value.toString('hex'),
         input: '0x' + txObj.data.toString('hex'),
@@ -403,6 +405,7 @@ type readableLegacyTransaction = {
   type: string
   nonce: string
   to: string
+  from: string
   gas: string
   value: string
   input: string
