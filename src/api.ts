@@ -778,8 +778,8 @@ export const methods = {
     if (config.queryFromValidator && config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
       if (blockHash === 'latest') {
-        const res = await requestWithRetry(RequestMethod.Get, `/eth_getLatestBlockHash`)
-        blockHash = res.data.latestBlockHash
+        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
+        if (res.data.block) blockHash = res.data.block.hash
       }
       const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
       if (verbose) {
@@ -822,9 +822,12 @@ export const methods = {
     if (blockNumber !== 'latest') blockNumber = parseInt(blockNumber, 16)
     if (config.queryFromValidator && config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
-      if (blockNumber === 'latest') {
-        const res = await requestWithRetry(RequestMethod.Get, `/eth_getLatestBlockNumber`)
-        blockNumber = res.data.latestBlockNumber
+      if (blockNumber === 'latest' || blockNumber === 'earliest') {
+        const res = await requestWithRetry(
+          RequestMethod.Get,
+          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+        )
+        if (res.data.block) blockNumber = res.data.block.number
       }
       const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
       if (verbose) {
@@ -1485,12 +1488,14 @@ export const methods = {
       if (config.queryFromValidator && config.queryFromExplorer) {
         const explorerUrl = config.explorerUrl
         if (newestBlock === 'earliest') {
-          const res = await requestWithRetry(RequestMethod.Get, `/eth_getEarliestBlockNumber`)
-          newestBlock = res.data.earliestBlockNumber
+          blockCount = 1
         }
-        if (newestBlock === 'latest') {
-          const res = await requestWithRetry(RequestMethod.Get, `/eth_getLatestBlockNumber`)
-          newestBlock = res.data.latestBlockNumber
+        if (newestBlock === 'latest' || newestBlock === 'earliest') {
+          const res = await requestWithRetry(
+            RequestMethod.Get,
+            `/eth_getBlockByNumber?blockNumber=${newestBlock}`
+          )
+          if (res.data.block) newestBlock = res.data.block.number
         }
         for (let i = 0; i < blockCount; i++) {
           let blockNumber = newestBlock - i
@@ -1623,28 +1628,29 @@ export const methods = {
     //if (blockHash !== 'latest') blockHash = parseInt(blockHash, 16)
     if (config.queryFromValidator && config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
-      if (blockHash === 'latest') {
-        const res = await requestWithRetry(RequestMethod.Get, `/eth_getLatestBlockHash`)
-        console.log(`res is ${res}`)
-        blockHash = res.data.latestBlockHash
-      }
-      const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
-      if (verbose) {
-        console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
-        console.log('res', JSON.stringify(res.data))
-      }
+      try {
+        const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+        if (verbose) {
+          console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+          console.log('res', JSON.stringify(res.data))
+        }
 
-      let result = extractTransactionObject(res.data.transactions[index], index)
+        let result
+        if (res.data.success) result = extractTransactionObject(res.data.transactions[index], index)
+        else result = null
 
-      const nodeUrl = config.explorerUrl
-      if (verbose) console.log('TRANSACTION DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit(
-        'fn_end',
-        ticket,
-        { nodeUrl, success: res.data.transactions.length ? true : false },
-        performance.now()
-      )
+        const nodeUrl = config.explorerUrl
+        if (verbose) console.log('TRANSACTION DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit(
+          'fn_end',
+          ticket,
+          { nodeUrl, success: res.data.transactions.length ? true : false },
+          performance.now()
+        )
+      } catch (error) {
+        callback(null, error)
+      }
     } else {
       console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
       callback(null, [])
@@ -1684,7 +1690,9 @@ export const methods = {
         console.log('res', JSON.stringify(res.data))
       }
 
-      let result = extractTransactionObject(res.data.transactions[index], index)
+      let result
+      if (res.data.success) result = extractTransactionObject(res.data.transactions[index], index)
+      else result = null
 
       const nodeUrl = config.explorerUrl
       if (verbose) console.log('TRANSACTION DETAIL', result)
@@ -1720,7 +1728,7 @@ export const methods = {
       result = await collectorAPI.getTransactionReceipt(txHash)
 
       // local pull successful early returns
-      if(result) {
+      if (result) {
         callback(null, result)
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         return
