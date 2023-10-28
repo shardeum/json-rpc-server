@@ -57,87 +57,7 @@ class Collector extends BaseExternal {
 
       const tx = res.data.transactions && res.data.transactions[0] ? res.data.transactions[0] : null
 
-      const readableReceipt = tx.wrappedEVMAccount.readableReceipt
-
-      const raw = tx.originalTxData.raw as string
-
-      let result: any = null
-      let txObj = null
-
-      try {
-        txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
-      } catch (e) {
-        // ok raw tx seem alien to @ethereum/tx version we have locked
-        // fallback to collectors readable receipt
-        // v, r, s are not available in readableReceipt
-        return {
-          hash: readableReceipt.transactionHash,
-          blockHash: readableReceipt.blockHash,
-          blockNumber: readableReceipt.blockNumber,
-          type: '0x0',
-          nonce: readableReceipt.nonce,
-          to: readableReceipt.to,
-          from: readableReceipt.from,
-          gas: readableReceipt.gasUsed,
-          value: readableReceipt.value,
-          input: readableReceipt.input,
-          gasPrice: readableReceipt.gasPrice,
-          chainId: '0x' + CONFIG.chainId.toString(16),
-          transactionIndex: readableReceipt.transactionIndex,
-          v: '0x',
-          r: '0x',
-          s: '0x',
-        } as readableLegacyTransaction
-      }
-
-      console.log(txObj)
-      // Legacy Transaction
-      result = {
-        hash: readableReceipt.transactionHash,
-        blockHash: readableReceipt.blockHash,
-        blockNumber: readableReceipt.blockNumber,
-        type: '0x' + txObj.type.toString(16), // <--- legacy tx is type 0
-        nonce: '0x' + txObj.nonce.toString(16),
-        to: txObj?.to?.toString(),
-        from: txObj.getSenderAddress().toString(),
-        gas: '0x' + txObj.gasLimit.toString(16),
-        value: '0x' + txObj.value.toString('hex'),
-        input: '0x' + txObj.data.toString('hex'),
-        gasPrice: '0x' + txObj.getBaseFee().toString(16),
-        chainId: '0x' + CONFIG.chainId.toString(16),
-        transactionIndex: readableReceipt.transactionIndex,
-        v: '0x' + txObj.v?.toString('hex'),
-        r: '0x' + txObj.r?.toString('hex'),
-        s: '0x' + txObj.s?.toString('hex'),
-      } as readableLegacyTransaction
-
-      // EIP-2930 Transaction
-      if (txObj?.type === 1) {
-        //typecast so that we can access AccessListJSON
-        txObj = txObj as AccessListEIP2930Transaction
-        result.accessList = txObj.AccessListJSON // <--- this is difference
-        result.type = '0x' + txObj.type.toString(16)
-        result = result as readableEIP2930Transaction
-      }
-
-      // EIP-1559 Transaction
-      if (txObj?.type === 2) {
-        //typecast so that we can access AccessListJSON, maxPriorityFeePerGas, maxFeePerGas
-        txObj = txObj as FeeMarketEIP1559Transaction
-        result.type = '0x' + txObj.type.toString(16)
-        result.maxPriorityFeePerGas = '0x' + txObj.maxPriorityFeePerGas.toString(16)
-        result.maxFeePerGas = '0x' + txObj.maxFeePerGas.toString(16)
-        result.accessList = txObj.AccessListJSON
-        result = result as readableEIP1559Transaction
-      }
-
-      // EIP-4844 Transaction
-      // if(txObj?.type === 3) {
-      // seem to be very new and not supported by the version of @ethereum/tx yet
-      // we locked the version to 3.4.0
-      // have to update the dependency to support this
-      // which is not a priority at the moment and possibily be backward incompatible
-      // }
+      const result = tx ? this.decodeTransaction(tx) : null
 
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash result: ${JSON.stringify(result)}`)
       return result
@@ -247,12 +167,8 @@ class Collector extends BaseExternal {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
             if (details === true) {
-              const receipt = tx.wrappedEVMAccount.readableReceipt
-              receipt.status = receipt.status === 1 ? '0x01' : '0x00'
-              receipt.v = receipt.v ? receipt.v : '0x'
-              receipt.r = receipt.r ? receipt.r : '0x'
-              receipt.s = receipt.s ? receipt.s : '0x'
-              return receipt
+              tx.originalTxData = JSON.parse(tx.originalTxData)
+              return this.decodeTransaction(tx)
             }
             return tx.wrappedEVMAccount.readableReceipt.transactionHash
           })
@@ -341,6 +257,91 @@ class Collector extends BaseExternal {
     }
     // Combine the base URL with the query parameters
     return `${apiUrl}${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`
+  }
+
+  decodeTransaction(tx: any): readableTransaction {
+    const readableReceipt = tx.wrappedEVMAccount.readableReceipt
+
+    const raw = tx.originalTxData.raw as string
+
+    let result: any = null
+    let txObj = null
+
+    try {
+      txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
+    } catch (e) {
+      // ok raw tx seem alien to @ethereum/tx version we have locked
+      // fallback to collectors readable receipt
+      // v, r, s are not available in readableReceipt
+      return {
+        hash: readableReceipt.transactionHash,
+        blockHash: readableReceipt.blockHash,
+        blockNumber: readableReceipt.blockNumber,
+        type: '0x0',
+        nonce: readableReceipt.nonce,
+        to: readableReceipt.to,
+        from: readableReceipt.from,
+        gas: readableReceipt.gasUsed,
+        value: readableReceipt.value,
+        input: readableReceipt.input,
+        gasPrice: readableReceipt.gasPrice,
+        chainId: '0x' + CONFIG.chainId.toString(16),
+        transactionIndex: readableReceipt.transactionIndex,
+        v: '0x',
+        r: '0x',
+        s: '0x',
+      } as readableLegacyTransaction
+    }
+
+    console.log(txObj)
+    // Legacy Transaction
+    result = {
+      hash: readableReceipt.transactionHash,
+      blockHash: readableReceipt.blockHash,
+      blockNumber: readableReceipt.blockNumber,
+      type: '0x' + txObj.type.toString(16), // <--- legacy tx is type 0
+      nonce: '0x' + txObj.nonce.toString(16),
+      to: txObj?.to?.toString(),
+      from: txObj.getSenderAddress().toString(),
+      gas: '0x' + txObj.gasLimit.toString(16),
+      value: '0x' + txObj.value.toString('hex'),
+      input: '0x' + txObj.data.toString('hex'),
+      gasPrice: '0x' + txObj.getBaseFee().toString(16),
+      chainId: '0x' + CONFIG.chainId.toString(16),
+      transactionIndex: readableReceipt.transactionIndex,
+      v: '0x' + txObj.v?.toString('hex'),
+      r: '0x' + txObj.r?.toString('hex'),
+      s: '0x' + txObj.s?.toString('hex'),
+    } as readableLegacyTransaction
+
+    // EIP-2930 Transaction
+    if (txObj?.type === 1) {
+      //typecast so that we can access AccessListJSON
+      txObj = txObj as AccessListEIP2930Transaction
+      result.accessList = txObj.AccessListJSON // <--- this is difference
+      result.type = '0x' + txObj.type.toString(16)
+      result = result as readableEIP2930Transaction
+    }
+
+    // EIP-1559 Transaction
+    if (txObj?.type === 2) {
+      //typecast so that we can access AccessListJSON, maxPriorityFeePerGas, maxFeePerGas
+      txObj = txObj as FeeMarketEIP1559Transaction
+      result.type = '0x' + txObj.type.toString(16)
+      result.maxPriorityFeePerGas = '0x' + txObj.maxPriorityFeePerGas.toString(16)
+      result.maxFeePerGas = '0x' + txObj.maxFeePerGas.toString(16)
+      result.accessList = txObj.AccessListJSON
+      result = result as readableEIP1559Transaction
+    }
+
+    // EIP-4844 Transaction
+    // if(txObj?.type === 3) {
+    // seem to be very new and not supported by the version of @ethereum/tx yet
+    // we locked the version to 3.4.0
+    // have to update the dependency to support this
+    // which is not a priority at the moment and possibly be backward incompatible
+    // }
+    return result as readableTransaction
   }
 }
 

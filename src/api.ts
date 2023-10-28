@@ -1617,8 +1617,13 @@ export const methods = {
     let result: any = null
 
     try {
-      result = await collectorAPI.getBlock(args[0], 'hash', true)
-      result = result?.transactions[Number(args[1])]
+      const blockResp = await collectorAPI.getBlock(args[0], 'hash', true)
+      result = blockResp?.transactions[Number(args[1])]
+      if (result) {
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
+      }
     } catch (e) {
       callback(errorBusy)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
@@ -1669,8 +1674,13 @@ export const methods = {
 
     let result: any = null
     try {
-      result = await collectorAPI.getBlock(args[0], 'hex_num', true)
-      result = result?.transactions[Number(args[1])]
+      const blockResp = await collectorAPI.getBlock(args[0], 'hex_num', true)
+      result = blockResp?.transactions[Number(args[1])]
+      if (result) {
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
+      }
     } catch (e) {
       callback(errorBusy)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())

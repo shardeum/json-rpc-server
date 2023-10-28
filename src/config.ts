@@ -144,7 +144,7 @@ export const CONFIG: Config = {
   nonceValidate: false,
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
-  verbose: true,
+  verbose: false,
   dashboard: {
     enabled: true,
     // relative path will work but absolute path is recommended
@@ -153,11 +153,11 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: true,
+    enabled: false,
     collectorApiServerUrl: 'http://0.0.0.0:6001',
   },
   serviceValidatorSourcing: {
-    enabled: true,
+    enabled: false,
     serviceValidatorUrl: 'http://0.0.0.0:9001',
   },
 }
