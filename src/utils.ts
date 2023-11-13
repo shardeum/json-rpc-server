@@ -360,7 +360,7 @@ export function getNextConsensorNode() {
 
 function getNextArchiver() {
   if (healthyArchivers.length > 0) {
-    if (archiverIndex === healthyArchivers.length) {
+    if (archiverIndex >= healthyArchivers.length) {
       archiverIndex = 0
     }
     const archiver = healthyArchivers[Number(archiverIndex)]
