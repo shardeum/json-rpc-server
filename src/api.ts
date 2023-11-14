@@ -2236,6 +2236,138 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  debug_traceBlockByHash: async function (args: any, callback: any) {
+    const api_name = 'debug_traceBlockByHash'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
+    if (verbose) {
+      console.log('Running debug_traceBlockByHash', args)
+    }
+
+    // Check if tracer is defined
+    if (args[1] && args[1].tracer) {
+      callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+
+    const blockHash = args[0]
+
+    try {
+      //fetch block info
+      let blockResult = await collectorAPI.getBlock(blockHash, 'hash', args[1])
+      if (!blockResult) {
+        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
+        blockResult = res.data.block
+      }
+      if (verbose) console.log('BLOCK DETAIL', blockResult)
+      if (!blockResult) {
+        // block not found
+        if (verbose) {
+          console.log('Block not found running debug_traceBlockByHash', args)
+        }
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback(null, null)
+        return
+      }
+
+      //fetch transactions
+      const result = []
+      for (const tx of blockResult.transactions) {
+        let txHash
+        if (typeof tx === 'string') {
+          txHash = tx
+        } else {
+          txHash = tx.transactionHash
+        }
+        if (!txHash) {
+          continue
+        }
+
+        const txResult = await replayTransaction(txHash, '-s')
+        result.push({ structLogs: txResult })
+      }
+
+      callback(null, result)
+    } catch (e) {
+      console.log(`Error while making an eth call`, e)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback(errorBusy)
+    }
+  },
+  debug_traceBlockByNumber: async function (args: any, callback: any) {
+    const api_name = 'debug_traceBlockByNumber'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
+    if (verbose) {
+      console.log('Running debug_traceBlockByNumber', args)
+    }
+
+    // Check if tracer is defined
+    if (args[1] && args[1].tracer) {
+      callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+
+    let blockNumber = args[0]
+    if (args[0] == 'latest' || args[0] == 'earliest') {
+      blockNumber = blockNumber
+    } else {
+      blockNumber = parseInt(blockNumber)
+    }
+
+    try {
+      //fetch block info
+      let blockResult = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
+      if (!blockResult) {
+        const res = await requestWithRetry(
+          RequestMethod.Get,
+          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+        )
+        blockResult = res.data.block
+      }
+      if (verbose) console.log('BLOCK DETAIL', blockResult)
+      if (!blockResult) {
+        // block not found
+        if (verbose) {
+          console.log('Block not found running debug_traceBlockByNumber', args)
+        }
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback(null, null)
+        return
+      }
+
+      //fetch transactions
+      const result = []
+      for (const tx of blockResult.transactions) {
+        let txHash
+        if (typeof tx === 'string') {
+          txHash = tx
+        } else {
+          txHash = tx.transactionHash
+        }
+        if (!txHash) {
+          continue
+        }
+
+        const txResult = await replayTransaction(txHash, '-s')
+        result.push({ structLogs: txResult })
+      }
+
+      callback(null, result)
+    } catch (e) {
+      console.log(`Error while making an eth call`, e)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback(errorBusy)
+    }
+  },
   debug_storageRangeAt: async function (args: any, callback: any) {
     const api_name = 'debug_storageRangeAt'
     const ticket = crypto
