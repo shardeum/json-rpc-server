@@ -1504,8 +1504,6 @@ export const methods = {
           let gasUsed = 0
           let gasLimit = 0
           for (const transaction of res.data.transactions) {
-            console.log('here')
-
             gasUsed += hexStrToInt(transaction.wrappedEVMAccount.readableReceipt.gasUsed)
             gasLimit += hexStrToInt(transaction.wrappedEVMAccount.readableReceipt.gasLimit)
             gasPrices.push(transaction.wrappedEVMAccount.readableReceipt.gasPrice)
@@ -1517,6 +1515,8 @@ export const methods = {
             result.oldestBlock = '0x' + blockNumber.toString(16)
           }
         }
+      } else {
+        console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
       }
       callback(null, result)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1596,7 +1596,6 @@ export const methods = {
       callback(null, null) // tx not found
       return
     }
-
     result = extractTransactionObject(result)
     if (verbose) console.log('Final Tx:', txHash, result)
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
