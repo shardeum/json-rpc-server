@@ -1252,12 +1252,13 @@ export const methods = {
     defaultResult.from = result.from
     defaultResult.to = result.to
     defaultResult.nonce = result.nonce.indexOf('0x') === -1 ? '0x' + result.nonce : result.nonce
-    defaultResult.contractAddress = result.contractAddress
-    defaultResult.data = result.data
+    // defaultResult.contractAddress = result.contractAddress
+    // defaultResult.data = result.data
     defaultResult.blockHash = result.blockHash
     defaultResult.blockNumber = result.blockNumber
     defaultResult.value = result.value.indexOf('0x') === -1 ? '0x' + result.value : result.value
     defaultResult.gas = result.gasUsed
+    defaultResult.transactionIndex = result.transactionIndex
     if (verbose) console.log('Final Tx:', txHash, defaultResult)
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
     callback(null, defaultResult)
