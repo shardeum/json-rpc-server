@@ -112,7 +112,9 @@ function extractTransactionObject(bigTransaction: any, transactionIndexArg?: num
       input: tx.readableReceipt.data,
       nonce: tx.readableReceipt.nonce,
       to: tx.readableReceipt.to,
-      transactionIndex: transactionIndexArg ? '0x' + transactionIndexArg.toString(16) : undefined,
+      transactionIndex: transactionIndexArg
+        ? '0x' + transactionIndexArg.toString(16)
+        : tx.readableReceipt.transactionIndex,
       value: tx.readableReceipt.value,
       type: tx.readableReceipt.type,
       chainId: tx.readableReceipt.chainId,
@@ -141,7 +143,9 @@ function extractTransactionReceiptObject(bigTransaction: any, transactionIndexAr
       status: tx.readableReceipt.status,
       to: tx.readableReceipt.to,
       transactionHash: tx.txHash || tx.readableReceipt.transactionHash,
-      transactionIndex: transactionIndexArg ? '0x' + transactionIndexArg.toString(16) : undefined,
+      transactionIndex: transactionIndexArg
+        ? '0x' + transactionIndexArg.toString(16)
+        : tx.readableReceipt.transactionIndex,
       type: bigTransaction.transactionType,
     }
   } else {
