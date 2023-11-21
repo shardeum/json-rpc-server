@@ -11,7 +11,7 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
-
+  - remote: 'https://gitlab.com/pod_security/shared-ci/-/raw/main/security.yml'
 # Define the default Docker image for all jobs
 image: registry.gitlab.com/shardus/dev-container
 
@@ -26,6 +26,7 @@ stages:
   - prepare
   - build
   - test
+  - appsec
 
 # Prepare Job: Install Node.js dependencies
 prepare-job:
