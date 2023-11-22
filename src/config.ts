@@ -100,9 +100,10 @@ export const CONFIG: Config = {
   generateTxTimestamp: true,
   nodelistRefreshInterval: 5000,
   defaultRequestRetry: 5,
-  gasEstimateMethod: 'validator',
+  gasEstimateMethod: 'replayEngine',
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
   gasEstimateUseCache: false,
+  staticGasEstimate: '0x5B8D80',
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
