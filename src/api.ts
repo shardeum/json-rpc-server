@@ -1543,9 +1543,9 @@ export const methods = {
       console.log('Running getTransactionByHash', args)
     }
     const txHash = args[0]
-    if(!isHexString(txHash)){
+    if (!isHexString(txHash)) {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
-      callback("Invalid transaction hex string")
+      callback('Invalid transaction hex string')
       return
     }
     let retry = 0
