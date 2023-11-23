@@ -1,7 +1,7 @@
 import axios from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex, isHexPrefixed, isValidAddress, keccak256 } from 'ethereumjs-util'
+import { BN, bufferToHex, isHexPrefixed, isHexString, isValidAddress, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccount,
@@ -1537,6 +1537,11 @@ export const methods = {
       console.log('Running getTransactionByHash', args)
     }
     const txHash = args[0]
+    if(!isHexString(txHash)){
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback("Invalid transaction hex string")
+      return
+    }
     let retry = 0
     let success = false
     let result = null
@@ -1550,7 +1555,7 @@ export const methods = {
       return
     }
     let nodeUrl
-    while (retry < 10 && !success) {
+    while (retry < 5 && !success) {
       try {
         let res
         if (config.queryFromValidator) {
