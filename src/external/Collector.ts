@@ -67,7 +67,7 @@ class Collector extends BaseExternal {
     }
   }
 
-  async getTransactionReceipt(txHash: string): Promise<completeReadableReceipt | null> {
+  async getTransactionReceipt(txHash: string): Promise<any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
 
     /* prettier-ignore */ console.log(`Collector: getTransactionReceipt call for txHash: ${txHash}`)
@@ -81,11 +81,7 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionReceipt res: ${JSON.stringify(res.data)}`)
       if (!res.data.success) return null
 
-      const result = res.data.transactions
-        ? res.data.transactions[0]
-          ? res.data.transactions[0].wrappedEVMAccount.readableReceipt
-          : null
-        : null
+      const result = res.data.transactions ? res.data.transactions[0] : null
 
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionReceipt result: ${JSON.stringify(result)}`)
       return result

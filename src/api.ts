@@ -140,13 +140,19 @@ function extractTransactionReceiptObject(bigTransaction: any, transactionIndexAr
       gasUsed: tx.readableReceipt.gasUsed,
       logs: tx.readableReceipt.logs,
       logsBloom: tx.readableReceipt.logsBloom,
-      status: tx.readableReceipt.status,
+      status:
+        typeof tx.readableReceipt.status === 'number'
+          ? '0x' + tx.readableReceipt.status.toString(16)
+          : tx.readableReceipt.status,
       to: tx.readableReceipt.to,
       transactionHash: tx.txHash || tx.readableReceipt.transactionHash,
       transactionIndex: transactionIndexArg
         ? '0x' + transactionIndexArg.toString(16)
         : tx.readableReceipt.transactionIndex,
-      type: bigTransaction.transactionType,
+      type:
+        typeof bigTransaction.transactionType === 'number'
+          ? '0x' + bigTransaction.transactionType.toString(16)
+          : bigTransaction.transactionType,
     }
   } else {
     return null
@@ -1744,14 +1750,6 @@ export const methods = {
       let result
       const txHash = args[0]
       result = await collectorAPI.getTransactionReceipt(txHash)
-
-      // local pull successful early returns
-      if (result) {
-        callback(null, result)
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-        return
-        // WARNING DO NOT PUT collector returns into extractTransactionReceiptObject() func
-      }
 
       if (config.queryFromValidator && !result) {
         res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
