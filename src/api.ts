@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError, AxiosResponse } from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
 import { BN, bufferToHex, isHexPrefixed, isHexString, isValidAddress, keccak256 } from 'ethereumjs-util'
@@ -791,30 +791,37 @@ export const methods = {
         const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
         if (res.data.block) blockHash = res.data.block.hash
       }
-      const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
-      if (verbose) {
-        console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
-        console.log('res', JSON.stringify(res.data))
-      }
-      if (!res.data.transactions) {
-        callback(null, res.data.error)
+      try {
+        const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+        if (verbose) {
+          console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+          console.log('res', JSON.stringify(res.data))
+        }
+        if (!res.data.transactions) {
+          callback(null, res.data.error)
+          const nodeUrl = config.explorerUrl
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
+        }
+        let result = '0x' + res.data.transactions.length.toString(16)
+
+        const nodeUrl = config.explorerUrl
+        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit(
+          'fn_end',
+          ticket,
+          { nodeUrl, success: res.data.transactions.length ? true : false },
+          performance.now()
+        )
+      } catch (e) {
+        if (verbose) console.log((e as AxiosError).message)
+        callback(null, null)
         const nodeUrl = config.explorerUrl
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       }
-      let result = '0x' + res.data.transactions.length.toString(16)
-
-      const nodeUrl = config.explorerUrl
-      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit(
-        'fn_end',
-        ticket,
-        { nodeUrl, success: res.data.transactions.length ? true : false },
-        performance.now()
-      )
     } else {
       console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
-      callback(null, [])
+      callback(null, null)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
@@ -839,26 +846,37 @@ export const methods = {
         )
         if (res.data.block) blockNumber = res.data.block.number
       }
-      const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
-      if (verbose) {
-        console.log('url', `${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
-        console.log('res', JSON.stringify(res.data))
+      try {
+        const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+        if (verbose) {
+          console.log('url', `${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+          console.log('res', JSON.stringify(res.data))
+        }
+        if (!res.data.transactions) {
+          callback(null, res.data.error)
+          const nodeUrl = config.explorerUrl
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
+        }
+        let result = '0x' + res.data.transactions.length.toString(16)
+
+        const nodeUrl = config.explorerUrl
+        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit(
+          'fn_end',
+          ticket,
+          { nodeUrl, success: res.data.transactions.length ? true : false },
+          performance.now()
+        )
+      } catch (e) {
+        if (verbose) console.log((e as AxiosError).message)
+        callback(null, null)
+        const nodeUrl = config.explorerUrl
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       }
-
-      let result = '0x' + res.data.transactions.length.toString(16)
-
-      const nodeUrl = config.explorerUrl
-      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit(
-        'fn_end',
-        ticket,
-        { nodeUrl, success: res.data.transactions.length ? true : false },
-        performance.now()
-      )
     } else {
-      console.log('queryFromExplorer turned off. Could not process request')
-      callback(null, [])
+      console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
+      callback(null, null)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
@@ -1453,7 +1471,7 @@ export const methods = {
       )
     } else {
       console.log('queryFromExplorer turned off. Could not process request')
-      callback(null, [])
+      callback(null, null)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
@@ -1668,11 +1686,13 @@ export const methods = {
           performance.now()
         )
       } catch (error) {
-        callback(null, error)
+        /* prettier-ignore */ if (verbose) console.log('Error: eth_getTransactionByBlockHashAndIndex', (error as AxiosError).message)
+        callback(null, null)
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
     } else {
       console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
-      callback(null, [])
+      callback(null, null)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
     callback(null, result)
@@ -1708,28 +1728,34 @@ export const methods = {
     if (blockNumber === 'earliest') blockNumber = 0
     if (config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
-      const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
-      if (verbose) {
-        console.log('url', `${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
-        console.log('res', JSON.stringify(res.data))
+      try {
+        const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+        if (verbose) {
+          console.log('url', `${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+          console.log('res', JSON.stringify(res.data))
+        }
+
+        let result
+        if (res.data.success) result = extractTransactionObject(res.data.transactions[index], index)
+        else result = null
+
+        const nodeUrl = config.explorerUrl
+        if (verbose) console.log('TRANSACTION DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit(
+          'fn_end',
+          ticket,
+          { nodeUrl, success: res.data.transactions.length ? true : false },
+          performance.now()
+        )
+      } catch (error) {
+        /* prettier-ignore */ if (verbose) console.log('Error: eth_getTransactionByBlockNumberAndIndex', (error as AxiosError).message)
+        callback(null, null)
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
-
-      let result
-      if (res.data.success) result = extractTransactionObject(res.data.transactions[index], index)
-      else result = null
-
-      const nodeUrl = config.explorerUrl
-      if (verbose) console.log('TRANSACTION DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit(
-        'fn_end',
-        ticket,
-        { nodeUrl, success: res.data.transactions.length ? true : false },
-        performance.now()
-      )
     } else {
       console.log('queryFromExplorer turned off. Could not process request')
-      callback(null, [])
+      callback(null, null)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
     callback(null, result)
