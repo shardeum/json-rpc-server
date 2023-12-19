@@ -19,7 +19,7 @@
     "@ethereumjs/tx": "3.4.0",
     "@shardus/archiver-discovery": "1.1.0",
     "@shardus/crypto-utils": "4.0.4",
-    "axios": "0.24.0",
+    "axios": "1.6.1",
     "better-sqlite3": "7.6.2",
     "body-parser": "1.19.0",
     "connect": "3.7.0",
@@ -56,6 +56,9 @@
   },
   "overrides": {
     "semver": "7.5.3",
-    "optionator": "0.9.3"
+    "optionator": "0.9.3",
+    "qs": "6.11.2",
+    "systeminformation": "5.21.7",
+    "axios": "1.6.1"
   }
 }
