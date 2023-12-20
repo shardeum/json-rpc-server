@@ -685,7 +685,7 @@ export const methods = {
       const account = res.account
       nodeUrl = res.nodeUrl
       if (verbose) console.log('account', account)
-      if (verbose) console.log('Shardium balance', typeof account.balance, account.balance)
+      if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
       const SHD = intStringToHex(account.balance)
       if (verbose) console.log('SHD', typeof SHD, SHD)
       balance = intStringToHex(account.balance)
