@@ -1,0 +1,22 @@
+---
+version: '3'
+services:
+  json-rpc-server:
+    image: shardeum/json-rpc-server:dev
+    container_name: json-rpc-server
+    build:
+      context: .
+    network_mode: host
+    restart: unless-stopped
+    # environment:
+    #   - NO_OF_RPC_SERVERS=1
+    # volumes:
+      # - ./entrypoint.sh:/app/entrypoint.sh
+      # - ./src/config.ts:/app/src/config.ts
+    configs:
+      - source: archiverconfig
+        target: /app/archiverConfig.json
+
+configs:
+  archiverconfig:
+    file: ./archiverConfig.json

@@ -2,6 +2,31 @@
 
 `npm run start`
 
+## Docker setup
+
+> Make sure necessary components which are required to run json-rpc-server are smoke testing stack in networking mode host
+
+env `NO_OF_RPC_SERVERS` creates replicas of rpc servers using pm2. default is 1. Default port is 8080, port for each replicas will increment by 1 on default port. i.e 8081, 8082, 8083, etc.
+
+Start json-rpc-server
+
+```shell
+# Run services in detach mode
+docker compose up -d
+```
+
+Check the logs
+
+```shell
+docker compose logs -f
+```
+
+Clean the setup
+
+```shell
+docker compose down
+```
+
 ## DEBUG endpoints
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
