@@ -19,6 +19,12 @@ const crypto = require('@shardus/crypto-utils')
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
+/**
+ * Utility functions for the JSON-RPC server.
+ * This module provides various utility functions used by the JSON-RPC server implementation.
+ * It includes functions for updating the node list, checking the health of archivers, making HTTP requests with retry, parsing transaction objects, and more.
+ */
+
 const existingArchivers: Archiver[] = []
 
 export const node = {
@@ -48,8 +54,12 @@ export enum RequestMethod {
   Post = 'post',
 }
 
-// if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
-// linear complexity, O(n) where n is the amount of nodes object { ip: string, port number }
+
+/**
+ * Updates the node list by querying the archiver server.
+ * @param tryInfinate - Optional parameter indicating whether to infinitely retry or not. This is useful for first time updating NodeList
+ * @returns A promise that resolves once the node list is updated.
+ */
 export async function updateNodeList(tryInfinate = false) {
   if (!healthyArchivers.length) await checkArchiverHealth()
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
@@ -116,6 +126,10 @@ export async function updateNodeList(tryInfinate = false) {
   console.timeEnd('nodelist_update')
 }
 
+/**
+ * Checks the health of archivers.
+ * @returns {Promise<void>} A promise that resolves when the health check is complete.
+ */
 export async function checkArchiverHealth() {
   console.info('\n====> Checking Health of Archivers <====')
   const archiverData: ArchiverStat[] = await getArchiverStats()
@@ -124,6 +138,10 @@ export async function checkArchiverHealth() {
   console.log(`-->> ${healthyArchivers.length} Healthy Archivers active in the Network <<--`)
 }
 
+/**
+ * Retrieves the statistics of archivers.
+ * @returns A promise that resolves to an array of ArchiverStat objects.
+ */
 async function getArchiverStats(): Promise<ArchiverStat[]> {
   if (existingArchivers.length === 0) {
     const archivers = await getArchiverList({
@@ -149,6 +167,10 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
   return Promise.all(counters)
 }
 
+/**
+ * Waits for a random number of seconds between 1 and 5.
+ * @returns {Promise<void>} A promise that resolves after the specified number of seconds.
+ */
 export async function waitRandomSecond() {
   if (verbose) console.log(`Waiting before trying a different node`) // we don't need to wait here but doesn't hurt to wait a bit for perf
   await sleep(200)
@@ -162,6 +184,15 @@ function getTimeout(route: string) {
 }
 
 // nRetry negative number will retry infinitely
+/**
+ * Makes a request with retry logic.
+ * @param method - The request method.
+ * @param route - The route to send the request to.
+ * @param data - The data to send with the request.
+ * @param nRetry - The number of times to retry the request. If negative, it will retry infinitely
+ * @param isFullUrl - Indicates whether the route is a full URL or not.
+ * @returns A Promise that resolves to the response of the request.
+ */
 export async function requestWithRetry(
   method: RequestMethod,
   route: string,

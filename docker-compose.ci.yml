@@ -1,0 +1,10 @@
+---
+version: '3'
+services:
+  json-rpc-server-ci:
+    image: shardeum/json-rpc-server:local
+    container_name: json-rpc-server
+    build:
+      context: .
+    restart: unless-stopped
+    network_mode: ${JSON_RPC_SERVER_NETWORK_MODE}

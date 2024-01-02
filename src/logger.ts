@@ -6,6 +6,14 @@ import { getReasonEnumCode, getTransactionObj } from './utils'
 import EventEmitter from 'events'
 import { CONFIG as config } from './config'
 
+/**
+ * This file contains the implementation of the logger module.
+ * It provides functions for logging API performance data and transaction status.
+ */
+
+/**
+ * Represents an array of objects containing performance log data for API calls.
+ */
 type ApiPerfLogData = {
   tfinal: number
   timestamp: number
@@ -16,6 +24,11 @@ type ApiPerfLogData = {
   hash?: string
 }[]
 
+/**
+ * Represents a ticket for logging API performance.
+ * The `ApiPerfLogTicket` object stores information about the API being logged,
+ * including the API name and the start timer value.
+ */
 type ApiPerfLogTicket = {
   [key: string]: {
     api_name: string
@@ -27,6 +40,10 @@ export let apiPerfLogData: ApiPerfLogData = []
 export let apiPerfLogTicket: ApiPerfLogTicket = {}
 export const logEventEmitter = new EventEmitter()
 
+/**
+ * Represents the debug information object.
+ * This object contains various properties related to debugging and logging.
+ */
 export const debug_info = {
   isRecordingInterface: config.statLog,
   isRecordingTx: config.recordTxStatus,
@@ -38,6 +55,14 @@ export const debug_info = {
   interfaceDB_cleanTime: 0,
 }
 
+
+/**
+ * Saves the interface statistics to the database.
+ * This function retrieves the performance log data from the `apiPerfLogData` array,
+ * constructs SQL queries to insert the data into the `interface_stats` table,
+ * and executes the queries using the `db.exec` method.
+ * After saving the data, it clears the `apiPerfLogData` array and `apiPerfLogTicket` object.
+ */
 export async function saveInterfaceStat() {
   console.log(apiPerfLogData)
   try {
@@ -64,6 +89,14 @@ export async function saveInterfaceStat() {
   apiPerfLogTicket = {}
 }
 
+
+/**
+ * Sets up log event listeners.
+ * This function listens for various log events and performs specific actions based on the event.
+ * - For 'fn_start' event, it stores the API name and start timer in the apiPerfLogTicket object.
+ * - For 'fn_end' event, it calculates the time taken (tfinal) for the API call, stores the relevant data in apiPerfLogData, and deletes the corresponding ticket from apiPerfLogTicket.
+ * - For 'tx_insert_db' event, it processes the transaction statuses and saves them in the database.
+ */
 export function setupLogEvents() {
   /* eslint-disable security/detect-object-injection */
   if (config.statLog) {
@@ -148,7 +181,11 @@ export function setupLogEvents() {
   /* eslint-enable security/detect-object-injection */
 }
 
-// this function save recorded transaction to sqlite with its tx type
+/**
+ * Saves transaction status to the database.
+ * @param _txs - An array of DetailedTxStatus objects representing the transaction status.
+ * @returns - A promise that resolves when the transaction status is saved.
+ */
 export async function txStatusSaver(_txs: DetailedTxStatus[]) {
   const txs = _txs
 

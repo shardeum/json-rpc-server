@@ -7,6 +7,14 @@ export interface GasEstimate {
   timestamp: number
 }
 
+/**
+ * Checks if the gas estimate for a contract function is valid.
+ * 
+ * @param contractAddress - The address of the contract.
+ * @param functionSig - The function signature.
+ * @param gasEstimateInvalidationIntervalInMs - The interval in milliseconds after which the gas estimate is considered invalid.
+ * @returns A boolean indicating whether the gas estimate is valid.
+ */
 export function checkEntry(
   contractAddress: string,
   functionSig: string,
@@ -22,6 +30,12 @@ export function checkEntry(
   return Date.now() - entry.timestamp <= gasEstimateInvalidationIntervalInMs
 }
 
+/**
+ * Removes an entry from the gas_estimations table based on the contract address and function signature.
+ * 
+ * @param contractAddress - The contract address.
+ * @param functionSig - The function signature.
+ */
 export function removeEntry(contractAddress: string, functionSig: string): void {
   if (!contractAddress || !functionSig) {
     return
@@ -30,10 +44,23 @@ export function removeEntry(contractAddress: string, functionSig: string): void 
   stmt.run(contractAddress, functionSig)
 }
 
+/**
+ * Adds an entry to the gas estimate.
+ * 
+ * @param entry - The gas estimate entry to be added.
+ */
 export function addEntry(entry: GasEstimate): void {
   insertOrUpdateGasEstimate(entry)
 }
 
+/**
+ * Retrieves the gas estimate for a given contract address and function signature.
+ * 
+ * @param contractAddress - The address of the contract.
+ * @param functionSig - The function signature.
+ * @returns The gas estimate for the specified contract and function.
+ * @throws Error if the entry is not found.
+ */
 export function getGasEstimate(contractAddress: string, functionSig: string): GasEstimate {
   const entry = findEntryByContractAndSignature(contractAddress, functionSig)
   if (!entry) {
@@ -42,6 +69,13 @@ export function getGasEstimate(contractAddress: string, functionSig: string): Ga
   return entry
 }
 
+/**
+ * Finds a gas estimate entry in the database by contract address and function signature.
+ * 
+ * @param contract_address - The address of the contract.
+ * @param function_signature - The signature of the function.
+ * @returns The gas estimate entry if found, otherwise undefined.
+ */
 function findEntryByContractAndSignature(
   contract_address: string,
   function_signature: string
@@ -60,6 +94,11 @@ function findEntryByContractAndSignature(
     : undefined
 }
 
+/**
+ * Inserts or updates a gas estimate entry in the database.
+ * 
+ * @param entry - The gas estimate entry to be inserted or updated.
+ */
 function insertOrUpdateGasEstimate(entry: GasEstimate): void {
   if (!entry.contractAddress || !entry.functionSignature) {
     return

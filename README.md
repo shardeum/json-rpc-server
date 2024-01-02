@@ -1,26 +1,141 @@
-# Starting rpc server
+# Shardeum Server [![Node][node-badge]][node] [![license][license-badge]][license] 
 
-`npm run start`
+[license]: LICENSE
+[license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
+[node]: https://nodejs.org/en
+[node-badge]: https://img.shields.io/badge/Node-16.11.1-brightgreen.svg
 
-## DEBUG endpoints
+![banner](./img/banner.png)
 
-These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
+## Overview
+The Shardeum Server is a lightweight server providing a JSON-RPC interface for interacting with the Shardeum blockchain network. It allows developers to post requests to the Shardeum chain, obtain information and perform multiple other operations using JSON-RPC over HTTP. Additionally, the server provides a REST API for debugging and monitoring purposes.
 
-GET `/log/api-stats` this endpint emit the rpc interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy). Not setting any timestamp parameter will returns paginated json of all the entry in db.
+## What's Inside
+The Shardeum Server exposes the following services:
+- [JSON-RPC API](docs/jsonrpc-api.md).: A lightweight server providing a JSON-RPC interface for interacting with the Shardeum blockchain network.
+- [REST API](docs/rest-api.md): A REST API for debugging and monitoring purposes.
 
-GET `/log/txs` this endpoint return the txs it has been made through rpc server. This endpoint support dynmaic pagination. i.e `/log/txs?max=30&page=9`.
-Default values are `1000` for `max` and `0` for page.
+The full specification for the APIs is available in the [docs](docs) folder.
 
-GET `/log/status` this endpint return status of logging such as date of recording start and whether or not recording is enabled.
+## Docker setup
 
-GET `/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database.
+> Make sure necessary components which are required to run json-rpc-server are smoke testing stack in networking mode host
 
-GET `/log/stopRPCCapture` this endpoint set the config value to false which control whether to capture incoming rpc interface call stat and store in database
+env `NO_OF_RPC_SERVERS` creates replicas of rpc servers using pm2. default is 1. Default port is 8080, port for each replicas will increment by 1 on default port. i.e 8081, 8082, 8083, etc.
 
-GET `/log/startRPCCapture` this endpoint set the config value to true which control whether to capture rpc interface call stat and store in database.
+Start json-rpc-server
 
-GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database
+```shell
+# Run services in detach mode
+docker compose up -d
+```
 
-GET `/cleanStatTable` this endpoint trigger purging of table that store interface stats
+Check the logs
 
-GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging
+```shell
+docker compose logs -f
+```
+
+Clean the setup
+
+```shell
+docker compose down
+```
+
+## Getting Started
+The recommended way to run the Shardeum server is using [Docker](https://www.docker.com/). This will ensure that all dependencies are installed and that the server is running in a consistent environment. Optionally, you can also install the server locally using [npm](https://www.npmjs.com/).
+
+### Requirements
+In order to run the Shardeum server you must install the following:
+- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) - A distributed version control system.
+- [Docker](https://www.docker.com/) - A containerization platform.
+
+Additionally, you should have [make](https://man7.org/linux/man-pages/man1/make.1.html) installed.
+
+### Installation
+In order to install the server, run the following command:
+```sh
+git clone https://github.com/threesigmaxyz/shardeum-json-rpc
+cd shardeum-json-rpc
+make build
+```
+You should now have built docker images the service.
+
+### Setup
+The server expects a [Shardum Archive node](https://shardeum.org/blog/shardeum-archive-nodes-explained/) to be running on the same machine. Archive nodes maintain the entire transaction history. Archive nodes may or may not have to stake SHM, but they will earn a portion of the network reward to motivate and incentivize for storing historical data. Please check the official documentation for instructions on [how to setup an archive node](https://docs.shardeum.org/node/run/archive). 
+
+Alternatively, you can use the [shardus CLI tool](https://docs.shardus.com/docs/quickstart) to setup a local node cluster.
+```sh
+shardus create 1
+```
+The above command will create a local node cluster with 1 node. You can specify the number of nodes you want to create by changing the number in the command.
+
+### Running
+Afterwards, you can start the server, by running the following command:
+```sh
+make run
+```
+This will start a container running the `shardeum-json-rpc` server image,  available on port `4000`.
+The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additinaly, the `whitelist.json`, `blacklist.json` and `spammerlist.json` can be edited to manage the servers access control lists.
+
+### Usage
+Currently, no default client application is provided. You can develop you own based on the available endpoints or you can use `curl`:
+```bash
+curl http://localhost:4000 \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_getBalance",\
+  "params":["0x507877C2E26f1387432D067D2DaAfa7d0420d90a"],"id":1}'
+```
+
+#### Sending a Request
+To invoke an RPC method, send a POST request to `http://localhost:4000`, with this or an equivalent format:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "method_name",
+  "params": ["value1", "value2" ],
+  "id": 1
+}
+```
+
+Just replace the fields `"method_name"`, `"param1"`, `"value1"`, etc., with the relevant method and parameters you want to use.
+
+__Example Request:__
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "eth_getBalance",
+  "params": [ "your_wallet_address" ],
+  "id": 1
+}
+```
+
+__Example Response:__
+```json
+{
+  "jsonrpc": "2.0",
+  "result": "0x10",
+  "id": 1
+}
+```
+
+### Cleanup
+You can stop the server by running:
+```sh
+make stop
+```
+
+Additionally, you can remove the docker images by running:
+```sh
+make clean
+```
+
+This will remove all docker images created by the server during the build process.
+
+
+## About Us
+Shardeum is the world's first EVM-based L1 smart contract platform that scales linearly through dynamic state sharding and maintains low gas fees forever. You can learn more about us on our [website](https://shardeum.org/).
+
+![banner](./img/banner.png)

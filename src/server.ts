@@ -32,6 +32,11 @@ import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 setDefaultResultOrder('ipv4first')
 
+/**
+ * This file contains the main server code for the JSON-RPC server.
+ * It sets up the server, handles routes, and initializes necessary middleware and configurations.
+ */
+
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
 // var corsOptions = {
@@ -43,6 +48,8 @@ setDefaultResultOrder('ipv4first')
 //     }
 //   }
 // }
+
+// initialize the server
 const app = express()
 const server = new jayson.Server(methods)
 let port = config.port //8080
@@ -56,6 +63,7 @@ if (CONFIG.websocket.enabled) {
   wss.on('connection', onConnection)
 }
 
+// parse port from args
 const myArgs = process.argv.slice(2)
 if (myArgs.length > 0) {
   port = parseInt(myArgs[0])
@@ -72,6 +80,7 @@ process.on('unhandledRejection', (err) => {
   console.log('unhandledRejection:' + err)
 })
 
+// add configurations to the server
 app.set('trust proxy', true)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
@@ -87,11 +96,18 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   app.set('views', clientDirectory)
   app.use('/static', express.static(staticDirectory))
   // app.set('views', clientDirectory);
+
+  /**
+   * @route GET /dashboard
+   */
   app.get('/dashboard', function (req, res) {
     return res.sendFile(path.join(clientDirectory, 'index.html'))
   })
 }
 
+/**
+ * @route GET /api/subscribe
+ */
 app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
   const query = req.query
   if (!query || !req.ip || !query.port) {
@@ -108,12 +124,16 @@ app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
+/**
+ * @route GET /api/health
+ */
 app.get('/api/health', (req: Request, res: Response) => {
   return res.json({ healthy: true }).status(200)
 })
 
 const requestersList = new RequestersList(blackList, spammerList)
 
+// add custom middleware to format the error messages
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404) {
     const formattedError = {
@@ -125,6 +145,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
+// add custom middleware for the rate limit of requests
 app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (!config.rateLimit) {
     next()
@@ -152,12 +173,16 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
+// add log and authenticate routes
 app.use('/log', authorize, logRoute)
 app.use('/authenticate', authenticate)
 app.use(injectIP)
 // reject subscription methods from http
 app.use(rejectSubscription)
+
+// add jayson middleware
 app.use(server.middleware())
+
 
 setupArchiverDiscovery({
   customConfigPath: 'archiverConfig.json',

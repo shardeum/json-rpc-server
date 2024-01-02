@@ -61,6 +61,19 @@ type InjectResponse = {
   status: number
 }
 
+/**
+ * Represents the status of a transaction.
+ *
+ * @typedef {object} TxStatus
+ * @property {string} txHash - The hash of the transaction.
+ * @property {string} raw - The raw data of the transaction.
+ * @property {boolean} injected - Indicates whether the transaction has been injected.
+ * @property {boolean} accepted - Indicates whether the transaction has been accepted.
+ * @property {string} reason - The reason for the transaction status.
+ * @property {number} timestamp - The timestamp of the transaction. If not provided, it defaults to the current timestamp.
+ * @property {string} [ip] - The IP address associated with the transaction.
+ * @property {string} [nodeUrl] - The URL of the node associated with the transaction.
+ */
 export type TxStatus = {
   txHash: string
   raw: string
@@ -71,6 +84,21 @@ export type TxStatus = {
   ip?: string
   nodeUrl?: string
 }
+
+/**
+ * Represents the detailed status of a transaction.
+ * @typedef {Object} DetailedTxStatus
+ * @property {string} [ip] - The IP address associated with the transaction.
+ * @property {string} txHash - The hash of the transaction.
+ * @property {string} type - The type of the transaction.
+ * @property {string} to - The recipient address of the transaction.
+ * @property {string} from - The sender address of the transaction.
+ * @property {boolean} injected - Indicates whether the transaction has been injected.
+ * @property {TxStatusCode} accepted - The status code indicating the acceptance of the transaction.
+ * @property {string} reason - The reason for the transaction status.
+ * @property {string} timestamp - The timestamp of the transaction.
+ * @property {string} [nodeUrl] - The URL of the node associated with the transaction.
+ */
 export type DetailedTxStatus = {
   ip?: string
   txHash: string
@@ -223,6 +251,11 @@ async function getLogsFromExplorer(request: Types.LogQueryRequest): Promise<any[
   return updates
 }
 
+/**
+ * Retrieves the current block information from the validator.
+ * 
+ * @returns {Promise<any>} The current block information.
+ */
 async function getCurrentBlockInfo() {
   if (verbose) console.log('Running getCurrentBlockInfo')
   let result = { ...lastBlockInfo, nodeUrl: undefined }
@@ -245,6 +278,11 @@ async function getCurrentBlockInfo() {
   return result
 }
 
+/**
+ * Retrieves the current block information.
+ * 
+ * @returns An object containing the current block information.
+ */
 async function getCurrentBlock() {
   let blockNumber = '0'
   let timestamp = '0x55ba467c'
@@ -314,6 +352,14 @@ async function getExplorerPendingTransactions() {
   return txHashes
 }
 
+/**
+ * Creates a reject transaction status.
+ * 
+ * @param txHash - The hash of the transaction.
+ * @param reason - The reason for rejecting the transaction.
+ * @param ip - The IP address of the client.
+ * @param nodeUrl - The URL of the node (optional).
+ */
 export function createRejectTxStatus(txHash: string, reason: string, ip: string, nodeUrl?: string) {
   recordTxStatus({
     txHash: txHash,
@@ -327,6 +373,11 @@ export function createRejectTxStatus(txHash: string, reason: string, ip: string,
   })
 }
 
+/**
+ * Records the transaction status.
+ * 
+ * @param txStatus The transaction status to be recorded.
+ */
 export function recordTxStatus(txStatus: TxStatus) {
   txStatuses.push(txStatus)
   if (txStatuses.length > maxTxCountToStore && config.recordTxStatus) {
@@ -334,6 +385,14 @@ export function recordTxStatus(txStatus: TxStatus) {
   }
 }
 
+/**
+ * Injects a transaction into the network and records its status.
+ * 
+ * @param txHash - The hash of the transaction.
+ * @param tx - The transaction object.
+ * @param args - Additional arguments.
+ * @returns A promise that resolves with the injection result or rejects with an error.
+ */
 function injectAndRecordTx(txHash: string, tx: any, args: any) {
   const { raw } = tx
   const { baseUrl } = getBaseUrl()
@@ -411,6 +470,12 @@ function injectAndRecordTx(txHash: string, tx: any, args: any) {
   })
 }
 
+/**
+ * Saves the transaction status to the server.
+ * If `config.recordTxStatus` is false or `txStatuses` is empty, the function returns early.
+ * The function emits a 'tx_insert_db' event with a clone of `txStatuses` and sends a POST request to the server with the clone.
+ * Finally, it logs the response data.
+ */
 export async function saveTxStatus() {
   if (!config.recordTxStatus) return
   if (txStatuses.length === 0) return
@@ -419,7 +484,14 @@ export async function saveTxStatus() {
   logEventEmitter.emit('tx_insert_db', txStatusesClone)
 }
 
+/**
+ * JSON-RPC API methods.
+ */
 export const methods = {
+  /**
+  * RPC: web3_clientVersion() => String
+  * @returns Web3 Client Version
+  */
   web3_clientVersion: async function (args: any, callback: any) {
     const api_name = 'web3_clientVersion'
     const ticket = crypto
@@ -439,6 +511,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: web3_sha3() => String
+  * @returns SHA3 hash
+  */
   web3_sha3: async function (args: any, callback: any) {
     const api_name = 'web3_sha3'
     const ticket = crypto
@@ -455,6 +531,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: net_version() => String
+  * @returns Network version
+  */
   net_version: async function (args: any, callback: any) {
     const api_name = 'net_version'
     const ticket = crypto
@@ -471,6 +551,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, chainId)
   },
+  /**
+  * RPC: net_listening() => Boolean
+  * @returns Whether the node is listening for network connections
+  */
   net_listening: async function (args: any, callback: any) {
     const api_name = 'net_listening'
     const ticket = crypto
@@ -486,6 +570,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: net_peerCount() => String
+  * @returns Number of peers currently connected to the node
+  */
   net_peerCount: async function (args: any, callback: any) {
     const api_name = 'net_peerCount'
     const ticket = crypto
@@ -501,6 +589,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_protocolVersion() => String
+  * @returns Ethereum protocol version
+  */
   eth_protocolVersion: async function (args: any, callback: any) {
     const api_name = 'eth_protocolVersion'
     const ticket = crypto
@@ -516,6 +608,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_syncing() => Boolean
+  * @returns Whether the node is currently syncing with the network
+  */
   eth_syncing: async function (args: any, callback: any) {
     const api_name = 'eth_syncing'
     const ticket = crypto
@@ -532,6 +628,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_coinbase() => String
+  * @returns Coinbase address
+  */
   eth_coinbase: async function (args: any, callback: any) {
     const api_name = 'eth_coinbase'
     const ticket = crypto
@@ -547,6 +647,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_mining() => Boolean
+  * @returns Whether the node is currently mining
+  */
   eth_mining: async function (args: any, callback: any) {
     const api_name = 'eth_mining'
     const ticket = crypto
@@ -562,6 +666,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_hashrate() => String
+  * @returns Current mining hashrate
+  */
   eth_hashrate: async function (args: any, callback: any) {
     const api_name = 'eth_hashrate'
     const ticket = crypto
@@ -577,6 +685,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_gasPrice() => String
+  * @returns Current gas price
+  */
   eth_gasPrice: async function (args: any, callback: any) {
     const api_name = 'eth_gasPrice'
     const ticket = crypto
@@ -607,6 +719,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, fallbackGasPrice)
   },
+  /**
+  * RPC: eth_accounts() => Array<String>
+  * @returns List of Ethereum accounts
+  */
   eth_accounts: async function (args: any, callback: any) {
     const api_name = 'eth_accounts'
     const ticket = crypto
@@ -622,6 +738,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: eth_blockNumber() => String
+  * @returns Current block number
+  */
   eth_blockNumber: async function (args: any, callback: any) {
     const api_name = 'eth_blockNumber'
     const ticket = crypto
@@ -642,6 +762,10 @@ export const methods = {
       callback(null, blockNumber)
     }
   },
+  /**
+  * RPC: eth_getBalance() => String
+  * @returns Balance of the specified Ethereum address
+  */
   eth_getBalance: async function (args: any, callback: any) {
     const api_name = 'eth_getBalance'
     const ticket = crypto
@@ -697,7 +821,11 @@ export const methods = {
       callback(null, balance)
     }
     if (verbose) console.log('Final balance', balance)
-  },
+  },  
+  /**
+  * RPC: eth_getStorageAt() => String
+  * @returns Storage value at the specified Ethereum address and storage index
+  */
   eth_getStorageAt: async function (args: any, callback: any) {
     const api_name = 'eth_getStorageAt'
     const ticket = crypto
@@ -712,6 +840,11 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+  * RPC: 
+  * `eth_getTransactionCount()` => `String`
+  * @returns Number of transactions sent from the specified Ethereum address
+  */
   eth_getTransactionCount: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionCount'
     const ticket = crypto
@@ -772,6 +905,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
     }
   },
+  /**
+  * RPC: eth_getBlockTransactionCountByHash => async function
+  * @returns The transaction count of a block specified by its hash
+  */
   eth_getBlockTransactionCountByHash: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockTransactionCountByHash'
     const ticket = crypto
@@ -823,6 +960,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
+  /**
+   * RPC: eth_getBlockTransactionCountByNumber => async function
+   * @returns Returns the transaction count of a block specified by its number.
+   */
   eth_getBlockTransactionCountByNumber: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockTransactionCountByNumber'
     const ticket = crypto
@@ -878,6 +1019,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
+  /**
+   * RPC: eth_getUncleCountByBlockHash => async function
+   * @returns Returns the uncle count of a block specified by its hash.
+   */
   eth_getUncleCountByBlockHash: async function (args: any, callback: any) {
     const api_name = 'eth_getUncleCountByBlockHash'
     const ticket = crypto
@@ -893,6 +1038,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_getUncleCountByBlockNumber => async function
+   * @returns Returns the uncle count of a block specified by its number.
+   */
   eth_getUncleCountByBlockNumber: async function (args: any, callback: any) {
     const api_name = 'eth_getUncleCountByBlockNumber'
     const ticket = crypto
@@ -908,6 +1057,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_getCode => async function
+   * @returns Returns the code of a contract specified by its address.
+   */
   eth_getCode: async function (args: any, callback: any) {
     const api_name = 'eth_getCode'
     const ticket = crypto
@@ -957,6 +1110,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
     }
   },
+  /**
+   * RPC: eth_signTransaction => async function
+   * @returns Returns the signed transaction.
+   */
   eth_signTransaction: async function (args: any, callback: any) {
     const api_name = 'eth_signTransaction'
     const ticket = crypto
@@ -972,6 +1129,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_sendTransaction => async function
+   * @returns Returns the transaction hash.
+   */
   eth_sendTransaction: async function (args: any, callback: any) {
     const api_name = 'eth_sendTransaction'
     const ticket = crypto
@@ -988,6 +1149,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_sendRawTransaction => async function
+   * @returns Returns the transaction hash.
+   */
   eth_sendRawTransaction: async function (args: any, callback: any) {
     const api_name = 'eth_sendRawTransaction'
     const ticket = crypto
@@ -1166,6 +1331,10 @@ export const methods = {
       callback({ message: e }, null)
     }
   },
+  /**
+   * RPC: eth_sendInternalTransaction => void
+   * @returns Returns internal transaction.
+   */
   eth_sendInternalTransaction: async function (args: any, callback: any) {
     const api_name = 'eth_sendInternalTransaction'
     const ticket = crypto
@@ -1236,6 +1405,10 @@ export const methods = {
       callback({ message: e }, null)
     }
   },
+  /**
+   * RPC: eth_call => void
+   * @returns Returns the value of the executed contract method.
+   */
   eth_call: async function (args: any, callback: any) {
     const api_name = 'eth_call'
     const ticket = crypto
@@ -1281,6 +1454,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: eth_estimateGas => void
+   * @returns Returns the estimate gas amount for the transaction.
+   */
   eth_estimateGas: async function (args: any, callback: any) {
     const api_name = 'eth_estimateGas'
     const ticket = crypto
@@ -1376,6 +1553,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_getBlockByHash => void
+   * @returns Returns the block by a hash value.
+   */
   eth_getBlockByHash: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockByHash'
     const ticket = crypto
@@ -1399,6 +1580,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_getBlockByNumber => void
+   * @returns Returns a block by number.
+   */
   eth_getBlockByNumber: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockByNumber'
     const ticket = crypto
@@ -1432,6 +1617,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: result ? true : false }, performance.now())
   },
+  /**
+   * RPC: eth_getBlockReceipts => void
+   * @returns Returns the receipts of a block.
+   */
   eth_getBlockReceipts: async function (args: any, callback: any) {
     const api_name = 'eth_getBlockReceipts'
     const ticket = crypto
@@ -1473,6 +1662,11 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
+
+  /**
+    * RPC: eth_feeHistory() => void
+    * @returns Fee history of the last n blocks
+    */
   eth_feeHistory: async function (args: any, callback: any) {
     const api_name = 'eth_feeHistory'
     const ticket = crypto
@@ -1548,6 +1742,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
+  /**
+   * RPC: eth_getTransactionByHash => void
+   * @returns Returns a transaction by it's hash.
+   */
   eth_getTransactionByHash: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionByHash'
     const ticket = crypto
@@ -1632,6 +1830,10 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
     callback(null, result)
   },
+  /**
+   * RPC: eth_getTransactionByBlockHashAndIndex => void
+   * @returns Returns a specific transaction based in the index on a specific block hash.
+   */
   eth_getTransactionByBlockHashAndIndex: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
     const ticket = crypto
@@ -1696,6 +1898,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getTransactionByBlockNumberAndIndex => void
+   * @returns Returns a specific transaction based on the index on a specific block.
+   */
   eth_getTransactionByBlockNumberAndIndex: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
     const ticket = crypto
@@ -1759,6 +1965,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getTransactionReceipt => void
+   * @returns Returns a specific transaction based on the index on a specific block.
+   */
   eth_getTransactionReceipt: async function (args: any, callback: any) {
     const api_name = 'eth_getTransactionReceipt'
     const ticket = crypto
@@ -1799,7 +2009,7 @@ export const methods = {
         }
         const explorerUrl = config.explorerUrl
         res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
-        /* prettier-ignore */ if (verbose) console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`,'res', JSON.stringify(res.data))
+        /* prettier-ignore */ if (verbose) console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`, 'res', JSON.stringify(res.data))
 
         result = res.data.transactions ? res.data.transactions[0] : null
       }
@@ -1816,6 +2026,10 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
+  /**
+   * RPC: eth_getUncleByBlockHashAndIndex => void
+   * @returns Returns the uncle block based on the hash and index.
+   */
   eth_getUncleByBlockHashAndIndex: async function (args: any, callback: any) {
     const api_name = 'eth_getUncleByBlockHashAndIndex'
     const ticket = crypto
@@ -1830,6 +2044,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getUncleByBlockNumberAndIndex => void
+   * @returns Returns the uncle block based on the number and index.
+   */
   eth_getUncleByBlockNumberAndIndex: async function (args: any, callback: any) {
     const api_name = 'eth_getUncleByBlockNumberAndIndex'
     const ticket = crypto
@@ -1844,6 +2062,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getCompilers => void
+   * @returns Returns a list of available compilers in the client.
+   */
   eth_getCompilers: async function (args: any, callback: any) {
     const api_name = 'eth_getCompilers'
     const ticket = crypto
@@ -1858,6 +2080,11 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * This method has been removed from other RPCs
+   * RPC: eth_compileSolidity => void
+   * @returns Returns the compiled solidity code 
+   */
   eth_compileSolidity: async function (args: any, callback: any) {
     const api_name = 'eth_compileSolidity'
     const ticket = crypto
@@ -1872,6 +2099,11 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * This method has been removed from other RPCs
+   * RPC: eth_compileLLL => void
+   * @returns Returns the compiled LLL code 
+   */
   eth_compileLLL: async function (args: any, callback: any) {
     const api_name = 'eth_compileLLL'
     const ticket = crypto
@@ -1884,6 +2116,11 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * This method has been removed from other RPCs
+   * RPC: eth_compileSerpent => void
+   * @returns Returns the compiled Serpent code 
+   */
   eth_compileSerpent: async function (args: any, callback: any) {
     const api_name = 'eth_compileSerpent'
     const ticket = crypto
@@ -1896,6 +2133,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_newBlockFilter => void
+   * @returns Returns the filter id.
+   */
   eth_newBlockFilter: async function (args: any, callback: any) {
     const api_name = 'eth_newBlockFilter'
     const ticket = crypto
@@ -1912,7 +2153,7 @@ export const methods = {
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString()),
     }
-    const unsubscribe = () => {}
+    const unsubscribe = () => { }
     const internalFilter: Types.InternalFilter = {
       updates: [],
       filter: filterObj,
@@ -1924,6 +2165,10 @@ export const methods = {
     callback(null, filterId)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_newPendingTransactionFilter => void
+   * @returns Returns the filter id.
+   */
   eth_newPendingTransactionFilter: async function (args: any, callback: any) {
     const api_name = 'eth_newPendingTransactionFilter'
     const ticket = crypto
@@ -1943,7 +2188,7 @@ export const methods = {
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString()),
     }
-    const unsubscribe = () => {}
+    const unsubscribe = () => { }
     const internalFilter: Types.InternalFilter = {
       updates: [],
       filter: filterObj,
@@ -1955,6 +2200,10 @@ export const methods = {
     callback(null, filterId)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_uninstallFilter => void
+   * @returns Returns if the filter was successfully uninstalled.
+   */
   eth_uninstallFilter: async function (args: any, callback: any) {
     const api_name = 'eth_uninstallFilter'
     const ticket = crypto
@@ -1976,6 +2225,10 @@ export const methods = {
     callback(null, true)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_newFilter => void
+   * @returns Returns the filter id.
+   */
   eth_newFilter: async function (args: any, callback: any) {
     const api_name = 'eth_newFilter'
     const ticket = crypto
@@ -2005,7 +2258,7 @@ export const methods = {
     }
     if (filterObj.fromBlock === 'latest') filterObj.fromBlock = lastBlockInfo.blockNumber
     if (filterObj.toBlock === 'latest') delete filterObj.toBlock
-    const unsubscribe = () => {}
+    const unsubscribe = () => { }
     const internalFilter: Types.InternalFilter = {
       updates: [],
       filter: filterObj,
@@ -2017,6 +2270,10 @@ export const methods = {
     callback(null, filterId)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getFilterChanges => void
+   * @returns Returns an array with all the filter changes.
+   */
   eth_getFilterChanges: async function (args: any, callback: any) {
     const api_name = 'eth_getFilterChanges'
     const ticket = crypto
@@ -2096,6 +2353,10 @@ export const methods = {
     callback(null, updates)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getFilterLogs => void
+   * @returns Returns an array of all logs matching filter with given id.
+   */
   eth_getFilterLogs: async function (args: any, callback: any) {
     const api_name = 'eth_getFilterLogs'
     const ticket = crypto
@@ -2136,6 +2397,10 @@ export const methods = {
     callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getLogs => void
+   * @returns Returns an array of all logs objects or an empty array if nothing changed since last poll.
+   */
   eth_getLogs: async function (args: any, callback: any) {
     const api_name = 'eth_getLogs'
     const ticket = crypto
@@ -2203,6 +2468,10 @@ export const methods = {
     callback(null, logs)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getWork => void
+   * @returns Get the work.
+   */
   eth_getWork: async function (args: any, callback: any) {
     const api_name = 'eth_getWork'
     const ticket = crypto
@@ -2215,6 +2484,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_submitWork => void
+   * @returns Submit the work.
+   */
   eth_submitWork: async function (args: any, callback: any) {
     const api_name = 'eth_submitWork'
     const ticket = crypto
@@ -2227,6 +2500,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_submitHashrate => Number
+   * @returns Submit the hashrate.
+   */
   eth_submitHashrate: async function (args: any, callback: any) {
     const api_name = 'eth_submitHashrate'
     const ticket = crypto
@@ -2239,6 +2516,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: debug_traceTransaction => String
+   * @returns Returns trace data of transaction.
+   */
   debug_traceTransaction: async function (args: any, callback: any) {
     const api_name = 'debug_traceTransaction'
     const ticket = crypto
@@ -2266,6 +2547,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: debug_traceBlockByHash => String
+   * @returns Returns trace data of block by hash.
+   */
   debug_traceBlockByHash: async function (args: any, callback: any) {
     const api_name = 'debug_traceBlockByHash'
     const ticket = crypto
@@ -2328,6 +2613,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: debug_traceBlockByNumber => String
+   * @returns Returns trace data of block by number.
+   */
   debug_traceBlockByNumber: async function (args: any, callback: any) {
     const api_name = 'debug_traceBlockByNumber'
     const ticket = crypto
@@ -2398,6 +2687,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: debug_storageRangeAt => String
+   * @returns Returns storage at a specific range.
+   */
   debug_storageRangeAt: async function (args: any, callback: any) {
     const api_name = 'debug_storageRangeAt'
     const ticket = crypto
@@ -2433,6 +2726,10 @@ export const methods = {
     }
     callback(null, { storage: {} })
   },
+  /**
+   * RPC: debug_storageRangeAt2 => String
+   * @returns Returns storage at a specific range alternative.
+   */
   debug_storageRangeAt2: async function (args: any, callback: any) {
     const api_name = 'debug_storageRangeAt2'
     const ticket = crypto
@@ -2463,6 +2760,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: db_putString => String
+   * @returns Returns string added to the db.
+   */
   db_putString: async function (args: any, callback: any) {
     const api_name = 'db_putString'
     const ticket = crypto
@@ -2475,6 +2776,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: db_getString => String
+   * @returns Returns string from the db.
+   */
   db_getString: async function (args: any, callback: any) {
     const api_name = 'db_getString'
     const ticket = crypto
@@ -2487,6 +2792,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: db_putHex => String
+   * @returns Returns hex added the db.
+   */
   db_putHex: async function (args: any, callback: any) {
     const api_name = 'db_putHex'
     const ticket = crypto
@@ -2499,6 +2808,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: db_getHex => String
+   * @returns Returns hex from the db.
+   */
   db_getHex: async function (args: any, callback: any) {
     const api_name = 'db_getHex'
     const ticket = crypto
@@ -2511,6 +2824,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_version => void
+   * @returns Returns hex from the db.
+   */
   shh_version: async function (args: any, callback: any) {
     const api_name = 'shh_version'
     const ticket = crypto
@@ -2523,6 +2840,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_post => void
+   * @returns Returns true if shh was posted successfully.
+   */
   shh_post: async function (args: any, callback: any) {
     const api_name = 'shh_post'
     const ticket = crypto
@@ -2535,6 +2856,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_newIdentity => void
+   * @returns Returns shh new identity.
+   */
   shh_newIdentity: async function (args: any, callback: any) {
     const api_name = 'shh_newIdentity'
     const ticket = crypto
@@ -2547,6 +2872,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_hasIdentity => boolean
+   * @returns Returns if shh has identity.
+   */
   shh_hasIdentity: async function (args: any, callback: any) {
     const api_name = 'shh_hasIdentity'
     const ticket = crypto
@@ -2559,6 +2888,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+    /**
+   * RPC: shh_newGroup => void
+   * @returns Returns shh new group.
+   */
   shh_newGroup: async function (args: any, callback: any) {
     const api_name = 'shh_newGroup'
     const ticket = crypto
@@ -2571,6 +2904,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_addToGroup => void
+   * @returns Returns the new shh group.
+   */
   shh_addToGroup: async function (args: any, callback: any) {
     const api_name = 'shh_addToGroup'
     const ticket = crypto
@@ -2583,6 +2920,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_newFilter => void
+   * @returns Returns shh new filter.
+   */
   shh_newFilter: async function (args: any, callback: any) {
     const api_name = 'shh_newFilter'
     const ticket = crypto
@@ -2595,6 +2936,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_uninstallFilter => void
+   * @returns Returns if shh filter was successfully removed.
+   */
   shh_uninstallFilter: async function (args: any, callback: any) {
     const api_name = 'shh_uninstallFilter'
     const ticket = crypto
@@ -2607,6 +2952,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_getFilterChanges => void
+   * @returns Returns all the changes of the shh filter.
+   */
   shh_getFilterChanges: async function (args: any, callback: any) {
     const api_name = 'shh_getFilterChanges'
     const ticket = crypto
@@ -2619,6 +2968,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: shh_getMessages => void
+   * @returns Returns all the messages from the shh.
+   */
   shh_getMessages: async function (args: any, callback: any) {
     const api_name = 'shh_getMessages'
     const ticket = crypto
@@ -2631,6 +2984,10 @@ export const methods = {
     callback(null, result)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_chainId => Number
+   * @returns Returns the chain id.
+   */
   eth_chainId: async function (args: any, callback: any) {
     const api_name = 'eth_chainId'
     const ticket = crypto
@@ -2646,6 +3003,10 @@ export const methods = {
     callback(null, hexValue)
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
+  /**
+   * RPC: eth_getAccessList => void
+   * @returns Returns the access list.
+   */
   eth_getAccessList: async function (args: any, callback: any) {
     const api_name = 'eth_getAccessList'
     const ticket = crypto
@@ -2689,6 +3050,10 @@ export const methods = {
       callback(errorBusy)
     }
   },
+  /**
+   * RPC: eth_subscribe => Number
+   * @returns Returns the subscription ID.
+   */
   eth_subscribe: async function (args: any, callback: any) {
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback('Subscription feature disabled', null)
@@ -2728,7 +3093,10 @@ export const methods = {
       // subscription failed, will not be tracking it
     }
   },
-
+  /**
+   * RPC: eth_unsubscribe => boolean
+   * @returns Returns if the subscription was successfully unsubscribed.
+   */
   eth_unsubscribe: async function (args: any, callback: any) {
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback('Subscription feature disabled', null)

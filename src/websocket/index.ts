@@ -7,6 +7,13 @@ import { CONFIG } from '../config'
 import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 
+
+/**
+ * Handles WebSocket connection events.
+ * 
+ * @param socket - The WebSocket connection.
+ * @returns A Promise that resolves when the handling is complete.
+ */
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   socket.on('message', (message: string) => {
     // console.log(`Received message: ${message}`);
@@ -135,6 +142,14 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
 
 export const subscriptionEventEmitter = new EventEmitter()
 
+/**
+ * Sets up event handlers for subscription events.
+ */
+/**
+ * Sets up event handlers for subscription events.
+ * When the 'evm_log_received' event is emitted, this function handles the logs and sends them to the subscribed clients.
+ * If the client is disconnected, it unsubscribes the client from the log server.
+ */
 export const setupSubscriptionEventHandlers = (): void => {
   subscriptionEventEmitter.on('evm_log_received', async (logs, subscription_id) => {
     if (!logSubscriptionList.getById(subscription_id)) {
@@ -198,6 +213,14 @@ export const setupSubscriptionEventHandlers = (): void => {
   })
 }
 
+/**
+ * Constructs an RPC error response object.
+ * 
+ * @param ErrorMessage - The error message.
+ * @param ErrCode - The error code (default: -1).
+ * @param id - The ID of the request.
+ * @returns An object representing the RPC error response.
+ */
 const constructRPCErrorRes = (
   ErrorMessage: string,
   ErrCode = -1,

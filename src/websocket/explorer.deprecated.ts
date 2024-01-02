@@ -8,6 +8,14 @@ export let evmLogProvider_ConnectionStream: WebSocket | null = null
 
 const explorer_ws_url = CONFIG.explorerUrl.replace('http', 'ws')
 
+/**
+ * Sets up a connection stream for EVM log provider.
+ * If websocket is enabled and subscriptions are served, it establishes a websocket connection to the explorer.
+ * Handles various websocket events such as error, open, close, and message.
+ * Parses incoming messages and performs corresponding actions based on the message method.
+ * Emits 'evm_log_received' event when 'log_found' method is received with relevant logs and subscribers.
+ * Automatically retries to establish websocket stream to the explorer after a delay if the connection is closed.
+ */
 export const setupEvmLogProviderConnectionStream = () => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
   if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0)

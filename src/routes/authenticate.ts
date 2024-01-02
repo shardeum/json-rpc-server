@@ -1,9 +1,17 @@
 import * as jwt from 'jsonwebtoken'
 import express from 'express'
 export const router = express.Router()
-import { CONFIG } from '../config'
+import {CONFIG} from '../config'
 import { Request, Response } from 'express'
 
+/**
+ * This file contains the routes for authentication.
+ * It handles the authentication process and token verification.
+ */
+
+/**
+ * @route GET /authenticate/:passphrase
+ */ 
 router.route('/:passphrase').get(async function (req: Request, res: Response) {
   const { passphrase } = req.params
   const payload = { user: 'shardeum-dev' }
@@ -16,16 +24,20 @@ router.route('/:passphrase').get(async function (req: Request, res: Response) {
       httpOnly: false,
       maxAge: 1000 * 60 * 60 * 700, // ~ a month
     })
-    return res.send({ token: token, message: 'authenticated and authorized for debug api calls' }).status(200)
+    return res.send({ token:token, message: 'authenticated and authorized for debug api calls' }).status(200)
   }
   return res.send({ message: 'wrong passphrase' }).status(400)
 })
 
+/*
+* @route GET /authenticate/token-check/:token
+*/
 router.route('/token-check/:token').get(async function (req: Request, res: Response) {
   const { token } = req.params
 
-  jwt.verify(token, CONFIG.secret_key, (err: any) => {
+  // verify JWT token
+  jwt.verify(token, CONFIG.secret_key, (err: any, decoded: any) => {
     if (err) return res.status(401).send({ valid: false })
-    return res.send({ valid: true }).status(200)
+    return res.send({valid: true}).status(200);
   })
 })

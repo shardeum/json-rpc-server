@@ -4,6 +4,12 @@ import { BaseExternal, axiosWithRetry } from './BaseExternal'
 import { verbose } from '../api'
 import { CONFIG } from '../config'
 
+/**
+ * Represents a service validator that interacts with an external service.
+ * This class provides methods to perform various operations such as getting contract code,
+ * getting account information, getting balance, getting transaction count, getting gas price,
+ * estimating gas, getting access list, and calling a contract.
+ */
 class ServiceValidator extends BaseExternal {
   constructor(baseUrl: string) {
     super(baseUrl, 3, {
@@ -11,6 +17,11 @@ class ServiceValidator extends BaseExternal {
     })
   }
 
+  /**
+   * Retrieves the contract code for a given address.
+   * @param address - The address of the contract.
+   * @returns A Promise that resolves to the contract code as a string, or null if the service validator sourcing is disabled.
+   */
   async getContractCode(address: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -31,6 +42,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Retrieves the account information for the given address.
+   * @param address The address of the account.
+   * @returns A Promise that resolves to the account information, or null if the service validator sourcing is disabled.
+   */
   async getAccount(address: string): Promise<any | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -51,6 +67,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Retrieves the balance for a given address.
+   * @param address The address for which to retrieve the balance.
+   * @returns A Promise that resolves to the balance as a string, or null if the service validator sourcing is disabled or an error occurs.
+   */
   async getBalance(address: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -65,6 +86,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Retrieves the transaction count for a given address.
+   * @param address The address for which to retrieve the transaction count.
+   * @returns A Promise that resolves to the transaction count as a string, or null if the service validator sourcing is disabled or an error occurs.
+   */
   async getTransactionCount(address: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -79,6 +105,10 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Retrieves the gas price from the service validator.
+   * @returns A Promise that resolves to a string representing the gas price, or null if the service validator sourcing is disabled.
+   */
   async getGasPrice(): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -99,6 +129,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Estimates the gas required for a given call object.
+   * @param callObj The call object for which to estimate the gas.
+   * @returns A promise that resolves to the estimated gas as a string, or null if the service validator sourcing is disabled.
+   */
   async estimateGas(callObj: any): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -120,6 +155,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Retrieves the access list for a given call object.
+   * @param callObj The call object.
+   * @returns A promise that resolves to an array of access list items, or null if the service validator sourcing is disabled.
+   */
   async getAccessList(callObj: any): Promise<any[] | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
@@ -141,6 +181,11 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  /**
+   * Calls the Ethereum contract with the provided call object.
+   * @param callObj The call object containing the necessary parameters for the contract call.
+   * @returns A Promise that resolves to a string representing the result of the contract call, or null if the service validator sourcing is disabled.
+   */
   async ethCall(callObj: any): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
