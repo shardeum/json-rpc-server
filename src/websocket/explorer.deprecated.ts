@@ -1,21 +1,20 @@
 import WebSocket from 'ws'
 import { subscriptionEventEmitter } from '.'
 import { CONFIG } from '../config'
-import { sleep } from '../utils'
 import { logSubscriptionList } from './clients'
 
 export let evmLogProvider_ConnectionStream: WebSocket | null = null
 
 const explorer_ws_url = CONFIG.explorerUrl.replace('http', 'ws')
 
-export const setupEvmLogProviderConnectionStream = () => {
+export const setupEvmLogProviderConnectionStream = (): void => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
   if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0)
     return
 
   evmLogProvider_ConnectionStream = new WebSocket.WebSocket(explorer_ws_url + '/evm_log_subscription')
-  evmLogProvider_ConnectionStream.on('error', (e) => {
-    // console.error(e);
+  evmLogProvider_ConnectionStream.on('error', () => {
+    // console.error(e); // removed e argument because it was not used
     evmLogProvider_ConnectionStream?.close()
   })
 
@@ -26,7 +25,7 @@ export const setupEvmLogProviderConnectionStream = () => {
   evmLogProvider_ConnectionStream.on('close', function close() {
     const socketsByIds = logSubscriptionList.getAll().indexedById
 
-    socketsByIds.forEach((value, key) => {
+    socketsByIds.forEach((value) => {
       value.socket.close()
     })
 
@@ -93,7 +92,7 @@ export const setupEvmLogProviderConnectionStream = () => {
           for (const subscriber_id of relevant_subscribers) {
             subscriptionEventEmitter.emit('evm_log_received', logs, subscriber_id)
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.error(e)
         }
       }

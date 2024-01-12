@@ -114,13 +114,19 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 const requestersList = new RequestersList(blackList, spammerList)
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+interface CustomError extends Error {
+  status?: number
+  statusCode?: number | undefined
+}
+
+app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
   if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404) {
     const formattedError = {
+      // TODO: (Bui) ask if statusCode was intentional or should it be status?
       status: err.statusCode,
       message: err.message,
     }
-    return res.status(err.statusCode).json(formattedError) // Bad request
+    return res.status(err.statusCode || 500).json(formattedError) // Bad request
   }
   next()
 })

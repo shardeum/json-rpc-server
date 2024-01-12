@@ -6,17 +6,40 @@ import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
+import { SubscriptionDetails } from './clients'
+
+interface Params {
+  address?: string | string[]
+  topics?: (string | undefined)[]
+  [key: number]: string | string[] | Params | WebSocket.WebSocket
+}
+interface Request {
+  jsonrpc: string
+  id: number
+  method: string
+  params: Params
+}
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   socket.on('message', (message: string) => {
-    // console.log(`Received message: ${message}`);
+    console.log(`Received message: ${message}`)
 
-    let request: any
+    let request: Request = {
+      jsonrpc: '',
+      id: 0,
+      method: '',
+      params: [],
+    }
+
     try {
       request = JSON.parse(message)
       console.log(request.params)
-    } catch (e: any) {
-      console.log("Couldn't parse websocket message", e)
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        console.log("Couldn't parse websocket message", e.message)
+      } else {
+        console.log("Couldn't parse websocket message", e)
+      }
       socket.close()
     }
 
@@ -27,7 +50,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     if (!request.method) socket.send('Method is not specified')
     if (!request.params) socket.send('Params not found')
 
-    const callback = async (err: any, result: any): Promise<void> => {
+    const callback = async (err: unknown, result: unknown): Promise<void> => {
       if (err) {
         const err_res_obj = {
           id: request.id,
@@ -69,44 +92,60 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         return
       }
       try {
-        // in this case we need to keep track of a connection
-        // We will NOT keep track of connection for other interface call
-        let subscription_id = crypto.randomBytes(32).toString('hex')
-        subscription_id = '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
-        subscription_id = subscription_id.substring(0, 46)
-        request.params[10] = subscription_id
-        const address = request.params[1].address
-        const topics = request.params[1].topics
+        if (
+          typeof request.params[1] === 'object' &&
+          'address' in request.params[1] &&
+          'topics' in request.params[1]
+        ) {
+          // in this case we need to keep track of a connection
+          // We will NOT keep track of connection for other interface call
+          let subscription_id = crypto.randomBytes(32).toString('hex')
+          subscription_id =
+            '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
+          subscription_id = subscription_id.substring(0, 46)
+          request.params[10] = subscription_id
+          const address = request.params[1].address
+          const topics = request.params[1].topics
 
-        // this convert everything to lower case, making it case-insenstive
-        if (typeof address === 'string') {
-          request.params[1].address = [address.toLowerCase()]
+          // this convert everything to lower case, making it case-insenstive
+          if (typeof address === 'string') {
+            request.params[1].address = [address.toLowerCase()]
+          }
+          if (Array.isArray(address)) {
+            const uniqueCA = new Set<string>()
+            address.map((el) => {
+              uniqueCA.add(el.toLowerCase())
+            })
+            request.params[1].address = Array.from(uniqueCA)
+          }
+          if (!Array.isArray(topics)) {
+            request.params[1].topics = []
+          }
+          if (request.params[1].topics) {
+            request.params[1].topics = request.params[1].topics.map((topic: string | undefined) => {
+              return topic?.toLowerCase()
+            })
+          }
+          const subscriptionDetails: SubscriptionDetails = {
+            address: request.params[1].address as string[],
+            topics: request.params[1].topics as string[],
+          }
+
+          logSubscriptionList.set(subscription_id, socket, subscriptionDetails, request.id)
         }
-        if (Array.isArray(address)) {
-          const uniqueCA = new Set<string>()
-          address.map((el) => {
-            uniqueCA.add(el.toLowerCase())
-          })
-          request.params[1].address = Array.from(uniqueCA)
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          socket.send(
+            JSON.stringify({
+              id: request.id,
+              jsonrpc: '2.0',
+              error: {
+                message: e.message,
+                code: -1,
+              },
+            })
+          )
         }
-        if (!Array.isArray(topics)) {
-          request.params[1].topics = []
-        }
-        request.params[1].topics = request.params[1].topics.map((topic: string | undefined) => {
-          return topic?.toLowerCase()
-        })
-        logSubscriptionList.set(subscription_id, socket, request.params[1], request.id)
-      } catch (e: any) {
-        socket.send(
-          JSON.stringify({
-            id: request.id,
-            jsonrpc: '2.0',
-            error: {
-              message: e.message,
-              code: -1,
-            },
-          })
-        )
         return
       }
     } else if (method_name === 'eth_unsubscribe') {

@@ -378,7 +378,7 @@ interface readableReceipt {
   gasUsed: string
 }
 
-interface completeReadableReceipt extends readableReceipt {
+export interface completeReadableReceipt extends readableReceipt {
   cumulativeGasUsed: string
   data: string
   gasRefund: string
@@ -387,7 +387,7 @@ interface completeReadableReceipt extends readableReceipt {
   status: string
 }
 
-type readableBlock = {
+export type readableBlock = {
   difficulty: string
   extraData: string
   gasLimit: string
@@ -438,6 +438,9 @@ type readableEIP1559Transaction = readableEIP2930Transaction & {
   maxFeePerGas: string
 }
 
-type readableTransaction = readableLegacyTransaction | readableEIP2930Transaction | readableEIP1559Transaction
+export type readableTransaction =
+  | readableLegacyTransaction
+  | readableEIP2930Transaction
+  | readableEIP1559Transaction
 
 export const collectorAPI = new Collector(CONFIG.collectorSourcing.collectorApiServerUrl)

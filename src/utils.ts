@@ -6,14 +6,30 @@ import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
 import path from 'path'
-import * as Types from './types'
 // import crypto from '@shardus/crypto-utils'
-import { getArchiverList, getFromArchiver } from '@shardus/archiver-discovery'
+import { getArchiverList } from '@shardus/archiver-discovery'
 import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
 import execa from 'execa'
 import { spawn } from 'child_process'
 import { collectorAPI } from './external/Collector'
-const crypto = require('@shardus/crypto-utils')
+import { serviceValidator } from './external/ServiceValidator'
+import { AxiosResponse } from 'axios'
+import * as crypto from '@shardus/crypto-utils'
+import {
+  Node,
+  Filter,
+  TransactionFromArchiver,
+  TransactionFromExplorer,
+  NodeJSError,
+  ReceiptFromExplorer,
+  WrappedDataContractStorage,
+  IpData,
+  ToData,
+  FromData,
+  OriginalTxData,
+  AccountTypesData,
+  Account2,
+} from './types'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -24,12 +40,12 @@ export const node = {
   port: 9001,
 }
 
-let badNodesMap: Map<string, number> = new Map()
+const badNodesMap: Map<string, number> = new Map()
 
 const verbose = config.verbose
 let gotArchiver = false
-let nodeList: any[] = []
-let nodeListMap: Map<string, any> = new Map()
+let nodeList: Node[] = []
+let nodeListMap: Map<string, Node> = new Map()
 let nextIndex = 0
 const allowedTxRate = config.rateLimitOption.allowedTxCountInCheckInterval
 
@@ -48,7 +64,7 @@ export enum RequestMethod {
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 // linear complexity, O(n) where n is the amount of nodes object { ip: string, port number }
-export async function updateNodeList(tryInfinate = false) {
+export async function updateNodeList(tryInfinate = false): Promise<void> {
   if (!healthyArchivers.length) await checkArchiverHealth()
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
 
@@ -74,7 +90,7 @@ export async function updateNodeList(tryInfinate = false) {
 
   if (nodes.length > 0) {
     if (nodes[0].ip === 'localhost' || nodes[0].ip === '127.0.0.1') {
-      nodes.forEach((node: any) => {
+      nodes.forEach((node: Node) => {
         node.ip = getArchiverUrl().ip
       })
     }
@@ -114,7 +130,7 @@ export async function updateNodeList(tryInfinate = false) {
   console.timeEnd('nodelist_update')
 }
 
-export async function checkArchiverHealth() {
+export async function checkArchiverHealth(): Promise<void> {
   console.info('\n====> Checking Health of Archivers <====')
   const archiverData: ArchiverStat[] = await getArchiverStats()
   console.table(archiverData, ['url', 'cycle_value'])
@@ -137,9 +153,11 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
       }
 
       return { url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
-        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${error.errno} => ${error.code}`
+        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${(error as NodeJSError).errno} => ${
+          (error as NodeJSError).code
+        }`
       )
       return { url: `http://${url.ip}:${url.port}`, cycle_value: null }
     }
@@ -147,14 +165,19 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
   return Promise.all(counters)
 }
 
-export async function waitRandomSecond() {
+export async function waitRandomSecond(): Promise<void> {
   if (verbose) console.log(`Waiting before trying a different node`) // we don't need to wait here but doesn't hurt to wait a bit for perf
   await sleep(200)
 }
 
-function getTimeout(route: string) {
-  let root = route.split('//')[1] ? route.split('//')[1].split('/')[1].split('?')[0] : null
-  if (root && config.defaultRequestTimeout[root]) return config.defaultRequestTimeout[root]
+// TODO: check what happens if theres no type assertion
+function getTimeout(route: string): number {
+  const root = route.split('//')[1] ? route.split('//')[1].split('/')[1].split('?')[0] : null
+  // If 'root' exists and is a key in 'config.defaultRequestTimeout', return its corresponding value.
+  // The type assertion ensures 'root' is treated as a key of 'config.defaultRequestTimeout' for TypeScript.
+  if (root && 'defaultRequestTimeout' in config && root in config.defaultRequestTimeout) {
+    return config.defaultRequestTimeout[root as keyof typeof config.defaultRequestTimeout]
+  }
   if (route.includes('full-nodelist')) return config.defaultRequestTimeout['full_nodelist']
   return config.defaultRequestTimeout[`default`]
 }
@@ -163,10 +186,11 @@ function getTimeout(route: string) {
 export async function requestWithRetry(
   method: RequestMethod,
   route: string,
-  data: any = {},
+  data: object = {},
   nRetry = config.defaultRequestRetry,
   isFullUrl = false
-) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
   let retry = 0
   const IS_INFINITY: boolean = nRetry < 0
   const maxRetry = nRetry //set this to 0 with for load testing rpc server
@@ -178,7 +202,7 @@ export async function requestWithRetry(
     let nodeIpPort
     let nodeUrl
     if (!isFullUrl) {
-      let urlInfo = getBaseUrl()
+      const urlInfo = getBaseUrl()
       nodeUrl = urlInfo.baseUrl
       nodeIpPort = urlInfo.nodeIpPort
       url = `${nodeUrl}${route}`
@@ -199,10 +223,10 @@ export async function requestWithRetry(
         if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
         return res //break
       }
-    } catch (e: any) {
-      console.log('Error: requestWithRetry', e, e.message)
-      let badNodePercentage = badNodesMap.size / nodeList.length
-      let shouldAddToBadNodeList = route.includes('eth_blockNumber')
+    } catch (e: unknown) {
+      console.log('Error: requestWithRetry', e, (e as Error).message)
+      const badNodePercentage = badNodesMap.size / nodeList.length
+      const shouldAddToBadNodeList = route.includes('eth_blockNumber')
       console.log(
         `shouldAddToBadNodeList: ${shouldAddToBadNodeList}, route: ${route}`,
         'badNodePercentage',
@@ -227,7 +251,7 @@ export async function requestWithRetry(
   return { data: { nodeUrl } }
 }
 
-export function getTransactionObj(tx: any): any {
+export function getTransactionObj(tx: OriginalTxData): Transaction | AccessListEIP2930Transaction {
   if (!tx.raw) throw Error('No raw tx found.')
   let transactionObj
   const serializedInput = toBuffer(tx.raw)
@@ -251,16 +275,16 @@ export function getTransactionObj(tx: any): any {
   } else throw Error('tx obj fail')
 }
 
-export function intStringToHex(str: string) {
+export function intStringToHex(str: string): string {
   return '0x' + new BN(str).toString(16)
 }
 
-export function getBaseUrl() {
+export function getBaseUrl(): { nodeIpPort: string; baseUrl: string } {
   setConsensorNode()
   return { nodeIpPort: `${node.ip}:${node.port}`, baseUrl: `http://${node.ip}:${node.port}` }
 }
 
-export function getArchiverUrl() {
+export function getArchiverUrl(): { url: string; ip: string; port: number } {
   return getNextArchiver()
 }
 
@@ -286,10 +310,10 @@ export function changeNode(ip: string, port: number, strict = false): boolean {
   return true
 }
 
-export function cleanBadNodes() {
-  let now = Date.now()
-  let threeMinutesInMs = 180000
-  for (let [key, value] of badNodesMap.entries()) {
+export function cleanBadNodes(): void {
+  const now = Date.now()
+  const threeMinutesInMs = 180000
+  for (const [key, value] of badNodesMap.entries()) {
     if (now - value > threeMinutesInMs) {
       console.log(`Removing ${key} from badNodesMap`)
       badNodesMap.delete(key)
@@ -298,14 +322,14 @@ export function cleanBadNodes() {
   console.log(`Current number of good nodes: ${nodeList.length - badNodesMap.size}`)
 }
 
-function rotateConsensorNode() {
+function rotateConsensorNode(): void {
   let count = 0
-  let maxRetry = 10
+  const maxRetry = 10
   let success = false
   while (count < maxRetry && !success) {
     count++
-    const consensor: any = getNextConsensorNode() //getRandomConsensorNode()
-    let ipPort = `${consensor.ip}:${consensor.port}`
+    const consensor: Node | null = getNextConsensorNode() //getRandomConsensorNode()
+    const ipPort = `${consensor?.ip}:${consensor?.port}`
     if (consensor && !badNodesMap.has(ipPort)) {
       let nodeIp = consensor.ip
       //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
@@ -329,7 +353,7 @@ function rotateConsensorNode() {
 // }
 
 // this is the main function to be called every RPC request
-export function setConsensorNode() {
+export function setConsensorNode(): void {
   if (config.dynamicConsensorNode) {
     rotateConsensorNode()
   } else {
@@ -337,18 +361,19 @@ export function setConsensorNode() {
   }
 }
 
-export function getRandomConsensorNode() {
+export function getRandomConsensorNode(): Node | null {
   if (nodeList.length > 0) {
     const randomIndex = Math.floor(Math.random() * nodeList.length)
     return nodeList[randomIndex] // eslint-disable-line security/detect-object-injection
   }
+  return null
 }
 
 /**
  * Round robin selection of next consensor index.
  * @returns
  */
-export function getNextConsensorNode() {
+export function getNextConsensorNode(): Node | null {
   if (nodeList.length > 0) {
     nextIndex++
     if (nextIndex >= nodeList.length) {
@@ -356,9 +381,10 @@ export function getNextConsensorNode() {
     }
     return nodeList[nextIndex] // eslint-disable-line security/detect-object-injection
   }
+  return null
 }
 
-function getNextArchiver() {
+function getNextArchiver(): { url: string; ip: string; port: number } {
   if (healthyArchivers.length > 0) {
     if (archiverIndex >= healthyArchivers.length) {
       archiverIndex = 0
@@ -373,7 +399,7 @@ function getNextArchiver() {
   }
 }
 
-export function sleep(ms: number) {
+export function sleep(ms: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(true)
@@ -381,7 +407,7 @@ export function sleep(ms: number) {
   })
 }
 
-export async function getAccount(addressStr: any): Promise<{ account?: any; nodeUrl: string }> {
+export async function getAccount(addressStr: string): Promise<{ account: Account2; nodeUrl: string }> {
   const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
   return res.data
 }
@@ -404,18 +430,18 @@ export async function getCode(addressStr: string): Promise<{ contractCode: strin
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
-  abusedSenders: any
-  abusedToAddresses: any
-  bannedIps: any[]
-  requestTracker: any
-  allRequestTracker: any
-  totalTxTracker: any
+  abusedSenders: Map<string, { address: string; count: number }>
+  abusedToAddresses: Map<string, ToData>
+  bannedIps: { ip: string; timestamp: number }[]
+  requestTracker: Record<string, IpData>
+  allRequestTracker: Record<string, IpData>
+  totalTxTracker: Record<string, IpData>
   blackListedSenders: Set<string>
 
   constructor(blackList: string[] = [], spammerList: string[] = []) {
     this.heavyRequests = new Map()
     this.heavyAddresses = new Map()
-    this.abusedToAddresses = {}
+    this.abusedToAddresses = new Map()
     this.abusedSenders = new Map()
     this.blackListedSenders = new Set(spammerList)
     this.requestTracker = {}
@@ -438,7 +464,7 @@ export class RequestersList {
     }
   }
 
-  addToBlacklist(ip: string) {
+  addToBlacklist(ip: string): void {
     this.bannedIps.push({ ip, timestamp: Date.now() })
     try {
       fs.readFile(
@@ -456,7 +482,7 @@ export class RequestersList {
     }
   }
 
-  addSenderToBacklist(address: string) {
+  addSenderToBacklist(address: string): void {
     this.blackListedSenders.add(address.toLowerCase())
     try {
       fs.readFile(
@@ -474,11 +500,11 @@ export class RequestersList {
     }
   }
 
-  isSenderBlacklisted(address: string) {
+  isSenderBlacklisted(address: string): boolean {
     return this.blackListedSenders.has(address.toLowerCase())
   }
 
-  clearOldIps() {
+  clearOldIps(): void {
     /* eslint-disable security/detect-object-injection */
     const now = Date.now()
     const oneMinute = 60 * 1000
@@ -504,30 +530,30 @@ export class RequestersList {
     }
 
     // unban the ip after 1 hour
-    this.bannedIps = this.bannedIps.filter((record: any) => {
+    this.bannedIps = this.bannedIps.filter((record: { ip: string; timestamp: number }) => {
       if (now - record.timestamp >= 60 * 60 * 1000) return false
       else return true
     })
     /* eslint-enable security/detect-object-injection */
   }
 
-  checkAndBanSpammers() {
+  checkAndBanSpammers(): void {
     // log and clean successful requests
     let records = Object.values(this.requestTracker)
-    records = records.sort((a: any, b: any) => b.count - a.count)
+    records = records.sort((a: IpData, b: IpData) => b.count - a.count)
     if (config.verbose) console.log('10 most frequent successful IPs:', records.slice(0, 10))
 
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
-    allRecords = allRecords.sort((a: any, b: any) => b.count - a.count)
+    allRecords = allRecords.sort((a: IpData, b: IpData) => b.count - a.count)
     if (config.verbose)
       console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
 
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
-    txRecords = txRecords.sort((a: any, b: any) => b.count - a.count)
+    txRecords = txRecords.sort((a: IpData, b: IpData) => b.count - a.count)
     for (let i = 0; i < txRecords.length; i++) {
-      const txRecord: any = txRecords[i] // eslint-disable-line security/detect-object-injection
+      const txRecord: IpData = txRecords[i] // eslint-disable-line security/detect-object-injection
       if (txRecord.count >= allowedTxRate) {
         if (whiteList.indexOf(txRecord.ip) === -1) {
           if (config.rateLimit && config.rateLimitOption.banIpAddress) {
@@ -539,16 +565,20 @@ export class RequestersList {
     }
 
     // log abused contract addresses
-    const mostAbusedSorted: any[] = Object.values(this.abusedToAddresses).sort(
-      (a: any, b: any) => b.count - a.count
+    const mostAbusedSorted: ToData[] = Object.values(this.abusedToAddresses).sort(
+      (a: ToData, b: ToData) => b.count - a.count
     )
     for (const abusedData of mostAbusedSorted) {
       console.log(`Contract address: ${abusedData.to}. Count: ${abusedData.count}`)
       console.log(`Most frequent caller addresses:`)
-      const sortedCallers: any[] = Object.values(abusedData.from).sort((a: any, b: any) => b.count - a.count)
+      const sortedCallers: FromData[] = Object.values(abusedData.from).sort(
+        (a: FromData, b: FromData) => b.count - a.count
+      )
       for (const caller of sortedCallers) {
         console.log(`    ${caller.from}, count: ${caller.count}`)
-        const sortedIps: any[] = Object.values(caller.ips).sort((a: any, b: any) => b.count - a.count)
+        const sortedIps: IpData[] = Object.values(caller.ips).sort(
+          (a: IpData, b: IpData) => b.count - a.count
+        )
         for (const ip of sortedIps) {
           console.log(`             ${ip.ip}, count: ${ip.count}`)
         }
@@ -563,8 +593,10 @@ export class RequestersList {
     }
 
     // ban most abuse sender addresses
-    const mostAbusedSendersSorted: any[] = Object.values(this.abusedSenders).sort(
-      (a: any, b: any) => b.count - a.count
+    const mostAbusedSendersSorted: { address: string; count: number }[] = Object.values(
+      this.abusedSenders
+    ).sort(
+      (a: { address: string; count: number }, b: { address: string; count: number }) => b.count - a.count
     )
     console.log('Top 10 spammer addresses: ', mostAbusedSendersSorted.slice(0, 10))
     for (const spammerInfo of mostAbusedSendersSorted) {
@@ -580,7 +612,7 @@ export class RequestersList {
   }
 
   // clear things up for next collection
-  resetCollectors() {
+  resetCollectors(): void {
     this.requestTracker = {}
     this.allRequestTracker = {}
     this.totalTxTracker = {}
@@ -590,7 +622,7 @@ export class RequestersList {
     this.abusedToAddresses = new Map()
   }
 
-  addHeavyRequest(ip: string) {
+  addHeavyRequest(ip: string): void {
     /*eslint-disable security/detect-object-injection */
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
@@ -611,7 +643,7 @@ export class RequestersList {
     /* eslint-enable security/detect-object-injection */
   }
 
-  addHeavyAddress(address: string) {
+  addHeavyAddress(address: string): void {
     if (this.heavyAddresses.get(address)) {
       const reqHistory = this.heavyAddresses.get(address)
       if (reqHistory) reqHistory.push(Date.now())
@@ -620,26 +652,26 @@ export class RequestersList {
     }
   }
 
-  addAbusedSender(address: string) {
+  addAbusedSender(address: string): void {
     /*eslint-disable security/detect-object-injection */
     console.log('adding abused sender', address)
 
-    if (this.abusedSenders[address]) {
-      this.abusedSenders[address].count += 1
+    const abusedSender = this.abusedSenders.get(address)
+    if (abusedSender) {
+      abusedSender.count += 1
+      this.abusedSenders.set(address, abusedSender)
     } else {
-      this.abusedSenders[address] = {
-        address,
-        count: 1,
-      }
+      this.abusedSenders.set(address, { address, count: 1 })
     }
     /*eslint-enable security/detect-object-injection */
   }
 
-  addAbusedAddress(toAddress: string, fromAddress: string, ip: string) {
+  addAbusedAddress(toAddress: string, fromAddress: string, ip: string): void {
     /*eslint-disable security/detect-object-injection */
-    if (this.abusedToAddresses[toAddress]) {
-      this.abusedToAddresses[toAddress].count += 1
-      const fromData = this.abusedToAddresses[toAddress].from[fromAddress]
+    let abusedToAddress = this.abusedToAddresses.get(toAddress)
+    if (abusedToAddress) {
+      abusedToAddress.count += 1
+      const fromData = abusedToAddress.from[fromAddress]
       if (fromData) {
         fromData.count += 1
         fromData.from = fromAddress
@@ -649,38 +681,40 @@ export class RequestersList {
           fromData.ips[ip] = { ip, count: 1 }
         }
       } else {
-        const newFromData: any = {
+        abusedToAddress.from[fromAddress] = {
           count: 1,
           from: fromAddress,
-          ips: {},
+          ips: {
+            ip: {
+              count: 1,
+              ip,
+            },
+          },
         }
-        newFromData.ips[ip] = {
-          count: 1,
-          ip,
-        }
-        this.abusedToAddresses[toAddress].from[fromAddress] = newFromData
       }
     } else {
-      this.abusedToAddresses[toAddress] = {
+      abusedToAddress = {
         to: toAddress,
         count: 1,
         from: {},
       }
-      const newFromData: any = {
+
+      abusedToAddress.from[fromAddress] = {
         count: 1,
         from: fromAddress,
-        ips: {},
+        ips: {
+          ip: {
+            count: 1,
+            ip,
+          },
+        },
       }
-      newFromData.ips[ip] = {
-        count: 1,
-        ip,
-      }
-      this.abusedToAddresses[toAddress].from[fromAddress] = newFromData
     }
+    this.abusedToAddresses.set(toAddress, abusedToAddress)
     /*eslint-enable security/detect-object-injection */
   }
 
-  addAllRequest(ip: string) {
+  addAllRequest(ip: string): void {
     /*eslint-disable security/detect-object-injection */
     if (this.allRequestTracker[ip]) {
       this.allRequestTracker[ip].count += 1
@@ -690,7 +724,7 @@ export class RequestersList {
     /*eslint-enable security/detect-object-injection */
   }
 
-  isIpBanned(ip: string) {
+  isIpBanned(ip: string): boolean {
     if (config.rateLimit && config.rateLimitOption.banIpAddress) {
       const bannedIpList = this.bannedIps.map((data) => data.ip)
       if (bannedIpList.indexOf(ip) >= 0) return true
@@ -700,7 +734,7 @@ export class RequestersList {
     }
   }
 
-  isQueryType(reqType: string) {
+  isQueryType(reqType: string): boolean {
     try {
       const heavyTypes = ['eth_sendRawTransaction', 'eth_sendTransaction']
       if (heavyTypes.indexOf(reqType) >= 0) return false
@@ -714,7 +748,7 @@ export class RequestersList {
     }
   }
 
-  async checkFaucetAccount(address: string, allowPlatform: string | null = null) {
+  async checkFaucetAccount(address: string, allowPlatform: string | null = null): Promise<boolean> {
     try {
       const url = `${config.faucetServerUrl}/faucet-claims/count?address=${address}&groupBy=platform`
       const res = await axios.get(url)
@@ -728,6 +762,7 @@ export class RequestersList {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async isRequestOkay(ip: string, reqType: string, reqParams: any[]): Promise<boolean> {
     const now = Date.now()
     const oneMinute = 60 * 1000
@@ -800,25 +835,29 @@ export class RequestersList {
     if (reqType === 'eth_sendRawTransaction') {
       try {
         const readableTx = {
-          from: transaction.getSenderAddress().toString(),
-          to: transaction.to ? transaction.to.toString() : '',
-          value: transaction.value.toString(),
-          data: bufferToHex(transaction.data),
-          hash: bufferToHex(transaction.hash()),
+          from: transaction?.getSenderAddress().toString(),
+          to: transaction?.to ? transaction.to.toString() : '',
+          value: transaction?.value.toString(),
+          data: bufferToHex(transaction?.data as Buffer),
+          hash: bufferToHex(transaction?.hash() as Buffer),
         }
         if (readableTx.from) this.addHeavyAddress(readableTx.from)
         if (readableTx.to && readableTx.to !== readableTx.from) this.addHeavyAddress(readableTx.to)
 
-        const fromAddressHistory = this.heavyAddresses.get(readableTx.from)
+        const fromAddressHistory = this.heavyAddresses.get(readableTx.from as string)
 
         if (
           config.rateLimit &&
           config.rateLimitOption.limitFromAddress &&
-          this.isSenderBlacklisted(readableTx.from)
+          this.isSenderBlacklisted(readableTx.from as string)
         ) {
           if (verbose) console.log(`Sender ${readableTx.from} is blacklisted.`)
           if (config.recordTxStatus)
-            createRejectTxStatus(bufferToHex(transaction.hash()), 'Rejected by JSON RPC rate limiting', ip)
+            createRejectTxStatus(
+              bufferToHex(transaction?.hash() as Buffer),
+              'Rejected by JSON RPC rate limiting',
+              ip
+            )
           return false
         }
 
@@ -828,12 +867,12 @@ export class RequestersList {
               if (verbose) console.log(`Your address ${readableTx.from} injected 10 txs within 60s`)
               if (config.recordTxStatus)
                 createRejectTxStatus(
-                  bufferToHex(transaction.hash()),
+                  bufferToHex(transaction?.hash() as Buffer),
                   'Rejected by JSON RPC rate limiting',
                   ip
                 )
-              this.addAbusedAddress(readableTx.to, readableTx.from, ip)
-              this.addAbusedSender(readableTx.from.toLowerCase())
+              this.addAbusedAddress(readableTx.to, readableTx.from as string, ip)
+              this.addAbusedSender((readableTx.from as string).toLowerCase())
               return false
             }
           }
@@ -843,13 +882,13 @@ export class RequestersList {
           const toAddressHistory = this.heavyAddresses.get(readableTx.to)
           if (toAddressHistory && toAddressHistory.length >= 10) {
             if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
-              this.addAbusedAddress(readableTx.to, readableTx.from, ip)
+              this.addAbusedAddress(readableTx.to, readableTx.from as string, ip)
               if (verbose)
                 console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
 
               if (config.rateLimitOption.allowFaucetAccount) {
                 const isFaucetAccount = await this.checkFaucetAccount(
-                  readableTx.from.toLowerCase(),
+                  (readableTx.from as string).toLowerCase(),
                   'discord'
                 )
                 if (isFaucetAccount) {
@@ -862,7 +901,7 @@ export class RequestersList {
 
               if (config.recordTxStatus) {
                 createRejectTxStatus(
-                  bufferToHex(transaction.hash()),
+                  bufferToHex(transaction?.hash() as Buffer),
                   'Rejected by JSON RPC rate limiting',
                   ip
                 )
@@ -880,17 +919,18 @@ export class RequestersList {
   }
 }
 
-export function hashSignedObj(obj: any) {
-  if (!obj.sign) {
+export function hashSignedObj(obj: object): string {
+  if (!('sign' in obj)) {
     return crypto.hashObj(obj)
   }
   return crypto.hashObj(obj, true)
 }
 
-export function calculateInternalTxHash(tx: any) {
+export function calculateInternalTxHash(tx: object): string {
   return '0x' + hashSignedObj(tx)
 }
 
+/*
 export async function getTransactionReceipt(hash: string) {
   const txHash = hash
   const res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)
@@ -903,13 +943,14 @@ export async function getTransactionReceipt(hash: string) {
   }
   return result
 }
+*/
 
 export function getFilterId(): string {
   // todo: use a better way to generate filter id
   return '0x' + Math.round(Math.random() * 1000000000).toString(16)
 }
 
-export function parseFilterDetails(filter: any) {
+export function parseFilterDetails(filter: Filter): { address: string; topics: string[] } {
   // `filter.address` may be a single address or an array
   const addresses = filter.address
     ? (Array.isArray(filter.address) ? filter.address : [filter.address]).map((a: string) => a.toLowerCase())
@@ -918,15 +959,19 @@ export function parseFilterDetails(filter: any) {
   return { address: addresses[0], topics }
 }
 
-export async function fetchQueryExpb(query: string, maxRetries = 6) {
+export async function fetchQueryExpb(
+  query: string,
+  maxRetries = 6
+): Promise<AxiosResponse<{ transactions: TransactionFromArchiver }> | null> {
   for (let i = 0; i <= maxRetries; i++) {
     try {
-      const response = await axios.get(query)
+      const response = await axios.get<{ transactions: TransactionFromArchiver }>(query)
 
       // if response indicates failure
       if (!response.data.transactions) {
         if (i === maxRetries) {
-          throw new Error(`Failed to fetch after ${maxRetries} attempts: ${response.data.error}`)
+          // check with script
+          throw new Error(`Failed to fetch after ${maxRetries} attempts.`)
         }
 
         // wait for a bit before retrying
@@ -947,9 +992,10 @@ export async function fetchQueryExpb(query: string, maxRetries = 6) {
       await new Promise((resolve) => setTimeout(resolve, Math.pow(2, i) * 1000))
     }
   }
+  return null
 }
 
-export async function fetchTxReceiptFromArchiver(txHash: string) {
+export async function fetchTxReceiptFromArchiver(txHash: string): Promise<TransactionFromArchiver> {
   const query = `${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`
   const response = await fetchQueryExpb(query).then((response) => {
     if (!response?.data?.transactions) {
@@ -959,7 +1005,11 @@ export async function fetchTxReceiptFromArchiver(txHash: string) {
   return response.data.transactions
 }
 
-export async function fetchTxReceipt(explorerUrl: string, txHash: string, hashReceipt = false) {
+export async function fetchTxReceipt(
+  explorerUrl: string,
+  txHash: string,
+  hashReceipt = false
+): Promise<TransactionFromExplorer | ReceiptFromExplorer> {
   const apiQuery = `${explorerUrl}/api/transaction?txHash=${txHash}`
   const response = await axios.get(apiQuery).then((response) => {
     if (!response) {
@@ -977,7 +1027,11 @@ export async function fetchTxReceipt(explorerUrl: string, txHash: string, hashRe
   return receipt
 }
 
-async function fetchAccountFromExplorer(explorerUrl: string, key: string, timestamp: number) {
+async function fetchAccountFromExplorer(
+  explorerUrl: string,
+  key: string,
+  timestamp: number
+): Promise<{ accountId: string; data: AccountTypesData } | undefined> {
   const accountKey = `0x${key.slice(0, -24)}`
   const apiQuery = `${explorerUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`
   const txCount = await axios.get(apiQuery).then((response) => response.data.totalTransactions)
@@ -1019,17 +1073,23 @@ async function fetchAccountFromExplorer(explorerUrl: string, key: string, timest
   return undefined
 }
 
-function isContractAccount(account: any) {
+function isContractAccount(account: AccountTypesData): boolean {
   const eoaCodeHash = [
     197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39,
     59, 123, 250, 216, 4, 93, 133, 164, 112,
   ]
 
   // Compare the code hash of the account to the EOA code hash
-  return JSON.stringify(account.account.codeHash.data) !== JSON.stringify(eoaCodeHash)
+  if ('account' in account && account.account) {
+    return JSON.stringify(account.account.codeHash.data) !== JSON.stringify(eoaCodeHash)
+  }
+  return false
 }
 
-async function fetchAccountFromArchiver(key: string, timestamp: number) {
+async function fetchAccountFromArchiver(
+  key: string,
+  timestamp: number
+): Promise<{ accountId: string; data: AccountTypesData } | undefined> {
   const res = await requestWithRetry(
     RequestMethod.Get,
     `${getArchiverUrl().url}/account?accountId=${key}`,
@@ -1089,7 +1149,10 @@ async function fetchAccountFromArchiver(key: string, timestamp: number) {
   }
 }
 
-async function fetchLatestAccount(key: string, type: number) {
+async function fetchLatestAccount(
+  key: string,
+  type: number
+): Promise<{ accountId: string; data: AccountTypesData } | undefined> {
   console.log('Fetching latest account', key)
   const res = await requestWithRetry(
     RequestMethod.Get,
@@ -1223,7 +1286,10 @@ async function fetchAccountFromCollector( account: { shardusKey: string; type: n
     }
 }
 
-async function fetchAccount(account: { type: number; key: string }, timestamp: number) {
+async function fetchAccount(
+  account: { type: number; key: string },
+  timestamp: number
+): Promise<{ accountId: string; data: AccountTypesData } | undefined | null> {
   if (account.type === 0) {
     // EOA/CA
     let result = await fetchAccountFromArchiver(account.key, timestamp)
@@ -1265,7 +1331,8 @@ async function fetchAccount(account: { type: number; key: string }, timestamp: n
   }
 }
 
-export async function replayGas(tx: { from: string; gas: string } & TxData) {
+export async function replayGas(tx: { from: string; gas: string } & TxData): Promise<string[]> {
+  /* eslint-disable security/detect-non-literal-fs-filename */
   const gasLimit = tx.gas ? tx.gas : '0x1C9C380'
 
   const txData = {
@@ -1301,6 +1368,7 @@ export async function replayGas(tx: { from: string; gas: string } & TxData) {
     fs.unlinkSync(path.join(transactionsFolder, `estimate_${tx.from}_states.json`))
   }
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const missingData: {
       status: string
@@ -1354,9 +1422,12 @@ export async function replayGas(tx: { from: string; gas: string } & TxData) {
 
     fs.writeFileSync(statesFile, JSON.stringify(stateArray, undefined, 2))
   }
+  /* eslint-enable security/detect-non-literal-fs-filename */
 }
 
-export async function replayTransaction(txHash: string, flag: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function replayTransaction(txHash: string, flag: string): Promise<any> {
+  /* eslint-disable security/detect-non-literal-fs-filename */
   const replayPath = path.join(__dirname, '../../../validator/dist/src/debug/replayTX.js')
   const transactionsFolder = path.join(__dirname, '../../transactions')
 
@@ -1405,6 +1476,7 @@ export async function replayTransaction(txHash: string, flag: string) {
     throw new Error('Transaction not found')
   }
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const missingData: {
       status: string
@@ -1451,7 +1523,6 @@ export async function replayTransaction(txHash: string, flag: string) {
 
     // Write downloaded data to file
     const statesFile = path.join(transactionsFolder, txHash + '_states.json')
-
     const stateArray = fs.existsSync(statesFile) ? JSON.parse(fs.readFileSync(statesFile, 'utf8')) : []
     stateArray.push(downloadedAccount)
 
@@ -1460,6 +1531,7 @@ export async function replayTransaction(txHash: string, flag: string) {
 
   const { stdout } = await execa('node', [replayPath, path.join(transactionsFolder, txHash + '.json'), flag])
   return JSON.parse(stdout)
+  /* eslint-enable security/detect-non-literal-fs-filename */
 }
 
 export function parseAndValidateStringInput(input: string): Buffer {
@@ -1490,13 +1562,13 @@ export function parseAndValidateStringInput(input: string): Buffer {
   return _buffer
 }
 
-export async function fetchStorage(txHash: string) {
-  const receipt = await fetchTxReceipt(config.explorerUrl, txHash)
-  const beforeStates: any[] = receipt.beforeStateAccounts
+export async function fetchStorage(txHash: string): Promise<{ key: string; value: string }[]> {
+  const receipt = (await fetchTxReceipt(config.explorerUrl, txHash)) as ReceiptFromExplorer
+  const beforeStates = receipt.beforeStateAccounts
   const storageRecords = beforeStates.map((account) => {
     return {
-      key: `0x${account.data.key}`,
-      value: bufferToHex(account.data.value.data),
+      key: `0x${(account.data as unknown as WrappedDataContractStorage).key}`,
+      value: bufferToHex(Buffer.from((account.data as unknown as WrappedDataContractStorage).value.data)),
     }
   })
   return storageRecords
@@ -1509,7 +1581,7 @@ export enum TxStatusCode {
   OTHER_FAILURE = 3,
 }
 
-export function getReasonEnumCode(reason: string) {
+export function getReasonEnumCode(reason: string): TxStatusCode {
   const _REASONS = new Map()
   _REASONS.set('Maximum load exceeded.'.toLowerCase(), TxStatusCode.BUSY)
   _REASONS.set(

@@ -1,10 +1,10 @@
 import { db } from '../storage/sqliteStorage'
-import express from 'express'
+import express, { Request, Response } from 'express'
 export const router = express.Router()
 import { CONFIG } from '../config'
 import { debug_info } from '../logger'
 
-const timeInputProcessor = (timestamp: string) => {
+const timeInputProcessor = (timestamp: string): number => {
   const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
   return new Date(t).getTime()
 }
@@ -25,9 +25,33 @@ type SQLFiltersParam = {
   nodeUrl?: string
   ip?: string
 }
+
+interface QueryParams {
+  page?: number
+  max?: number
+  start?: string | number
+  end?: string | number
+  nodeUrl?: string
+  api_name?: string
+  reason?: string
+  hash?: string
+  success?: boolean
+}
+
+type CustomRequest = Request & {
+  query: QueryParams
+}
+
+interface Data {
+  current?: number
+  length: number
+  max?: number
+  prev?: number
+  next?: number
+  data?: unknown[]
+}
+
 const prepareSQLFilters = ({
-  start,
-  end,
   id,
   hash,
   to,
@@ -40,7 +64,7 @@ const prepareSQLFilters = ({
   api_name,
   nodeUrl,
   ip,
-}: SQLFiltersParam) => {
+}: SQLFiltersParam): string => {
   let sql = ''
   // if(start && end) {
   //   sql += `AND timestamp between ${start} AND ${end} `
@@ -83,14 +107,14 @@ const prepareSQLFilters = ({
   }
   return sql
 }
-router.route('/api-stats').get(async (req: any, res: any) => {
+router.route('/api-stats').get(async (req: CustomRequest, res: Response) => {
   try {
     const page = req.query.page || 0
     const max = req.query.max || 5000
     const cursor: number = page * max
 
-    const start = req.query.start ? timeInputProcessor(req.query.start) : null
-    const end = req.query.end ? timeInputProcessor(req.query.end) : null
+    const start = req.query.start ? timeInputProcessor(req.query.start as string) : null
+    const end = req.query.end ? timeInputProcessor(req.query.end as string) : null
 
     // start 1678037555727
     // end 1678038025945
@@ -129,7 +153,7 @@ router.route('/api-stats').get(async (req: any, res: any) => {
 
     // eslint-disable-next-line prefer-const
     const raw = db.prepare(sqlString).all()
-    const data: any = {
+    const data: Data = {
       current: Number(page),
       length: raw.length,
       max: max,
@@ -198,27 +222,27 @@ router.route('/api-stats').get(async (req: any, res: any) => {
   }
 })
 
-router.route('/cleanStatTable').get(async (req: any, res: any) => {
+router.route('/cleanStatTable').get(async (req: Request, res: Response) => {
   try {
     await db.exec('DELETE FROM interface_stats')
     debug_info.interfaceDB_cleanTime = Date.now()
     res.send({ success: true }).status(200)
-  } catch (e: any) {
+  } catch (e: unknown) {
     res.send(e).status(500)
   }
 })
 
-router.route('/txs').get(async function (req: any, res: any) {
+router.route('/txs').get(async function (req: Request, res: Response) {
   try {
     // this is a very bad security practice !
     // Not enough input sanitization :(
     // Exposed Primary keys :(
     // Should be ok though as long as this endpoint is private and only for debug
-    const page = req.query.page || 0
-    const max = req.query.max || 1000
+    const page = Number(req.query.page) || 0
+    const max = Number(req.query.max) || 1000
     const cursor: number = page * max
-    const start = req.query.start ? timeInputProcessor(req.query.start) : null
-    const end = req.query.end ? timeInputProcessor(req.query.end) : null
+    const start = req.query.start ? timeInputProcessor(req.query.start as string) : null
+    const end = req.query.end ? timeInputProcessor(req.query.end as string) : null
 
     if (start && !end) {
       const tx = db.prepare(`SELECT * FROM transactions WHERE timestamp>${start} LIMIT 1`).all()
@@ -241,14 +265,14 @@ router.route('/txs').get(async function (req: any, res: any) {
     }
 
     const sqlFilter = prepareSQLFilters({
-      nodeUrl: req.query.nodeUrl,
-      type: req.query.type,
-      reason: req.query.reason,
-      injected: req.query.injected,
-      ip: req.query.ip,
-      to: req.query.to,
-      from: req.query.from,
-      hash: req.query.hash,
+      nodeUrl: req.query.nodeUrl as string,
+      type: req.query.type as string,
+      reason: req.query.reason as string,
+      injected: req.query.injected === 'true' ? true : req.query.injected === 'false' ? false : undefined,
+      ip: req.query.ip as string,
+      to: req.query.to as string,
+      from: req.query.from as string,
+      hash: req.query.hash as string,
     })
 
     const sqlString =
@@ -259,7 +283,7 @@ router.route('/txs').get(async function (req: any, res: any) {
     // eslint-disable-next-line prefer-const
     const txs = db.prepare(sqlString).all()
 
-    const data: any = {
+    const data: Data = {
       current: Number(page),
       length: txs.length,
     }
@@ -278,23 +302,31 @@ router.route('/txs').get(async function (req: any, res: any) {
       if (data.prev) delete data.prev
     }
     return res.json(data).status(200)
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.log(e)
-    res.send(e).status(500)
+    if (e instanceof Error) {
+      res.send(e.message).status(500)
+    } else {
+      res.send('An error occurred').status(500)
+    }
   }
 })
 
-router.route('/cleanTxTable').get(async function (req: any, res: any) {
+router.route('/cleanTxTable').get(async function (req: Request, res: Response) {
   try {
     await db.exec('DELETE FROM transactions')
     debug_info.txDB_cleanTime = Date.now()
     res.send({ success: true }).status(200)
-  } catch (e: any) {
-    res.send(e).status(500)
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      res.send(e.message).status(500)
+    } else {
+      res.send('An unexpected error occurred').status(500)
+    }
   }
 })
 
-router.route('/startTxCapture').get(async function (req: any, res: any) {
+router.route('/startTxCapture').get(async function (req: Request, res: Response) {
   if (CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already enabled' }).status(304)
   debug_info.txRecordingStartTime = Date.now()
   debug_info.txRecordingEndTime = 0
@@ -302,14 +334,14 @@ router.route('/startTxCapture').get(async function (req: any, res: any) {
 
   res.json({ message: 'Transaction status recording enabled' }).status(200)
 })
-router.route('/stopTxCapture').get(async function (req: any, res: any) {
+router.route('/stopTxCapture').get(async function (req: Request, res: Response) {
   if (!CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already stopped' }).status(304)
   debug_info.txRecordingEndTime = Date.now()
   CONFIG.recordTxStatus = false
   res.send({ message: 'Transaction status recording disabled' }).status(200)
 })
 
-router.route('/startRPCCapture').get(async function (req: any, res: any) {
+router.route('/startRPCCapture').get(async function (req: Request, res: Response) {
   if (CONFIG.statLog) {
     return res.json({ message: 'Interface stats are recording recording already' }).status(304)
   }
@@ -319,7 +351,7 @@ router.route('/startRPCCapture').get(async function (req: any, res: any) {
 
   res.json({ message: 'RPC interface recording enabled' }).status(200)
 })
-router.route('/stopRPCCapture').get(async function (req: any, res: any) {
+router.route('/stopRPCCapture').get(async function (req: Request, res: Response) {
   if (!CONFIG.statLog) {
     return res.json({ message: 'Interface stats recording already stopped' }).status(304)
   }
@@ -328,7 +360,7 @@ router.route('/stopRPCCapture').get(async function (req: any, res: any) {
   res.json({ message: 'RPC interface recording disabled' }).status(200)
 })
 
-router.route('/status').get(async function (req: any, res: any) {
+router.route('/status').get(async function (req: Request, res: Response) {
   debug_info.isRecordingTx = CONFIG.recordTxStatus
   debug_info.isRecordingInterface = CONFIG.statLog
   res.json(debug_info).status(200)

@@ -38,7 +38,7 @@ export const debug_info = {
   interfaceDB_cleanTime: 0,
 }
 
-export async function saveInterfaceStat() {
+export async function saveInterfaceStat(): Promise<void> {
   console.log(apiPerfLogData)
   try {
     // eslint-disable-next-line prefer-const
@@ -64,7 +64,7 @@ export async function saveInterfaceStat() {
   apiPerfLogTicket = {}
 }
 
-export function setupLogEvents() {
+export function setupLogEvents(): void {
   /* eslint-disable security/detect-object-injection */
   if (config.statLog) {
     logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
@@ -107,7 +107,7 @@ export function setupLogEvents() {
 
   logEventEmitter.on('tx_insert_db', async (_txs: TxStatus[]) => {
     if (config.recordTxStatus !== true) return
-    const txs = _txs as any[]
+    const txs = _txs as TxStatus[]
     const detailedList: DetailedTxStatus[] = []
 
     for await (const txStatus of txs) {
@@ -134,9 +134,9 @@ export function setupLogEvents() {
         detailedList.push({
           ...txStatus,
           type: type,
-          to: bufferToHex(tx.to),
-          from: bufferToHex(tx.getSenderAddress()),
-          timestamp: txStatus.timestamp,
+          to: bufferToHex(tx.to ? tx.to.toBuffer() : Buffer.from('')),
+          from: bufferToHex(tx.getSenderAddress().toBuffer()),
+          timestamp: txStatus.timestamp.toString(),
           nodeUrl: txStatus.nodeUrl,
         })
       } catch (e) {
@@ -149,13 +149,13 @@ export function setupLogEvents() {
 }
 
 // this function save recorded transaction to sqlite with its tx type
-export async function txStatusSaver(_txs: DetailedTxStatus[]) {
+export async function txStatusSaver(_txs: DetailedTxStatus[]): Promise<void> {
   const txs = _txs
 
   const bulkInsertTxs = true
   if (bulkInsertTxs) {
     if (txs.length === 0) return
-    const prepareBulkInsertSQL = (txs: DetailedTxStatus[]) => {
+    const prepareBulkInsertSQL = (txs: DetailedTxStatus[]): string => {
       // items order {txHash, injected, accepted, reason, type, to, from, ip, timestamp}
       // eslint-disable-next-line prefer-const
       let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[0]
@@ -166,7 +166,7 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]) {
 
       for (let i = 1; i < txs.length; i++) {
         // eslint-disable-next-line prefer-const
-        let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[i]
+        let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[i] // eslint-disable-line security/detect-object-injection
         // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
         placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}', '${nodeUrl}'`
         sql = sql + `, (${placeholders})`

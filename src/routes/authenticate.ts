@@ -24,7 +24,7 @@ router.route('/:passphrase').get(async function (req: Request, res: Response) {
 router.route('/token-check/:token').get(async function (req: Request, res: Response) {
   const { token } = req.params
 
-  jwt.verify(token, CONFIG.secret_key, (err: any) => {
+  jwt.verify(token, CONFIG.secret_key, (err: Error | null) => {
     if (err) return res.status(401).send({ valid: false })
     return res.send({ valid: true }).status(200)
   })

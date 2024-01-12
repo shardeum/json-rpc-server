@@ -1,3 +1,5 @@
+import { RequestTimeout } from './types'
+
 type Config = {
   // set ip to be public exposed address
   // so that rpc could let explorer know about its ip
@@ -29,7 +31,7 @@ type Config = {
   generateTxTimestamp: boolean
   nodelistRefreshInterval: number
   defaultRequestRetry: number
-  defaultRequestTimeout: any
+  defaultRequestTimeout: RequestTimeout
   recordTxStatus: boolean
   rateLimit: boolean
   staticGasEstimate?: string
@@ -86,7 +88,7 @@ type Config = {
 
 export const CONFIG: Config = {
   websocket: {
-    enabled: Boolean(process.env.WS_ENABLED) || false,
+    enabled: true,
     serveSubscriptions: Boolean(process.env.WS_SAVE_SUBSCRIPTIONS) || false,
   },
   log_server: {
