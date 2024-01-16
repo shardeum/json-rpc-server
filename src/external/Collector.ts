@@ -181,51 +181,71 @@ class Collector extends BaseExternal {
     }
   }
 
-  async fetchAccount(key: string, timestamp: number): Promise<{ accountId: any; data: any } | null> {
-    if (!CONFIG.collectorSourcing.enabled) return null
-
-    /* prettier-ignore */ console.log(`Collector: fetchAccount call for key: ${key}`)
-    const accountKey = `0x${key.slice(0, -24)}`
-    const apiQuery = `${this.baseUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`
-
-    const txCount = await axios.get(apiQuery).then((response) => response.data.totalTransactions)
-    if (txCount === 0) {
-      // Account does not exist!
-      /* prettier-ignore */ console.log(`Collector: fetchAccount account does not exist for key: ${key}`)
+  async fetchTxHistory(key: string, timestamp: number): Promise<{ accountId: any; data: any } | null> {
+    if (!CONFIG.collectorSourcing.enabled) {
       return null
     }
 
-    let i = 1
-    const numberOfPages = Math.ceil(txCount / 10)
-    for (i; i <= numberOfPages; i++) {
-      // Fetch current page
-      const txList = await axios
-        .get(apiQuery.concat(`&page=${i}`))
-        .then((response) => response.data.transactions)
-        .then((txList) =>
-          txList.map((tx: { txId: string; timestamp: number }) => {
-            return { txId: tx.txId, timestamp: tx.timestamp }
-          })
-        )
+    try {
+      console.log(`Collector: fetchAccount call for key: ${key}`)
+      const accountKey = `0x${key.slice(0, -24)}`
+      const apiQuery = `${this.baseUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`
 
-      for (const tx of txList) {
-        const foundAccount = await axios
-          .get(`${this.baseUrl}/api/receipt?txId=${tx.txId}`)
-          .then((response) => response.data.receipts.accounts)
-          .then((accounts) => {
-            return accounts.find((account: { accountId: string }) => account.accountId === key)
-          })
+      const txCount = await axios.get(apiQuery).then((response) => response.data.totalTransactions)
+      if (txCount === 0) {
+        console.log(`Collector: fetchAccount account does not exist for key: ${key}`)
+        return null
+      }
 
-        if (foundAccount) {
-          return {
-            accountId: foundAccount.accountId,
-            data: foundAccount.data,
+      const numberOfPages = Math.ceil(txCount / 10)
+      for (let i = 1; i <= numberOfPages; i++) {
+        const txList = await axios
+          .get(apiQuery.concat(`&page=${i}`))
+          .then((response) => response.data.transactions)
+          .then((txList) =>
+            txList.map((tx: { txId: string; timestamp: number }) => {
+              return { txId: tx.txId, timestamp: tx.timestamp }
+            })
+          )
+
+        for (const tx of txList) {
+          const foundAccount = await axios
+            .get(`${this.baseUrl}/api/receipt?txId=${tx.txId}`)
+            .then((response) => response.data.receipts.accounts)
+            .then((accounts) => {
+              return accounts.find((account: { accountId: string }) => account.accountId === key)
+            })
+
+          if (foundAccount) {
+            return {
+              accountId: foundAccount.accountId,
+              data: foundAccount.data,
+            }
           }
         }
       }
-    }
 
-    return null
+      return null
+    } catch (error) {
+      console.error('Collector: Error in fetchTxHistory', error)
+      return null
+    }
+  }
+
+  async fetchAccount(accountId: string): Promise<any | null> {
+    try {
+      const apiQuery = `${this.baseUrl}/api/account?accountId=${accountId}`
+      const response = await axios.get(apiQuery).then((response) => {
+        if (!response) {
+          throw new Error('Failed to fetch transaction')
+        }
+        return response
+      })
+      return response
+    } catch (error) {
+      console.error('Collector: Error in fetchAccount', error)
+      return null
+    }
   }
 
   buildLogAPIUrl(request: any, baseDomain = CONFIG.explorerUrl): string {

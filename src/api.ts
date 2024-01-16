@@ -1330,7 +1330,6 @@ export const methods = {
         callback(null, result)
         return
       }
-
       let originalEstimate = new BN(0)
       if (config.gasEstimateMethod === 'replayEngine') {
         const replayOutput = await replayGas(args[0])
