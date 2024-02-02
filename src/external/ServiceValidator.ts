@@ -3,8 +3,11 @@ import { AxiosRequestConfig } from 'axios'
 import { BaseExternal, axiosWithRetry } from './BaseExternal'
 import { verbose } from '../api'
 import { CONFIG } from '../config'
+import { collectorAPI } from './Collector'
 
 class ServiceValidator extends BaseExternal {
+  cachedLatestBlock: { blockNumber: string; blockTimestamp: string; cachedAt: number } | null = null
+
   constructor(baseUrl: string) {
     super(baseUrl, 3, {
       'Content-Type': 'application/json',
@@ -143,6 +146,25 @@ class ServiceValidator extends BaseExternal {
 
   async ethCall(callObj: any): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
+
+    if (CONFIG.serviceValidatorSourcing.enabled) {
+      if (this.cachedLatestBlock === null || this.cachedLatestBlock.cachedAt < Date.now() - 1000 * 6) {
+        const block = await collectorAPI.getBlock('latest', 'tag')
+        if (block) {
+          this.cachedLatestBlock = {
+            blockNumber: block.number,
+            blockTimestamp: block.timestamp,
+            cachedAt: Date.now(),
+          }
+        }
+      }
+      if (this.cachedLatestBlock) {
+        callObj.block = {
+          number: this.cachedLatestBlock.blockNumber,
+          timestamp: this.cachedLatestBlock.blockTimestamp,
+        }
+      }
+    }
 
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: ethCall call for callObj: ${JSON.stringify(callObj)}`)
     const requestConfig: AxiosRequestConfig = {
