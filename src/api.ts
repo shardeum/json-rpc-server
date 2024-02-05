@@ -38,6 +38,7 @@ import { serviceValidator } from './external/ServiceValidator'
 import { JSONRPCCallbackTypePlain, RequestParamsLike, JSONRPCError } from 'jayson'
 import { readableBlock, completeReadableReceipt, readableTransaction } from './external/Collector'
 import { OriginalTxData, TransactionFromArchiver } from './types'
+import { isErr } from './external/Err'
 
 export const verbose = config.verbose
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
@@ -755,6 +756,12 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_blockNumber', args)
     }
+    const result = await collectorAPI.getLatestBlockNumber()
+    if (result) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x' + result.number.toString(16))
+      return
+    }
     const { blockNumber, nodeUrl } = await getCurrentBlockInfo()
     if (verbose) console.log('BLOCK NUMBER', blockNumber, parseInt(blockNumber, 16))
     if (blockNumber == null) {
@@ -1410,10 +1417,16 @@ export const methods = {
     }
     if (verbose) console.log('callObj', callObj)
 
-    const response = await serviceValidator.ethCall(callObj)
-    if (response) {
+    let response = await serviceValidator.ethCall(callObj)
+    if (response && !isErr(response)) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x' + response)
+      return
+    } else if (response === null) {
+      // optimistically return 0x0
+      console.log('eth_call error', response)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, '0x0')
       return
     }
 
@@ -1727,13 +1740,20 @@ export const methods = {
     let success = false
     let result = null
     result = await collectorAPI.getTransactionByHash(txHash)
-    if (result) {
+    if (!result) {
+      // optimistically return null if the transaction is not found in the collector
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback(null, null)
+      return
+    } else if (!isErr(result)) {
       // result found, skipping querying from archiver, validator and explorer.
       success = true
       retry = 100
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
       return
+    } else {
+      result = null
     }
     let nodeUrl
     while (retry < 5 && !success) {
@@ -1950,6 +1970,20 @@ export const methods = {
       let result
       const txHash = args[0]
       result = await collectorAPI.getTransactionReceipt(txHash)
+      if (!result) {
+        // optimistically return null if the receipt is not found in the collector
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback(null, null)
+        return
+      } else if (!isErr(result)) {
+        // result found, skipping querying from archiver, validator and explorer.
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        result = extractTransactionReceiptObject(result)
+        callback(null, result)
+        return
+      } else {
+        result = null
+      }
 
       if (config.queryFromValidator && !result) {
         res = await requestWithRetry(RequestMethod.Get, `/tx/${txHash}`)

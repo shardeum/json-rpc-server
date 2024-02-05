@@ -22,7 +22,7 @@ pm2.connect(function (err) {
 })
 
 function startRPC(port) {
-  const processName = 'rcp_' + port
+  const processName = 'rpc_' + port
   pm2.start(
     {
       script: 'dist/src/server.js',

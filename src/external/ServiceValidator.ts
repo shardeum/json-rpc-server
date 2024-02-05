@@ -4,6 +4,7 @@ import { BaseExternal, axiosWithRetry } from './BaseExternal'
 import { verbose } from '../api'
 import { CONFIG } from '../config'
 import { collectorAPI } from './Collector'
+import { Err, NewErr, NewInternalErr } from './Err'
 
 class ServiceValidator extends BaseExternal {
   cachedLatestBlock: { blockNumber: string; blockTimestamp: string; cachedAt: number } | null = null
@@ -144,20 +145,16 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async ethCall(callObj: any): Promise<string | null> {
-    if (!CONFIG.serviceValidatorSourcing.enabled) return null
+  async ethCall(callObj: any): Promise<string | Err | null> {
+    if (!CONFIG.serviceValidatorSourcing.enabled) return NewErr('ServiceValidator sourcing is not enabled')
 
-    if (CONFIG.serviceValidatorSourcing.enabled) {
-      if (this.cachedLatestBlock === null || this.cachedLatestBlock.cachedAt < Date.now() - 1000 * 6) {
-        const block = await collectorAPI.getBlock('latest', 'tag')
-        if (block) {
-          this.cachedLatestBlock = {
-            blockNumber: block.number,
-            blockTimestamp: block.timestamp,
-            cachedAt: Date.now(),
-          }
-        }
+    if (CONFIG.collectorSourcing.enabled) {
+      if (this.cachedLatestBlock === null) {
+        await this.updateCachedLatestBlock()
+      } else if (this.cachedLatestBlock.cachedAt < Date.now() - 1000 * 12) {
+        this.updateCachedLatestBlock()
       }
+
       if (this.cachedLatestBlock) {
         callObj.block = {
           number: this.cachedLatestBlock.blockNumber,
@@ -180,7 +177,19 @@ class ServiceValidator extends BaseExternal {
       return res.data.result
     } catch (e) {
       console.error(`ServiceValidator: Error calling contract`, e)
-      return null
+      return NewInternalErr('ServiceValidator: Error calling contract')
+    }
+  }
+
+  private async updateCachedLatestBlock(): Promise<void> {
+    /* prettier-ignore */ if (verbose) console.log('ServiceValidator: updateCachedLatestBlock')
+    const block = await collectorAPI.getLatestBlockNumber()
+    if (block) {
+      this.cachedLatestBlock = {
+        blockNumber: '0x' + block.number.toString(16),
+        blockTimestamp: '0x' + block.timestamp.toString(16),
+        cachedAt: Date.now(),
+      }
     }
   }
 }

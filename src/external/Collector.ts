@@ -11,6 +11,7 @@ import {
   AccessList,
 } from '@ethereumjs/tx'
 import { bufferToHex, toBuffer } from 'ethereumjs-util'
+import { Err, NewErr, NewInternalErr } from './Err'
 
 class Collector extends BaseExternal {
   constructor(baseURL: string) {
@@ -39,8 +40,8 @@ class Collector extends BaseExternal {
     }
   }
 
-  async getTransactionByHash(txHash: string): Promise<readableTransaction | null> {
-    if (!CONFIG.collectorSourcing.enabled) return null
+  async getTransactionByHash(txHash: string): Promise<readableTransaction | Err | null> {
+    if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
 
     /* prettier-ignore */ console.log(`Collector: getTransactionByHash call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
@@ -63,12 +64,12 @@ class Collector extends BaseExternal {
       return result
     } catch (error) {
       console.error('Collector: Error getting transaction by hash', error)
-      return null
+      return NewInternalErr('Collector: Error getting transaction by hash')
     }
   }
 
-  async getTransactionReceipt(txHash: string): Promise<any | null> {
-    if (!CONFIG.collectorSourcing.enabled) return null
+  async getTransactionReceipt(txHash: string): Promise<any | Err | null> {
+    if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector: collectorSourcing is not enabled')
 
     /* prettier-ignore */ console.log(`Collector: getTransactionReceipt call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
@@ -87,7 +88,7 @@ class Collector extends BaseExternal {
       return result
     } catch (error) {
       console.error('Collector: Error getting transaction receipt', error)
-      return null
+      return NewInternalErr('Collector: Error getting transaction receipt')
     }
   }
 
@@ -131,6 +132,39 @@ class Collector extends BaseExternal {
     return storageRecords
   }
 
+  async getLatestBlockNumber(): Promise<{
+    success: boolean
+    number: bigint
+    hash: string
+    timestamp: bigint
+  } | null> {
+    if (!CONFIG.collectorSourcing.enabled) return null
+
+    const requestConfig: AxiosRequestConfig = {
+      method: 'get',
+      url: `${this.baseUrl}/api/blocks?numberHex=latest`,
+      headers: this.defaultHeaders,
+    }
+
+    /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber call`)
+    try {
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber requestConfig: ${JSON.stringify(requestConfig)}`)
+      const res = await axiosWithRetry<{
+        success: boolean
+        number: bigint
+        hash: string
+        timestamp: bigint
+      }>(requestConfig)
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber res: ${JSON.stringify(res.data)}`)
+      if (!res.data.success) return null
+
+      return res.data
+    } catch (e) {
+      console.error('Collector: Error getting latest block number', e)
+      return null
+    }
+  }
+
   async getBlock(
     block: string,
     inpType: 'hex_num' | 'hash' | 'tag',
@@ -163,7 +197,6 @@ class Collector extends BaseExternal {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
             if (details === true) {
-              tx.originalTxData = JSON.parse(tx.originalTxData)
               return this.decodeTransaction(tx)
             }
             return tx.wrappedEVMAccount.readableReceipt.transactionHash
@@ -286,7 +319,6 @@ class Collector extends BaseExternal {
     try {
       txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
     } catch (e) {
-      // ok raw tx seem alien to @ethereum/tx version we have locked
       // fallback to collectors readable receipt
       // v, r, s are not available in readableReceipt
       return {
