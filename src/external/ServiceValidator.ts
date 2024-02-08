@@ -35,37 +35,41 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async getAccount(address: string): Promise<any | null> {
+  async getAccount(address: string): Promise<any> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
+    if (verbose) console.log(`ServiceValidator: getAccount call for address: ${address}`)
 
-    /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getAccount call for address: ${address}`)
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: `${this.baseUrl}/account/${address}`,
       headers: this.defaultHeaders,
     }
-    /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getAccount requestConfig: ${JSON.stringify(requestConfig)}`)
+    if (verbose) console.log(`ServiceValidator: getAccount requestConfig: ${JSON.stringify(requestConfig)}`)
+
     try {
-      const res = await axiosWithRetry<{ account: any }>(requestConfig)
-      /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getAccount res: ${JSON.stringify(res.data)}`)
+      const res = await axiosWithRetry<{ account?: any; error?: any }>(requestConfig)
+      if (verbose) console.log(`ServiceValidator: getAccount response: ${JSON.stringify(res.data)}`)
+      if (res.data.error) {
+        console.error(`ServiceValidator: Error in response for address ${address}: ${res.data.error}`)
+        throw new Error(res.data.error)
+      }
       return res.data.account
     } catch (e) {
-      console.error(`ServiceValidator: Error getting account`, e)
-      return null
+      console.error(`ServiceValidator: Error getting account for address ${address}`, e)
+      throw new Error('Error getting account')
     }
   }
 
   async getBalance(address: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
+    if (verbose) console.log(`ServiceValidator: getBalance call for address: ${address}`)
 
-    /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getBalance call for address: ${address}`)
     try {
       const account = await this.getAccount(address)
-      if (!account) return '0'
-      return account.balance
+      return account?.balance ?? '0'
     } catch (e) {
-      console.error(`ServiceValidator: Error getting balance`, e)
-      return null
+      console.error(`ServiceValidator: Error getting balance for address ${address}`, e)
+      throw new Error('Error getting balance')
     }
   }
 

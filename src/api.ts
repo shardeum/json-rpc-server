@@ -790,20 +790,27 @@ export const methods = {
     } catch (e) {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x')
+      callback({ code: -32000, message: 'Unable to get address' }, null)
       return
     }
     if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x')
+      callback({ code: -32000, message: 'Invalid address' }, null)
       return
     }
 
-    let balance = await serviceValidator.getBalance(address)
-    if (balance) {
+    let balance
+    try {
+      balance = await serviceValidator.getBalance(address)
+      if (balance) {
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        callback(null, intStringToHex(balance))
+        return
+      }
+    } catch (e) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, intStringToHex(balance))
+      callback({ code: 503, message: 'unable to get balanace' }, null)
       return
     }
 
@@ -815,17 +822,22 @@ export const methods = {
       const res = await getAccount(address)
       const account = res.account
       nodeUrl = res.nodeUrl
-      if (verbose) console.log('account', account)
-      if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
-      const SHD = intStringToHex(account.balance)
-      if (verbose) console.log('SHD', typeof SHD, SHD)
-      balance = intStringToHex(account.balance)
-      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-      callback(null, balance)
+      if (account) {
+        if (verbose) console.log('account', account)
+        if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
+        const SHD = intStringToHex(account.balance)
+        if (verbose) console.log('SHD', typeof SHD, SHD)
+        balance = intStringToHex(account.balance)
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+        callback(null, balance)
+      } else {
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+        callback({ code: 503, message: 'unable to get balanace' }, null)
+      }
     } catch (e) {
       // if (verbose) console.log('Unable to get account balance', e)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-      callback(null, balance)
+      callback({ code: 503, message: 'unable to get balanace' }, null)
     }
     if (verbose) console.log('Final balance', balance)
   },
