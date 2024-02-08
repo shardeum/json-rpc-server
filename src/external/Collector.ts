@@ -2,7 +2,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { verbose } from '../api'
 import { CONFIG } from '../config'
-import { LogQueryRequest } from '../types'
+import { LogQueryRequest, TxByBlockRequest } from '../types'
 import { BaseExternal, axiosWithRetry } from './BaseExternal'
 import {
   TransactionFactory,
@@ -161,6 +161,45 @@ class Collector extends BaseExternal {
       return res.data
     } catch (e) {
       console.error('Collector: Error getting latest block number', e)
+      return null
+    }
+  }
+
+  async getTransactionByBlock(request: TxByBlockRequest): Promise<number | any | null> {
+    if (!CONFIG.collectorSourcing.enabled) return null
+
+    /* prettier-ignore */ console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
+    const url = `${this.baseUrl}/api/transaction?`
+    if (request.blockNumber) {
+      url.concat(`blockNumber=${request.blockNumber}`)
+    }
+    if (request.blockHash) {
+      url.concat(`blockHash=${request.blockHash}`)
+    }
+    url.concat(`countOnly=${request.countOnly}`)
+    const requestConfig: AxiosRequestConfig = {
+      method: 'get',
+      url: url,
+      headers: this.defaultHeaders,
+    }
+
+    try {
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock requestConfig: ${JSON.stringify(requestConfig)}`)
+      const res = await axiosWithRetry<{ success: boolean; totalTransactions?: number; transactions: any }>(
+        requestConfig
+      )
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock res: ${JSON.stringify(res.data)}`)
+      if (!res.data.success) return null
+
+      let result: number | any
+      if (request.countOnly) {
+        result = res.data.totalTransactions
+      } else result = res.data.transactions
+
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock result: ${JSON.stringify(result)}`)
+      return result
+    } catch (error) {
+      console.error('Collector: Error getting transaction by block', error)
       return null
     }
   }

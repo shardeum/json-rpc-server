@@ -936,12 +936,25 @@ export const methods = {
       console.log('Running eth_getBlockTransactionCountByHash', args)
     }
     let blockHash = (args as string[])[0]
-    if (config.queryFromValidator && config.queryFromExplorer) {
-      const explorerUrl = config.explorerUrl
-      if (blockHash === 'latest') {
-        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
-        if (res.data.block) blockHash = res.data.block.hash
+    if (blockHash === 'latest') {
+      const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
+      if (res.data.block) blockHash = res.data.block.hash
+    }
+
+    if (CONFIG.collectorSourcing.enabled) {
+      const res = await collectorAPI.getTransactionByBlock({ blockHash, countOnly: true })
+      if (res === null) {
+        callback(null, null)
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
+      const result = '0x' + (res as number).toString(16)
+      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+      callback(null, result)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+    if (config.queryFromExplorer) {
+      const explorerUrl = config.explorerUrl
       try {
         const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
         if (verbose) {
@@ -995,15 +1008,28 @@ export const methods = {
 
     if (blockNumber !== 'latest' && blockNumber !== 'earliest')
       blockNumber = parseInt(blockNumber, 16).toString()
-    if (config.queryFromValidator && config.queryFromExplorer) {
-      const explorerUrl = config.explorerUrl
-      if (blockNumber === 'latest' || blockNumber === 'earliest') {
-        const res = await requestWithRetry(
-          RequestMethod.Get,
-          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
-        )
-        if (res.data.block) blockNumber = res.data.block.number
+    if (blockNumber === 'latest' || blockNumber === 'earliest') {
+      const res = await requestWithRetry(
+        RequestMethod.Get,
+        `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+      )
+      if (res.data.block) blockNumber = res.data.block.number
+    }
+
+    if (CONFIG.collectorSourcing.enabled) {
+      const res = await collectorAPI.getTransactionByBlock({ blockNumber, countOnly: true })
+      if (res === null) {
+        callback(null, null)
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
+      const result = '0x' + (res as number).toString(16)
+      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+      callback(null, result)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+    if (config.queryFromExplorer) {
+      const explorerUrl = config.explorerUrl
       try {
         const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
         if (verbose) {
@@ -1634,6 +1660,23 @@ export const methods = {
     let blockNumber = args[0]
     if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
     if (blockNumber === 'earliest') blockNumber = 0
+    if (CONFIG.collectorSourcing.enabled) {
+      const res = await collectorAPI.getTransactionByBlock({ blockNumber, countOnly: false })
+      if (res === null) {
+        callback(null, null)
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      }
+      let index = 0
+      const result = []
+      for (const transaction of res) {
+        result.push(extractTransactionReceiptObject(transaction, index))
+        index++
+      }
+      if (verbose) console.log('BLOCK RECEIPTS DETAIL', result)
+      callback(null, result)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
     if (config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
       const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)

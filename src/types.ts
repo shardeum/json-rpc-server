@@ -84,6 +84,12 @@ export interface LogQueryRequest {
   toBlock?: string
 }
 
+export interface TxByBlockRequest {
+  blockNumber?: number
+  blockHash?: string
+  countOnly: boolean
+}
+
 export type PendingTransactionFilter = BaseFilterArgs & {
   lastQueriedTimestamp: number
   lastQueriedBlock: number
