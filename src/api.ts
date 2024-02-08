@@ -121,8 +121,8 @@ function hexStrToInt(hexStr: string): number {
   return parseInt(hexStr.slice(2), 16)
 }
 
-function isHex(str: string): boolean {
-  const regexp = /^0x[0-9a-fA-F]+$/
+function isHex(str: string) {
+  const regexp = /^(0x|0X)[0-9a-fA-F]+$/
   return regexp.test(str)
 }
 
@@ -2388,62 +2388,122 @@ export const methods = {
     if (verbose) {
       console.log('Running getLogs', args)
     }
-    const request = args[0]
-    let logs: string[] = []
-    if (request.fromBlock === 'earliest') {
-      request.fromBlock = '0'
+
+    let { fromBlock, toBlock, blockHash, address, topics } = args[0]
+
+    if (!logParamsAreValid(fromBlock, toBlock, blockHash)) {
+      callback(null, new Error('eth_getLogs: Invalid parameters'))
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      return
     }
-    if (request.fromBlock === 'latest') {
-      if (lastBlockInfo && lastBlockInfo.blockNumber) {
-        request.fromBlock = lastBlockInfo.blockNumber
-      } else {
-        try {
-          const { blockNumber } = await getCurrentBlockInfo()
-          request.fromBlock = blockNumber
-        } catch (e) {
-          console.error(`eth_getLogs: failed to get current block`, e)
-          callback(null, new Error(`eth_getLogs: failed to get current block`))
-          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-          return
-        }
+
+    if (fromBlock === 'earliest') {
+      fromBlock = '0x0'
+    }
+    if (fromBlock === 'latest') {
+      fromBlock = await getBlockNumberForLatest(lastBlockInfo)
+      if (!fromBlock || !isHex(fromBlock)) {
+        callback(null, new Error(`eth_getLogs: failed to get current block`))
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
       }
     }
-    if (request.toBlock === 'latest') {
-      if (lastBlockInfo && lastBlockInfo.blockNumber !== '0x0') {
-        request.toBlock = lastBlockInfo.blockNumber
-      } else {
-        try {
-          const { blockNumber } = await getCurrentBlockInfo()
-          request.toBlock = blockNumber
-        } catch (e) {
-          console.error(`eth_getLogs: failed to get current block`, e)
-          callback(null, new Error(`eth_getLogs: failed to get current block`))
-          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-          return
-        }
+
+    if (toBlock === 'latest') {
+      toBlock = await getBlockNumberForLatest(lastBlockInfo)
+      if (!toBlock || !isHex(toBlock)) {
+        callback(null, new Error(`eth_getLogs: failed to get current block`))
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
       }
     }
-    if (request.blockHash) {
-      const res = await requestWithRetry(
-        RequestMethod.Get,
-        `/eth_getBlockByHash?blockHash=${request.blockHash}`
-      )
+    if (blockHash) {
+      const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
       if (res.data && res.data.block) {
-        request.fromBlock = res.data.block.number
-        request.toBlock = res.data.block.number
+        fromBlock = res.data.block.number
+        toBlock = res.data.block.number
+        if (!fromBlock || !toBlock || !isHex(fromBlock) || !isHex(toBlock)) {
+          callback(null, new Error(`eth_getLogs: failed to get valid block by hash`))
+          logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+          return
+        }
+      } else {
+        console.error(`eth_getLogs: failed to get block by hash`)
+        callback(null, new Error(`eth_getLogs: failed to get block by hash`))
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
       }
     }
     if (CONFIG.collectorSourcing.enabled) {
-      const logsFromCollector = await collectorAPI.getLogsByFilter(request)
+      const logsFromCollector = await collectorAPI.getLogsByFilter({ fromBlock, toBlock, address, topics })
+
       if (logsFromCollector) {
         callback(null, logsFromCollector)
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
+      } else {
+        callback(null, new Error(`eth_getLogs: failed to get logs from collector`))
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
       }
     }
-    logs = await getLogsFromExplorer(request)
-    callback(null, logs)
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+
+    async function getBlockNumberForLatest(lastBlockInfo: { blockNumber: string; timestamp: string }) {
+      if (lastBlockInfo && lastBlockInfo.blockNumber && lastBlockInfo.blockNumber !== '0x0') {
+        return lastBlockInfo.blockNumber
+      } else {
+        try {
+          const { blockNumber } = await getCurrentBlockInfo()
+          return blockNumber
+        } catch (e) {
+          console.error(`eth_getLogs: failed to get current block`, e)
+          callback(null, new Error(`eth_getLogs: failed to get current block`))
+          logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+          return null
+        }
+      }
+    }
+
+    function isValidToBlock(block: string) {
+      return block === 'latest' || isHex(block)
+    }
+
+    function isValidFromBlock(block: string) {
+      return isValidToBlock(block) || block === 'earliest'
+    }
+
+    function logParamsAreValid(fromBlock: string, toBlock: string, blockHash: string) {
+      if (fromBlock && !isValidFromBlock(fromBlock)) {
+        console.error(`Invalid 'fromBlock' parameter: ${fromBlock}`)
+        return false
+      }
+
+      if (toBlock && !isValidToBlock(toBlock)) {
+        console.error(`Invalid 'toBlock' parameter: ${toBlock}`)
+        return false
+      }
+
+      if (blockHash && (!isHex(blockHash) || blockHash.length !== 66)) {
+        console.error(`Invalid 'blockHash' parameter: ${blockHash}`)
+        return false
+      }
+      return true
+    }
+
+    try {
+      const logs = await getLogsFromExplorer({
+        fromBlock,
+        toBlock,
+        topics,
+        address,
+      })
+      callback(null, logs)
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+    } catch (error: any) {
+      console.error(`eth_getLogs: ${error.message}`)
+      callback(null, new Error(`eth_getLogs: ${error.message}`))
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+    }
   },
   eth_getWork: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getWork'
