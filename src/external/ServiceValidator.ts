@@ -83,7 +83,7 @@ class ServiceValidator extends BaseExternal {
       return account.nonce
     } catch (e) {
       console.error(`ServiceValidator: Error getting transaction count`, e)
-      return null
+      throw new Error('Error getting transaction count')
     }
   }
 

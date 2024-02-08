@@ -873,20 +873,26 @@ export const methods = {
     } catch (e) {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x')
+      callback({ code: -32000, message: 'Unable to get address' }, null)
       return
     }
     if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x')
+      callback({ code: -32000, message: 'Invalid address' }, null)
       return
     }
 
-    const nonce = await serviceValidator.getTransactionCount(address)
-    if (nonce) {
+    try {
+      const nonce = await serviceValidator.getTransactionCount(address)
+      if (nonce) {
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        callback(null, intStringToHex(nonce))
+        return
+      }
+    } catch (e) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, intStringToHex(nonce))
+      callback({ code: 503, message: 'Unable to get transaction count' }, null)
       return
     }
 
@@ -909,7 +915,7 @@ export const methods = {
         callback(null, result)
       } else {
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-        callback(null, '0x0')
+        callback({ code: -32001, message: 'Unable to get transaction count' }, null)
       }
     } catch (e) {
       if (verbose) console.log('Unable to getTransactionCount', e)
