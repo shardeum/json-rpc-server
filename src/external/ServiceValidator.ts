@@ -6,6 +6,7 @@ import { CONFIG } from '../config'
 import { collectorAPI } from './Collector'
 import { Err, NewErr, NewInternalErr } from './Err'
 import { nestedCountersInstance } from '../utils/nestedCounters'
+import { JSONRPCError } from 'jayson'
 
 class ServiceValidator extends BaseExternal {
   cachedLatestBlock: { blockNumber: string; blockTimestamp: string; cachedAt: number } | null = null
@@ -164,7 +165,7 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async ethCall(callObj: any): Promise<string | Err | null> {
+  async ethCall(callObj: any): Promise<string | { error: JSONRPCError } | Err | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return NewErr('ServiceValidator sourcing is not enabled')
 
     if (CONFIG.collectorSourcing.enabled) {

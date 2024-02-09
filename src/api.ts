@@ -1528,13 +1528,17 @@ export const methods = {
     let response = await serviceValidator.ethCall(callObj)
     if (response && !isErr(response)) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      if (typeof response !== 'string' && response.error) {
+        // evm execution error (revert)
+        callback(response.error)
+        return
+      }
       callback(null, '0x' + response)
       return
     } else if (response === null) {
-      // optimistically return 0x0
       console.log('eth_call error', response)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x0')
+      callback(errorBusy)
       return
     }
 
@@ -1546,6 +1550,13 @@ export const methods = {
         //callback(null, errorHexStatus)
         callback(errorBusy)
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
+        return
+      }
+
+      if (res.data.result.error) {
+        // evm execution error (revert)
+        callback(res.data.result.error)
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         return
       }
       const result = '0x' + res.data.result
