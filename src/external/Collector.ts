@@ -168,15 +168,15 @@ class Collector extends BaseExternal {
   async getTransactionByBlock(request: TxByBlockRequest): Promise<number | any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
 
-    /* prettier-ignore */ console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
-    const url = `${this.baseUrl}/api/transaction?`
+    /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
+    let url = `${this.baseUrl}/api/transaction?`
     if (request.blockNumber) {
-      url.concat(`blockNumber=${request.blockNumber}`)
+      url += `blockNumber=${request.blockNumber}`
     }
     if (request.blockHash) {
-      url.concat(`blockHash=${request.blockHash}`)
+      url += `blockHash=${request.blockHash}`
     }
-    url.concat(`countOnly=${request.countOnly}`)
+    url += `&countOnly=${request.countOnly}`
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: url,

@@ -936,58 +936,54 @@ export const methods = {
       console.log('Running eth_getBlockTransactionCountByHash', args)
     }
     let blockHash = (args as string[])[0]
-    if (blockHash === 'latest') {
+    if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
+      console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
+
+    if ((config.collectorSourcing.enabled || config.queryFromExplorer) && blockHash === 'latest') {
       const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${blockHash}`)
       if (res.data.block) blockHash = res.data.block.hash
     }
 
     if (CONFIG.collectorSourcing.enabled) {
       const res = await collectorAPI.getTransactionByBlock({ blockHash, countOnly: true })
-      if (res === null) {
-        callback(null, null)
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      if (res !== null) {
+        const result = '0x' + (res as number).toString(16)
+        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
       }
-      const result = '0x' + (res as number).toString(16)
-      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      return
     }
     if (config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
       try {
-        const res = await axios.get(`${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+        const url = `${explorerUrl}/api/transaction?blockHash=${blockHash}&countOnly=true`
+        const res = await axios.get(url)
         if (verbose) {
-          console.log('url', `${explorerUrl}/api/transaction?blockHash=${blockHash}`)
+          console.log('url', url)
           console.log('res', JSON.stringify(res.data))
         }
-        if (!res.data.transactions) {
-          callback(null, res.data.error)
-          const nodeUrl = config.explorerUrl
-          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-        }
-        const result = '0x' + res.data.transactions.length.toString(16)
+        if (res.data.error) console.log('error', res.data.error)
+        if (res.data.totalTransactions || res.data.totalTransactions === 0) {
+          const result = '0x' + res.data.totalTransactions.toString(16)
 
-        const nodeUrl = config.explorerUrl
-        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-        callback(null, result)
-        logEventEmitter.emit(
-          'fn_end',
-          ticket,
-          { nodeUrl, success: res.data.transactions.length ? true : false },
-          performance.now()
-        )
+          const nodeUrl = config.explorerUrl
+          if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+          callback(null, result)
+          logEventEmitter.emit(
+            'fn_end',
+            ticket,
+            { nodeUrl, success: res.data.totalTransactions ? true : false },
+            performance.now()
+          )
+          return
+        }
       } catch (e) {
         if (verbose) console.log((e as AxiosError).message)
-        callback(null, null)
-        const nodeUrl = config.explorerUrl
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       }
-    } else {
-      console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
-      callback(null, null)
-      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
+    callback(null, null)
+    logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_getBlockTransactionCountByNumber: async function (
     args: RequestParamsLike,
@@ -1006,63 +1002,61 @@ export const methods = {
 
     let blockNumber = args[0]
 
-    if (blockNumber !== 'latest' && blockNumber !== 'earliest')
-      blockNumber = parseInt(blockNumber, 16).toString()
-    if (blockNumber === 'latest' || blockNumber === 'earliest') {
-      const res = await requestWithRetry(
-        RequestMethod.Get,
-        `/eth_getBlockByNumber?blockNumber=${blockNumber}`
-      )
-      if (res.data.block) blockNumber = res.data.block.number
+    if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
+      console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
+
+    if (config.collectorSourcing.enabled || config.queryFromExplorer) {
+      if (blockNumber !== 'latest' && blockNumber !== 'earliest')
+        blockNumber = parseInt(blockNumber, 16).toString()
+      if (blockNumber === 'latest' || blockNumber === 'earliest') {
+        const res = await requestWithRetry(
+          RequestMethod.Get,
+          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+        )
+        if (res.data.block) blockNumber = res.data.block.number
+      }
     }
 
     if (CONFIG.collectorSourcing.enabled) {
       const res = await collectorAPI.getTransactionByBlock({ blockNumber, countOnly: true })
-      if (res === null) {
-        callback(null, null)
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      if (res !== null) {
+        const result = '0x' + (res as number).toString(16)
+        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
       }
-      const result = '0x' + (res as number).toString(16)
-      if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      return
     }
     if (config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
       try {
-        const res = await axios.get(`${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+        const url = `${explorerUrl}/api/transaction?blockNumber=${blockNumber}&countOnly=true`
+        const res = await axios.get(url)
         if (verbose) {
-          console.log('url', `${explorerUrl}/api/transaction?blockNumber=${blockNumber}`)
+          console.log('url', url)
           console.log('res', JSON.stringify(res.data))
         }
-        if (!res.data.transactions) {
-          callback(null, res.data.error)
-          const nodeUrl = config.explorerUrl
-          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-        }
-        const result = '0x' + res.data.transactions.length.toString(16)
+        if (res.data.error) console.log('error', res.data.error)
+        if (res.data.totalTransactions || res.data.totalTransactions === 0) {
+          const result = '0x' + res.data.totalTransactions.toString(16)
 
-        const nodeUrl = config.explorerUrl
-        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-        callback(null, result)
-        logEventEmitter.emit(
-          'fn_end',
-          ticket,
-          { nodeUrl, success: res.data.transactions.length ? true : false },
-          performance.now()
-        )
+          const nodeUrl = config.explorerUrl
+          if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
+          callback(null, result)
+          logEventEmitter.emit(
+            'fn_end',
+            ticket,
+            { nodeUrl, success: res.data.totalTransactions ? true : false },
+            performance.now()
+          )
+          return
+        }
       } catch (e) {
         if (verbose) console.log((e as AxiosError).message)
-        callback(null, null)
-        const nodeUrl = config.explorerUrl
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       }
-    } else {
-      console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
-      callback(null, null)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
+    callback(null, null)
+    logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_getUncleCountByBlockHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleCountByBlockHash'
@@ -1658,24 +1652,34 @@ export const methods = {
       console.log('Running getBlockReceipts', args)
     }
     let blockNumber = args[0]
-    if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
-    if (blockNumber === 'earliest') blockNumber = 0
+    if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
+      console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
+
+    if (config.collectorSourcing.enabled || config.queryFromExplorer) {
+      if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
+      if (blockNumber === 'latest') {
+        const res = await requestWithRetry(
+          RequestMethod.Get,
+          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+        )
+        if (res.data.block) blockNumber = res.data.block.number
+      }
+      if (blockNumber === 'earliest') blockNumber = 0
+    }
     if (CONFIG.collectorSourcing.enabled) {
       const res = await collectorAPI.getTransactionByBlock({ blockNumber, countOnly: false })
-      if (res === null) {
-        callback(null, null)
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      if (res !== null) {
+        let index = 0
+        const result = []
+        for (const transaction of res) {
+          result.push(extractTransactionReceiptObject(transaction, index))
+          index++
+        }
+        if (verbose) console.log('BLOCK RECEIPTS DETAIL', result)
+        callback(null, result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        return
       }
-      let index = 0
-      const result = []
-      for (const transaction of res) {
-        result.push(extractTransactionReceiptObject(transaction, index))
-        index++
-      }
-      if (verbose) console.log('BLOCK RECEIPTS DETAIL', result)
-      callback(null, result)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      return
     }
     if (config.queryFromExplorer) {
       const explorerUrl = config.explorerUrl
@@ -1699,11 +1703,9 @@ export const methods = {
         { nodeUrl, success: res.data.transactions ? true : false },
         performance.now()
       )
-    } else {
-      console.log('queryFromExplorer turned off. Could not process request')
-      callback(null, null)
-      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
+    callback(null, null)
+    logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_feeHistory: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     if (!ensureArrayArgs(args, callback)) return
