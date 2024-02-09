@@ -920,6 +920,7 @@ export const methods = {
     } catch (e) {
       if (verbose) console.log('Unable to getTransactionCount', e)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
+      callback({ code: -32001, message: 'Unable to get transaction count' }, null)
     }
   },
   eth_getBlockTransactionCountByHash: async function (
