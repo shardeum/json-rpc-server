@@ -12,6 +12,7 @@ import {
 } from '@ethereumjs/tx'
 import { bufferToHex, toBuffer } from 'ethereumjs-util'
 import { Err, NewErr, NewInternalErr } from './Err'
+import { nestedCountersInstance } from '../utils/nestedCounters'
 
 class Collector extends BaseExternal {
   constructor(baseURL: string) {
@@ -22,7 +23,7 @@ class Collector extends BaseExternal {
 
   async getLogsByFilter(request: LogQueryRequest): Promise<any[] | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
-
+    nestedCountersInstance.countEvent('collector', 'getLogsByFilter')
     /* prettier-ignore */ console.log(`Collector: getLogsByFilter call for request: ${JSON.stringify(request)}`)
     try {
       const url = this.buildLogAPIUrl(request, this.baseUrl)
@@ -35,6 +36,7 @@ class Collector extends BaseExternal {
       const logs = res.data.logs.map((el: any) => el.log)
       return logs
     } catch (e) {
+      nestedCountersInstance.countEvent('collector', 'getLogsByFilter-error')
       console.error('An error occurred for Collector.getLogsByFilter:', e)
       return null
     }
@@ -42,7 +44,7 @@ class Collector extends BaseExternal {
 
   async getTransactionByHash(txHash: string): Promise<readableTransaction | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
-
+    nestedCountersInstance.countEvent('collector', 'getTransactionByHash')
     /* prettier-ignore */ console.log(`Collector: getTransactionByHash call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
@@ -63,6 +65,7 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash result: ${JSON.stringify(result)}`)
       return result
     } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getTransactionByHash-error')
       console.error('Collector: Error getting transaction by hash', error)
       return NewInternalErr('Collector: Error getting transaction by hash')
     }
@@ -70,7 +73,7 @@ class Collector extends BaseExternal {
 
   async getTransactionReceipt(txHash: string): Promise<any | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector: collectorSourcing is not enabled')
-
+    nestedCountersInstance.countEvent('collector', 'getTransactionReceipt')
     /* prettier-ignore */ console.log(`Collector: getTransactionReceipt call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
@@ -87,6 +90,7 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionReceipt result: ${JSON.stringify(result)}`)
       return result
     } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getTransactionReceipt-error')
       console.error('Collector: Error getting transaction receipt', error)
       return NewInternalErr('Collector: Error getting transaction receipt')
     }
@@ -94,7 +98,7 @@ class Collector extends BaseExternal {
 
   async getTxReceiptDetails(txHash: string): Promise<any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
-
+    nestedCountersInstance.countEvent('collector', 'getTxReceiptDetails')
     /* prettier-ignore */ console.log(`Collector: getTxReceiptDetails call for txHash: ${txHash}`)
     try {
       const apiQuery = `${this.baseUrl}/api/transaction?txHash=${txHash}`
@@ -110,6 +114,7 @@ class Collector extends BaseExternal {
       const receipt = await axios.get(receiptQuery).then((response) => response.data.receipts)
       return receipt
     } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getTxReceiptDetails-error')
       console.error('Collector: Error getting transaction receipt details', error)
       return null
     }
@@ -117,7 +122,7 @@ class Collector extends BaseExternal {
 
   async getStorage(txHash: string): Promise<{ key: string; value: string }[] | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
-
+    nestedCountersInstance.countEvent('collector', 'getStorage')
     const receipt = await this.getTxReceiptDetails(txHash)
     if (!receipt) {
       return null
@@ -139,7 +144,7 @@ class Collector extends BaseExternal {
     timestamp: bigint
   } | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
-
+    nestedCountersInstance.countEvent('collector', 'getLatestBlockNumber')
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: `${this.baseUrl}/api/blocks?numberHex=latest`,
@@ -160,6 +165,7 @@ class Collector extends BaseExternal {
 
       return res.data
     } catch (e) {
+      nestedCountersInstance.countEvent('collector', 'getLatestBlockNumber-error')
       console.error('Collector: Error getting latest block number', e)
       return null
     }
@@ -210,7 +216,7 @@ class Collector extends BaseExternal {
     details = false
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
-
+    nestedCountersInstance.countEvent('collector', 'getBlock')
     /* prettier-ignore */ console.log(`Collector: getBlock call for block: ${block}`)
     try {
       let blockQuery
@@ -243,12 +249,14 @@ class Collector extends BaseExternal {
           })
         })
         .catch((e) => {
+          nestedCountersInstance.countEvent('collector', 'getBlock-error')
           console.error('collector.getBlock could not get txs for the block', e)
           return []
         })
 
       return resultBlock
     } catch (e) {
+      nestedCountersInstance.countEvent('collector', 'getBlock-error')
       console.error('An error occurred for Collector.getBlock:', e)
       return null
     }
@@ -261,6 +269,7 @@ class Collector extends BaseExternal {
 
     try {
       console.log(`Collector: fetchAccount call for key: ${key}`)
+      nestedCountersInstance.countEvent('collector', 'fetchTxHistory')
       const accountKey = `0x${key.slice(0, -24)}`
       const apiQuery = `${this.baseUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`
 
@@ -300,6 +309,7 @@ class Collector extends BaseExternal {
 
       return null
     } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'fetchTxHistory-error')
       console.error('Collector: Error in fetchTxHistory', error)
       return null
     }
@@ -307,15 +317,18 @@ class Collector extends BaseExternal {
 
   async fetchAccount(accountId: string): Promise<any | null> {
     try {
+      nestedCountersInstance.countEvent('collector', 'fetchAccount')
       const apiQuery = `${this.baseUrl}/api/account?accountId=${accountId}`
       const response = await axios.get(apiQuery).then((response) => {
         if (!response) {
+          nestedCountersInstance.countEvent('collector', 'fetchAccount-error')
           throw new Error('Failed to fetch transaction')
         }
         return response
       })
       return response
     } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'fetchAccount-error')
       console.error('Collector: Error in fetchAccount', error)
       return null
     }
@@ -350,6 +363,7 @@ class Collector extends BaseExternal {
 
   decodeTransaction(tx: any): readableTransaction {
     const readableReceipt = tx.wrappedEVMAccount.readableReceipt
+    nestedCountersInstance.countEvent('collector', 'decodeTransaction')
     let result: any = null
     let txObj = null
 

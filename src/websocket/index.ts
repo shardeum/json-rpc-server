@@ -7,6 +7,7 @@ import { CONFIG } from '../config'
 import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
+import { nestedCountersInstance } from '../utils/nestedCounters'
 
 interface Params {
   address?: string | string[]
@@ -23,7 +24,7 @@ interface Request {
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   socket.on('message', (message: string) => {
     console.log(`Received message: ${message}`)
-
+    nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
       jsonrpc: '',
       id: 0,
@@ -35,6 +36,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
       request = JSON.parse(message)
       console.log(request.params)
     } catch (e: unknown) {
+      nestedCountersInstance.countEvent('websocket', 'message-received-error')
       if (e instanceof Error) {
         console.log("Couldn't parse websocket message", e.message)
       } else {
@@ -92,6 +94,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         return
       }
       try {
+        nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         if (
           typeof request.params[1] === 'object' &&
           'address' in request.params[1] &&
@@ -134,6 +137,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
           logSubscriptionList.set(subscription_id, socket, subscriptionDetails, request.id)
         }
       } catch (e: unknown) {
+        nestedCountersInstance.countEvent('websocket', 'eth_subscribe-error')
         if (e instanceof Error) {
           socket.send(
             JSON.stringify({
@@ -149,6 +153,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         return
       }
     } else if (method_name === 'eth_unsubscribe') {
+      nestedCountersInstance.countEvent('websocket', 'eth_unsubscribe')
       if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
         socket.send(JSON.stringify(constructRPCErrorRes('Subscription serving disabled', -1, request.id)))
         return
@@ -162,6 +167,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
 
   socket.on('close', (code, reason) => {
     console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
+    nestedCountersInstance.countEvent('websocket', 'close')
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
@@ -227,11 +233,13 @@ export const setupSubscriptionEventHandlers = (): void => {
   }
   subscriptionEventEmitter.on('evm_log_subscribe', async (payload: SUBSCRIPTION_PAYLOAD) => {
     console.log('Sending subscription request to log server')
+    nestedCountersInstance.countEvent('websocket', 'evm_log_subscribe')
     const method = 'subscribe'
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: payload }))
   })
 
   subscriptionEventEmitter.on('evm_log_unsubscribe', async (subscription_id: string) => {
+    nestedCountersInstance.countEvent('websocket', 'evm_log_unsubscribe')
     const method = 'unsubscribe'
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: { subscription_id } }))
   })

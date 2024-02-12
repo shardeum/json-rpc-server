@@ -30,6 +30,7 @@ import rejectSubscription from './middlewares/rejectSubscription'
 import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
+import { nestedCountersInstance } from './utils/nestedCounters'
 setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
@@ -93,6 +94,7 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
 }
 
 app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
+  nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
   if (!query || !req.ip || !query.port) {
     console.log('Invalid ip or port')
@@ -109,7 +111,32 @@ app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
 })
 
 app.get('/api/health', (req: Request, res: Response) => {
+  nestedCountersInstance.countEvent('api', 'health')
   return res.json({ healthy: true }).status(200)
+})
+
+app.get('/counts', authorize, (req: Request, res: Response) => {
+  nestedCountersInstance.countEvent('api', 'counts')
+  const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
+  if (req.headers.accept === 'application/json') {
+    res.setHeader('Content-Type', 'application/json')
+    res.json({
+      timestamp: Date.now(),
+      report: arrayReport,
+    })
+    res.end()
+  } else {
+    // This returns the counts to the caller
+    nestedCountersInstance.printArrayReport(arrayReport, res, 0)
+    res.write(`Counts at time: ${Date.now()}\n`)
+    res.end()
+  }
+})
+
+app.get('/counts-reset', authorize, (req: Request, res: Response) => {
+  nestedCountersInstance.eventCounters = new Map()
+  res.write(`counts reset ${Date.now()}`)
+  res.end()
 })
 
 const requestersList = new RequestersList(blackList, spammerList)
@@ -120,6 +147,7 @@ interface CustomError extends Error {
 }
 
 app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
+  nestedCountersInstance.countEvent('api-error', 'error')
   if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404) {
     const formattedError = {
       // TODO: (Bui) ask if statusCode was intentional or should it be status?

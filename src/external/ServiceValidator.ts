@@ -5,6 +5,7 @@ import { verbose } from '../api'
 import { CONFIG } from '../config'
 import { collectorAPI } from './Collector'
 import { Err, NewErr, NewInternalErr } from './Err'
+import { nestedCountersInstance } from '../utils/nestedCounters'
 
 class ServiceValidator extends BaseExternal {
   cachedLatestBlock: { blockNumber: string; blockTimestamp: string; cachedAt: number } | null = null
@@ -26,10 +27,12 @@ class ServiceValidator extends BaseExternal {
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getContractCode requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getContractCode')
       const res = await axiosWithRetry<{ contractCode: string }>(requestConfig)
       /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getContractCode res: ${JSON.stringify(res.data)}`)
       return res.data.contractCode
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getContractCode-error')
       console.error(`ServiceValidator: Error getting contract code`, e)
       return null
     }
@@ -47,6 +50,7 @@ class ServiceValidator extends BaseExternal {
     if (verbose) console.log(`ServiceValidator: getAccount requestConfig: ${JSON.stringify(requestConfig)}`)
 
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getAccount')
       const res = await axiosWithRetry<{ account?: any; error?: any }>(requestConfig)
       if (verbose) console.log(`ServiceValidator: getAccount response: ${JSON.stringify(res.data)}`)
       if (res.data.error) {
@@ -55,6 +59,7 @@ class ServiceValidator extends BaseExternal {
       }
       return res.data.account
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getAccount-error')
       console.error(`ServiceValidator: Error getting account for address ${address}`, e)
       null
     }
@@ -65,9 +70,11 @@ class ServiceValidator extends BaseExternal {
     if (verbose) console.log(`ServiceValidator: getBalance call for address: ${address}`)
 
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getBalance')
       const account = await this.getAccount(address)
       return account?.balance ?? '0'
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getBalance-error')
       console.error(`ServiceValidator: Error getting balance for address ${address}`, e)
       throw new Error('Error getting balance')
     }
@@ -78,10 +85,12 @@ class ServiceValidator extends BaseExternal {
 
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getTransactionCount call for address: ${address}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getTransactionCount')
       const account = await this.getAccount(address)
       if (!account) return '0'
       return account.nonce
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getTransactionCount-error')
       console.error(`ServiceValidator: Error getting transaction count`, e)
       throw new Error('Error getting transaction count')
     }
@@ -98,10 +107,12 @@ class ServiceValidator extends BaseExternal {
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getGasPrice requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getGasPrice')
       const res = await axiosWithRetry<{ result: string }>(requestConfig)
       /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getGasPrice res: ${JSON.stringify(res.data)}`)
       return res.data.result
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getGasPrice-error')
       console.error(`ServiceValidator: Error getting gas price`, e)
       return null
     }
@@ -119,10 +130,12 @@ class ServiceValidator extends BaseExternal {
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: estimateGas requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'estimateGas')
       const res = await axiosWithRetry<{ estimateGas: string }>(requestConfig)
       /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: estimateGas res: ${JSON.stringify(res.data)}`)
       return res.data.estimateGas
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'estimateGas-error')
       console.error(`ServiceValidator: Error estimating gas`, e)
       return null
     }
@@ -140,10 +153,12 @@ class ServiceValidator extends BaseExternal {
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getAccessList requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'getAccessList')
       const res = await axiosWithRetry<{ accessList: any[] }>(requestConfig)
       /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getAccessList res: ${JSON.stringify(res.data)}`)
       return res.data.accessList
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'getAccessList-error')
       console.error(`ServiceValidator: Error getting access list`, e)
       return null
     }
@@ -176,10 +191,12 @@ class ServiceValidator extends BaseExternal {
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: ethCall requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
+      nestedCountersInstance.countEvent('service-validator', 'ethCall')
       const res = await axiosWithRetry<{ result: string }>(requestConfig)
       /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: ethCall res: ${JSON.stringify(res.data)}`)
       return res.data.result
     } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'ethCall-error')
       console.error(`ServiceValidator: Error calling contract`, e)
       return NewInternalErr('ServiceValidator: Error calling contract')
     }
