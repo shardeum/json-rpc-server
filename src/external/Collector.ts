@@ -349,13 +349,12 @@ class Collector extends BaseExternal {
 
   decodeTransaction(tx: any): readableTransaction {
     const readableReceipt = tx.wrappedEVMAccount.readableReceipt
-
-    const raw = tx.originalTxData.raw as string
-
     let result: any = null
     let txObj = null
 
     try {
+      const parsedRawTx = JSON.parse(tx.originalTxData)
+      const raw = parsedRawTx.raw as string
       txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
     } catch (e) {
       // fallback to collectors readable receipt
@@ -380,7 +379,7 @@ class Collector extends BaseExternal {
       } as readableLegacyTransaction
     }
 
-    console.log(txObj)
+    if (CONFIG.verbose) console.log(txObj)
     // Legacy Transaction
     result = {
       hash: readableReceipt.transactionHash,
