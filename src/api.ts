@@ -154,6 +154,7 @@ type Tx = readableTransaction & {
   contractAddress?: string
   status?: string | number
   transactionType?: string | number
+  gasLimit: string
 }
 
 type TxParam =
@@ -234,10 +235,10 @@ function extractTransactionReceiptObject(
       blockHash: tx.readableReceipt.blockHash,
       blockNumber: tx.readableReceipt.blockNumber,
       contractAddress: tx.readableReceipt.contractAddress,
-      cumulativeGasUsed: tx.readableReceipt.cumulativeGasUsed,
+      cumulativeGasUsed: tx.readableReceipt.cumulativeGasUsed === '0x' ? tx.readableReceipt.gasLimit : tx.readableReceipt.cumulativeGasUsed,
       effectiveGasPrice: tx.readableReceipt.gasPrice,
       from: tx.readableReceipt.from,
-      gasUsed: tx.readableReceipt.gasUsed,
+      gasUsed: tx.readableReceipt.gasUsed === '0x' ? tx.readableReceipt.gasLimit : tx.readableReceipt.gasUsed,
       logs: tx.readableReceipt.logs || [],
       logsBloom:
         tx.readableReceipt.logsBloom ||
