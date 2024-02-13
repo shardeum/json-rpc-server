@@ -236,6 +236,7 @@ class Collector extends BaseExternal {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
             if (details === true) {
+              tx.originalTxData = JSON.parse(tx.originalTxData)
               return this.decodeTransaction(tx)
             }
             return tx.wrappedEVMAccount.readableReceipt.transactionHash
@@ -353,8 +354,7 @@ class Collector extends BaseExternal {
     let txObj = null
 
     try {
-      const parsedRawTx = JSON.parse(tx.originalTxData)
-      const raw = parsedRawTx.raw as string
+      const raw = tx.originalTxData.raw as string
       txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
     } catch (e) {
       // fallback to collectors readable receipt
