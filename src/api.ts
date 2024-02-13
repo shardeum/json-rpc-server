@@ -2491,7 +2491,7 @@ export const methods = {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       } else {
-        callback(null, new Error(`eth_getLogs: failed to get logs from collector`))
+        callback(null, [])
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         return
       }
