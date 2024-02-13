@@ -1575,6 +1575,58 @@ export async function fetchStorage(txHash: string): Promise<{ key: string; value
   return storageRecords
 }
 
+export function calculateContractStorageAccountId(contractAddress: string, slotId: string): string {
+  if (contractAddress.length != 42) {
+    throw new Error('must pass in a 42 character hex address for Account type ContractStorage.')
+  }
+
+  //we need to take a hash, to prevent collisions
+  const hashedSuffixKey = crypto.hash(slotId + contractAddress)
+
+  const contractStoragePrefixBitLength = 3
+
+  // Special case for 3-bit prefix. We combine the first nibble of the address with the last nibble of the key.
+  // Please refer to the default case for more details. For the special case we use shorthands for optimization.
+  if (contractStoragePrefixBitLength === 3) {
+    const combinedNibble = (
+      (parseInt(contractAddress[2], 16) & 14) |
+      // eslint-disable-next-line security/detect-object-injection
+      (parseInt(hashedSuffixKey[0], 16) & 1)
+    ).toString(16)
+
+    return (combinedNibble + hashedSuffixKey.slice(1)).toLowerCase()
+  }
+
+  const fullHexChars = Math.floor(contractStoragePrefixBitLength / 4)
+  const remainingBits = contractStoragePrefixBitLength % 4
+
+  let prefix = contractAddress.slice(2, 2 + fullHexChars)
+  let suffix = hashedSuffixKey.slice(fullHexChars)
+
+  // Handle the overlapping byte if there are remaining bits
+  if (remainingBits > 0) {
+    const prefixLastNibble = parseInt(contractAddress[2 + fullHexChars], 16)
+    // eslint-disable-next-line security/detect-object-injection
+    const suffixFirstNibble = parseInt(hashedSuffixKey[fullHexChars], 16)
+
+    // Shift the prefix byte to the left and mask the suffix nibble, then combine them
+    const suffixMask = (1 << (4 - remainingBits)) - 1
+    const shiftedSuffixNibble = suffixFirstNibble & suffixMask
+    const prefixMask = (1 << 4) - 1 - suffixMask
+    const shiftedPrefixNibble = prefixLastNibble & prefixMask
+    const combinedNibble = shiftedPrefixNibble | shiftedSuffixNibble
+    const combinedHex = combinedNibble.toString(16)
+
+    prefix += combinedHex
+    // Adjust the suffix to remove the processed nibble
+    suffix = hashedSuffixKey.slice(fullHexChars + 1)
+  }
+
+  let shardusAddress = prefix + suffix
+  shardusAddress = shardusAddress.toLowerCase()
+  return shardusAddress
+}
+
 export enum TxStatusCode {
   BAD_TX = 0,
   SUCCESS = 1,

@@ -17,7 +17,9 @@
   "author": "thantsintoe",
   "license": "ISC",
   "dependencies": {
+    "@ethereumjs/rlp": "^5.0.2",
     "@ethereumjs/tx": "3.4.0",
+    "@ethereumjs/util": "^9.0.2",
     "@shardus/archiver-discovery": "1.1.0",
     "@shardus/crypto-utils": "4.0.4",
     "axios": "1.6.1",

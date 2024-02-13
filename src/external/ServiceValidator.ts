@@ -56,7 +56,7 @@ class ServiceValidator extends BaseExternal {
       return res.data.account
     } catch (e) {
       console.error(`ServiceValidator: Error getting account for address ${address}`, e)
-      throw new Error('Error getting account')
+      null
     }
   }
 

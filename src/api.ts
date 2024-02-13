@@ -23,6 +23,7 @@ import {
   replayGas,
   hexToBN,
   fetchTxReceiptFromArchiver,
+  calculateContractStorageAccountId,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -39,6 +40,8 @@ import { JSONRPCCallbackTypePlain, RequestParamsLike, JSONRPCError } from 'jayso
 import { readableBlock, completeReadableReceipt, readableTransaction } from './external/Collector'
 import { OriginalTxData, TransactionFromArchiver } from './types'
 import { isErr } from './external/Err'
+import { bytesToHex, toBytes } from '@ethereumjs/util'
+import { RLP } from '@ethereumjs/rlp'
 
 export const verbose = config.verbose
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
@@ -845,6 +848,7 @@ export const methods = {
     if (verbose) console.log('Final balance', balance)
   },
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getStorageAt'
     const ticket = crypto
       .createHash('sha1')
@@ -854,9 +858,71 @@ export const methods = {
     if (verbose) {
       console.log('Running eth_getStorageAt', args)
     }
-    const result = '0x00000000000000000000000000000000000000000000000000000000000004d2'
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
+    try {
+      const contractAddress = args[0]
+      let position = args[1]
+      const block = args[2] || 'latest' // block number/ block hash/ latest
+      if (!contractAddress || contractAddress.length !== 42) {
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback({ code: -32000, message: 'Invalid address' }, null)
+        return
+      }
+      if (!position || isHex(position) === false) {
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback({ code: -32000, message: 'Invalid position' }, null)
+        return
+      }
+      if (block !== 'latest') {
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback({ code: -32000, message: 'Only support for latest block' }, null)
+        return
+      }
+      if (position.length !== 66) {
+        // Convert to 32 bytes hex string
+        position = '0x' + '0'.repeat(66 - position.length) + position.slice(2)
+      }
+      const storageAccountId = calculateContractStorageAccountId(
+        contractAddress.toLowerCase(),
+        position.toLowerCase()
+      )
+      if (CONFIG.collectorSourcing.enabled) {
+        const res = await collectorAPI.fetchAccount(storageAccountId)
+        if (res?.data?.accounts[0]?.account?.value) {
+          const value = Uint8Array.from(Object.values(res?.data?.accounts[0]?.account?.value))
+          const hexValue = bytesToHex(value)
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, hexValue)
+          return
+        }
+      }
+
+      if (CONFIG.serviceValidatorSourcing.enabled) {
+        const res = await serviceValidator.getAccount(storageAccountId)
+        if (res?.value) {
+          const value = Uint8Array.from(Object.values(res?.value))
+          const hexValue = bytesToHex(value)
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, hexValue)
+          return
+        }
+      }
+      if (config.queryFromValidator) {
+        const res: any = await getAccount(storageAccountId)
+        if (res && res.account && res.account['value']) {
+          const value = Uint8Array.from(Object.values(res?.account['value']))
+          const hexValue = bytesToHex(value)
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, hexValue)
+          return
+        }
+      }
+      const result = '0x'
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, result)
+    } catch (e) {
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Unable to get storage' }, null)
+    }
   },
   eth_getTransactionCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     if (!ensureArrayArgs(args, callback)) return
