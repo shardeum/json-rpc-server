@@ -238,8 +238,10 @@ function extractTransactionReceiptObject(
       effectiveGasPrice: tx.readableReceipt.gasPrice,
       from: tx.readableReceipt.from,
       gasUsed: tx.readableReceipt.gasUsed,
-      logs: tx.readableReceipt.logs,
-      logsBloom: tx.readableReceipt.logsBloom,
+      logs: tx.readableReceipt.logs || [],
+      logsBloom:
+        tx.readableReceipt.logsBloom ||
+        '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
       status:
         typeof tx.readableReceipt.status === 'number'
           ? '0x' + tx.readableReceipt.status.toString(16)
@@ -2041,8 +2043,8 @@ export const methods = {
         return
       } else if (!isErr(result)) {
         // result found, skipping querying from archiver, validator and explorer.
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         result = extractTransactionReceiptObject(result)
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, result)
         return
       } else {
