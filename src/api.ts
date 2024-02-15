@@ -42,6 +42,7 @@ import { OriginalTxData, TransactionFromArchiver } from './types'
 import { isErr } from './external/Err'
 import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
+import { nestedCountersInstance } from './utils/nestedCounters'
 
 export const verbose = config.verbose
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
@@ -238,7 +239,10 @@ function extractTransactionReceiptObject(
       blockHash: tx.readableReceipt.blockHash,
       blockNumber: tx.readableReceipt.blockNumber,
       contractAddress: tx.readableReceipt.contractAddress,
-      cumulativeGasUsed: tx.readableReceipt.cumulativeGasUsed === '0x' ? tx.readableReceipt.gasLimit : tx.readableReceipt.cumulativeGasUsed,
+      cumulativeGasUsed:
+        tx.readableReceipt.cumulativeGasUsed === '0x'
+          ? tx.readableReceipt.gasLimit
+          : tx.readableReceipt.cumulativeGasUsed,
       effectiveGasPrice: tx.readableReceipt.gasPrice,
       from: tx.readableReceipt.from,
       gasUsed: tx.readableReceipt.gasUsed === '0x' ? tx.readableReceipt.gasLimit : tx.readableReceipt.gasUsed,
@@ -552,6 +556,7 @@ export async function saveTxStatus(): Promise<void> {
 export const methods = {
   web3_clientVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_clientVersion'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -571,6 +576,7 @@ export const methods = {
   },
   web3_sha3: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_sha3'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -587,6 +593,7 @@ export const methods = {
   },
   net_version: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_version'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -603,6 +610,7 @@ export const methods = {
   },
   net_listening: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_listening'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -618,6 +626,7 @@ export const methods = {
   },
   net_peerCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_peerCount'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -633,6 +642,7 @@ export const methods = {
   },
   eth_protocolVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_protocolVersion'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -648,6 +658,7 @@ export const methods = {
   },
   eth_syncing: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_syncing'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -664,6 +675,7 @@ export const methods = {
   },
   eth_coinbase: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_coinbase'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -679,6 +691,7 @@ export const methods = {
   },
   eth_mining: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_mining'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -694,6 +707,7 @@ export const methods = {
   },
   eth_hashrate: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_hashrate'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -709,6 +723,7 @@ export const methods = {
   },
   eth_gasPrice: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_gasPrice'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -739,6 +754,7 @@ export const methods = {
   },
   eth_accounts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_accounts'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -754,6 +770,7 @@ export const methods = {
   },
   eth_blockNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_blockNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -779,8 +796,9 @@ export const methods = {
     }
   },
   eth_getBalance: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getBalance'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -848,12 +866,14 @@ export const methods = {
     if (verbose) console.log('Final balance', balance)
   },
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getStorageAt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
       console.log('Running eth_getStorageAt', args)
@@ -925,8 +945,9 @@ export const methods = {
     }
   },
   eth_getTransactionCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getTransactionCount'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -997,6 +1018,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getBlockTransactionCountByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1059,8 +1081,9 @@ export const methods = {
     args: RequestParamsLike,
     callback: JSONRPCCallbackTypePlain
   ) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getBlockTransactionCountByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1130,10 +1153,12 @@ export const methods = {
   },
   eth_getUncleCountByBlockHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleCountByBlockHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
       console.log('Running getUncleCountByBlockHash', args)
@@ -1148,6 +1173,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getUncleCountByBlockNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1162,8 +1188,9 @@ export const methods = {
     callback(null, result)
   },
   eth_getCode: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getCode'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1213,10 +1240,12 @@ export const methods = {
   },
   eth_signTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_signTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
       console.log('Running eth_signTransaction', args)
@@ -1228,6 +1257,7 @@ export const methods = {
   },
   eth_sendTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1243,8 +1273,9 @@ export const methods = {
     callback(null, result)
   },
   eth_sendRawTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_sendRawTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1437,8 +1468,9 @@ export const methods = {
     }
   },
   eth_sendInternalTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_sendInternalTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1508,8 +1540,10 @@ export const methods = {
     }
   },
   eth_call: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_call'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1571,8 +1605,9 @@ export const methods = {
     }
   },
   eth_estimateGas: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_estimateGas'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1666,8 +1701,9 @@ export const methods = {
     callback(null, result)
   },
   eth_getBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getBlockByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1690,8 +1726,9 @@ export const methods = {
     callback(null, result)
   },
   eth_getBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getBlockByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1722,8 +1759,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: result ? true : false }, performance.now())
   },
   eth_getBlockReceipts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getBlockReceipts'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1789,8 +1827,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_feeHistory: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_feeHistory'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1864,8 +1903,9 @@ export const methods = {
     }
   },
   eth_getTransactionByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getTransactionByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1959,8 +1999,9 @@ export const methods = {
     args: RequestParamsLike,
     callback: JSONRPCCallbackTypePlain
   ) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2031,8 +2072,9 @@ export const methods = {
     args: RequestParamsLike,
     callback: JSONRPCCallbackTypePlain
   ) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2099,8 +2141,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getTransactionReceipt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getTransactionReceipt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2175,6 +2218,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getUncleByBlockHashAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2192,6 +2236,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getUncleByBlockNumberAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2206,6 +2251,7 @@ export const methods = {
   },
   eth_getCompilers: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getCompilers'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2220,6 +2266,7 @@ export const methods = {
   },
   eth_compileSolidity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_compileSolidity'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2234,6 +2281,7 @@ export const methods = {
   },
   eth_compileLLL: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_compileLLL'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2246,6 +2294,7 @@ export const methods = {
   },
   eth_compileSerpent: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_compileSerpent'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2258,6 +2307,7 @@ export const methods = {
   },
   eth_newBlockFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_newBlockFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2289,6 +2339,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_newPendingTransactionFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2319,8 +2370,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_uninstallFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_uninstallFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2341,12 +2393,15 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_newFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_newFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const inputFilter = args[0]
@@ -2383,12 +2438,14 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getFilterChanges: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getFilterChanges'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const filterId = args[0]
@@ -2463,8 +2520,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getFilterLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getFilterLogs'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2504,12 +2562,14 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getLogs'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
       console.log('Running getLogs', args)
@@ -2633,10 +2693,12 @@ export const methods = {
   },
   eth_getWork: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getWork'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2645,10 +2707,12 @@ export const methods = {
   },
   eth_submitWork: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_submitWork'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2657,10 +2721,12 @@ export const methods = {
   },
   eth_submitHashrate: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_submitHashrate'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2668,12 +2734,15 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   debug_traceTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'debug_traceTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
     if (verbose) {
       console.log('Running debug_traceTransaction', args)
@@ -2696,12 +2765,15 @@ export const methods = {
     }
   },
   debug_traceBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'debug_traceBlockByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
     if (verbose) {
       console.log('Running debug_traceBlockByHash', args)
@@ -2759,12 +2831,14 @@ export const methods = {
     }
   },
   debug_traceBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'debug_traceBlockByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
     if (verbose) {
       console.log('Running debug_traceBlockByNumber', args)
@@ -2828,12 +2902,15 @@ export const methods = {
     }
   },
   debug_storageRangeAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'debug_storageRangeAt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit(
       'fn_start',
       ticket,
@@ -2864,12 +2941,15 @@ export const methods = {
     callback(null, { storage: {} })
   },
   debug_storageRangeAt2: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'debug_storageRangeAt2'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1], args[2], args[3])
     if (verbose) {
       console.log('Running debug_storageRangeAt2', args)
@@ -2901,10 +2981,12 @@ export const methods = {
   },
   db_putString: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'db_putString'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2913,10 +2995,12 @@ export const methods = {
   },
   db_getString: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'db_getString'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2925,10 +3009,12 @@ export const methods = {
   },
   db_putHex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'db_putHex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2937,6 +3023,7 @@ export const methods = {
   },
   db_getHex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'db_getHex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2949,10 +3036,12 @@ export const methods = {
   },
   shh_version: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_version'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2961,6 +3050,7 @@ export const methods = {
   },
   shh_post: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_post'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2973,6 +3063,7 @@ export const methods = {
   },
   shh_newIdentity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_newIdentity'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2985,10 +3076,12 @@ export const methods = {
   },
   shh_hasIdentity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_hasIdentity'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -2997,10 +3090,12 @@ export const methods = {
   },
   shh_newGroup: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_newGroup'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3009,10 +3104,12 @@ export const methods = {
   },
   shh_addToGroup: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_addToGroup'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3021,10 +3118,12 @@ export const methods = {
   },
   shh_newFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_newFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3033,10 +3132,12 @@ export const methods = {
   },
   shh_uninstallFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_uninstallFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3045,10 +3146,12 @@ export const methods = {
   },
   shh_getFilterChanges: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_getFilterChanges'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3057,10 +3160,12 @@ export const methods = {
   },
   shh_getMessages: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shh_getMessages'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     const result = 'test'
@@ -3069,10 +3174,12 @@ export const methods = {
   },
   eth_chainId: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_chainId'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
+
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     if (verbose) {
       console.log('Running eth_chainId', args)
@@ -3083,8 +3190,9 @@ export const methods = {
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getAccessList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    if (!ensureArrayArgs(args, callback)) return
     const api_name = 'eth_getAccessList'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+    if (!ensureArrayArgs(args, callback)) return
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -3127,6 +3235,7 @@ export const methods = {
     }
   },
   eth_subscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    nestedCountersInstance.countEvent('endpoint', 'eth_subscribe')
     if (!ensureArrayArgs(args, callback)) return
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback({ message: 'Subscription feature disabled' } as JSONRPCError, null)
@@ -3168,6 +3277,7 @@ export const methods = {
   },
 
   eth_unsubscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    nestedCountersInstance.countEvent('endpoint', 'eth_unsubscribe')
     if (!ensureArrayArgs(args, callback)) return
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback({ message: 'Subscription feature disabled' } as JSONRPCError, null)
