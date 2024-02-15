@@ -553,6 +553,28 @@ export async function saveTxStatus(): Promise<void> {
   logEventEmitter.emit('tx_insert_db', txStatusesClone)
 }
 
+function countApiResponse(responseType: string, apiName: string, details: string, source?: string): void {
+  let outputStr = `${apiName} ${details}`
+
+  if (responseType === 'endpoint-success' && source) {
+    outputStr += ` source:${source}`
+  }
+
+  nestedCountersInstance.countEvent(responseType, outputStr)
+}
+
+function countFailedResponse(apiName: string, details: string): void {
+  countApiResponse('endpoint-response', apiName, details)
+}
+
+function countNonResponse(apiName: string, details: string): void {
+  countApiResponse('endpoint-non-response', apiName, details)
+}
+
+function countSuccessResponse(apiName: string, details: string, source?: string): void {
+  countApiResponse('endpoint-success', apiName, details, source)
+}
+
 export const methods = {
   web3_clientVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_clientVersion'
@@ -573,6 +595,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   web3_sha3: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_sha3'
@@ -590,6 +613,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   net_version: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_version'
@@ -607,6 +631,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, chainId)
+    countSuccessResponse(api_name, 'success')
   },
   net_listening: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_listening'
@@ -623,6 +648,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   net_peerCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'net_peerCount'
@@ -639,6 +665,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_protocolVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_protocolVersion'
@@ -655,6 +682,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_syncing: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_syncing'
@@ -672,6 +700,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_coinbase: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_coinbase'
@@ -688,6 +717,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_mining: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_mining'
@@ -704,6 +734,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_hashrate: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_hashrate'
@@ -720,6 +751,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_gasPrice: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_gasPrice'
@@ -737,6 +769,7 @@ export const methods = {
     if (gasPrice) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, gasPrice)
+      countSuccessResponse(api_name, 'success', 'serviceValidator')
       return
     }
 
@@ -745,12 +778,14 @@ export const methods = {
       const { result } = await getGasPrice()
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'TBD')
       return
     } catch (e) {
       console.log('Unable to get gas price', e)
     }
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, fallbackGasPrice)
+    countSuccessResponse(api_name, 'success fallback', 'TBD')
   },
   eth_accounts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_accounts'
@@ -767,6 +802,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
   },
   eth_blockNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_blockNumber'
@@ -783,6 +819,7 @@ export const methods = {
     if (result) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x' + result.number.toString(16))
+      countSuccessResponse(api_name, 'success', 'collector')
       return
     }
     const { blockNumber, nodeUrl } = await getCurrentBlockInfo()
@@ -790,15 +827,19 @@ export const methods = {
     if (blockNumber == null) {
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, '0x0')
+      countFailedResponse(api_name, 'blockNumber is null')
     } else {
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, blockNumber)
+      countSuccessResponse(api_name, 'success', 'validator')
     }
   },
   eth_getBalance: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBalance'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -815,12 +856,14 @@ export const methods = {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Unable to get address' }, null)
+      countFailedResponse(api_name, 'Unable to get address')
       return
     }
     if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
+      countFailedResponse(api_name, 'Invalid address')
       return
     }
 
@@ -830,11 +873,13 @@ export const methods = {
       if (balance) {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, intStringToHex(balance))
+        countSuccessResponse(api_name, 'success', 'serviceValidator')
         return
       }
     } catch (e) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: 503, message: 'unable to get balanace' }, null)
+      countFailedResponse(api_name, 'Unable to get balance')
       return
     }
 
@@ -854,21 +899,26 @@ export const methods = {
         balance = intStringToHex(account.balance)
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback(null, balance)
+        countSuccessResponse(api_name, 'success', 'validator')
       } else {
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback({ code: 503, message: 'unable to get balanace' }, null)
+        countFailedResponse(api_name, 'Unable to get account')
       }
     } catch (e) {
       // if (verbose) console.log('Unable to get account balance', e)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       callback({ code: 503, message: 'unable to get balanace' }, null)
+      countFailedResponse(api_name, 'Unable to get balance from validator')
     }
     if (verbose) console.log('Final balance', balance)
   },
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getStorageAt'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -885,16 +935,19 @@ export const methods = {
       if (!contractAddress || contractAddress.length !== 42) {
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback({ code: -32000, message: 'Invalid address' }, null)
+        countFailedResponse(api_name, 'Invalid address')
         return
       }
       if (!position || isHex(position) === false) {
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback({ code: -32000, message: 'Invalid position' }, null)
+        countFailedResponse(api_name, 'Invalid position')
         return
       }
       if (block !== 'latest') {
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback({ code: -32000, message: 'Only support for latest block' }, null)
+        countFailedResponse(api_name, 'Only support for latest block')
         return
       }
       if (position.length !== 66) {
@@ -912,6 +965,7 @@ export const methods = {
           const hexValue = bytesToHex(value)
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
           callback(null, hexValue)
+          countSuccessResponse(api_name, 'success', 'collector')
           return
         }
       }
@@ -923,6 +977,7 @@ export const methods = {
           const hexValue = bytesToHex(value)
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
           callback(null, hexValue)
+          countSuccessResponse(api_name, 'success', 'serviceValidator')
           return
         }
       }
@@ -933,21 +988,26 @@ export const methods = {
           const hexValue = bytesToHex(value)
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
           callback(null, hexValue)
+          countSuccessResponse(api_name, 'success', 'validator')
           return
         }
       }
       const result = '0x'
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'fallback')
     } catch (e) {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback({ code: -32000, message: 'Unable to get storage' }, null)
+      countFailedResponse(api_name, 'Unable to get storage')
     }
   },
   eth_getTransactionCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionCount'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -964,12 +1024,14 @@ export const methods = {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Unable to get address' }, null)
+      countFailedResponse(api_name, 'Unable to get address')
       return
     }
     if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
+      countFailedResponse(api_name, 'Invalid address')
       return
     }
 
@@ -978,11 +1040,13 @@ export const methods = {
       if (nonce) {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, intStringToHex(nonce))
+        countSuccessResponse(api_name, 'success', 'serviceValidator')
         return
       }
     } catch (e) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: 503, message: 'Unable to get transaction count' }, null)
+      countFailedResponse(api_name, 'exception getting transaction count from serviceValidator')
       return
     }
 
@@ -1003,14 +1067,17 @@ export const methods = {
 
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'validator')
       } else {
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback({ code: -32001, message: 'Unable to get transaction count' }, null)
+        countFailedResponse(api_name, 'Unable to get transaction count from validator')
       }
     } catch (e) {
       if (verbose) console.log('Unable to getTransactionCount', e)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
       callback({ code: -32001, message: 'Unable to get transaction count' }, null)
+      countFailedResponse(api_name, 'exception getting transaction count from validator')
     }
   },
   eth_getBlockTransactionCountByHash: async function (
@@ -1042,6 +1109,7 @@ export const methods = {
         const result = '0x' + (res as number).toString(16)
         if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       }
@@ -1062,6 +1130,7 @@ export const methods = {
           const nodeUrl = config.explorerUrl
           if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
           callback(null, result)
+          countSuccessResponse(api_name, 'success', 'explorer')
           logEventEmitter.emit(
             'fn_end',
             ticket,
@@ -1075,6 +1144,7 @@ export const methods = {
       }
     }
     callback(null, null)
+    countSuccessResponse(api_name, 'success no result', 'fallback')
     logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_getBlockTransactionCountByNumber: async function (
@@ -1082,8 +1152,10 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getBlockTransactionCountByNumber'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1116,6 +1188,7 @@ export const methods = {
         const result = '0x' + (res as number).toString(16)
         if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       }
@@ -1136,6 +1209,7 @@ export const methods = {
           const nodeUrl = config.explorerUrl
           if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
           callback(null, result)
+          countSuccessResponse(api_name, 'success', 'explorer')
           logEventEmitter.emit(
             'fn_end',
             ticket,
@@ -1167,6 +1241,7 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_getUncleCountByBlockNumber: async function (
     args: RequestParamsLike,
@@ -1186,11 +1261,14 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_getCode: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getCode'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1207,12 +1285,14 @@ export const methods = {
       console.log('Unable to get contract address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x')
+      countFailedResponse(api_name, 'Unable to get contract address')
       return
     }
     if (!isValidAddress(contractAddress)) {
       console.log('Invalid contract address', contractAddress)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x')
+      countFailedResponse(api_name, 'Invalid contract address')
       return
     }
 
@@ -1220,6 +1300,7 @@ export const methods = {
     if (code) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, code)
+      countSuccessResponse(api_name, 'success', 'serviceValidator')
       return
     }
 
@@ -1232,9 +1313,11 @@ export const methods = {
       if (verbose) console.log('eth_getCode result', contractCode)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, contractCode)
+      countSuccessResponse(api_name, 'success', 'TBD')
       return
     } catch (e) {
       console.log('Unable to eth_getCode', e)
+      countNonResponse(api_name, 'exepction getting code')
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
     }
   },
@@ -1254,6 +1337,7 @@ export const methods = {
       '0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b'
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_sendTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendTransaction'
@@ -1271,11 +1355,14 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success')
   },
   eth_sendRawTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendRawTransaction'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1325,6 +1412,7 @@ export const methods = {
               const pendingTx = memPoolTx.shift()
               if (!pendingTx) {
                 console.error('No pending transaction found in the mem pool')
+                countNonResponse(api_name, 'No pending transaction found in the mem pool')
                 return
               }
               console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
@@ -1372,6 +1460,7 @@ export const methods = {
               performance.now()
             )
             callback(null, txHash)
+            countSuccessResponse(api_name, 'success', 'TBD')
           }
           if (res.success !== true && config.adaptiveRejection) {
             logEventEmitter.emit(
@@ -1395,6 +1484,7 @@ export const methods = {
               },
               null
             )
+            countFailedResponse(api_name, 'non success response from injectAndRecordTx')
           }
           return res
         })
@@ -1411,6 +1501,7 @@ export const methods = {
             performance.now()
           )
           callback(e, null)
+          countFailedResponse(api_name, 'exception in injectAndRecordTx')
           return undefined
         })
         .then((res) => {
@@ -1465,12 +1556,15 @@ export const methods = {
       )
       //[] this is a generic code. Should no code be here or should we pick a more specific code?
       callback({ message: errorMessage } as JSONRPCError, null)
+      countFailedResponse(api_name, 'exception while injecting tx to consensor')
     }
   },
   eth_sendInternalTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendInternalTransaction'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1503,6 +1597,7 @@ export const methods = {
             )
 
             callback(null, txHash)
+            countSuccessResponse(api_name, 'success', 'TBD')
           }
           if (res.success !== true && config.adaptiveRejection) {
             logEventEmitter.emit(
@@ -1517,6 +1612,7 @@ export const methods = {
               performance.now()
             )
             callback({ message: 'Internal tx injection failure' } as JSONRPCError, null)
+            countFailedResponse(api_name, 'non success response from injectAndRecordTx')
           }
         })
         .catch((res) => {
@@ -1532,18 +1628,21 @@ export const methods = {
             performance.now()
           )
           callback(res.error, null)
+          countFailedResponse(api_name, 'exception in injectAndRecordTx')
         })
     } catch (e) {
       console.log(`Error while injecting tx to consensor`, e)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl: undefined, success: false }, performance.now())
       callback({ message: e } as JSONRPCError, null)
+      countFailedResponse(api_name, 'exception while injecting tx to consensor')
     }
   },
   eth_call: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_call'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1568,11 +1667,13 @@ export const methods = {
         return
       }
       callback(null, '0x' + response)
+      countSuccessResponse(api_name, 'success', 'serviceValidator')
       return
     } else if (response === null) {
       console.log('eth_call error', response)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'serviceValidator returned null')
       return
     }
 
@@ -1583,6 +1684,7 @@ export const methods = {
       if (res.data == null || res.data.result == null) {
         //callback(null, errorHexStatus)
         callback(errorBusy)
+        countFailedResponse(api_name, 'contract/call returned null')
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
         return
       }
@@ -1597,17 +1699,21 @@ export const methods = {
       if (verbose) console.log('eth_call result from', nodeUrl, result)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'TBD')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       //callback(null, errorHexStatus)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl: undefined, success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception while making an eth call')
     }
   },
   eth_estimateGas: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_estimateGas'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1619,6 +1725,7 @@ export const methods = {
     // const result = '0x1C9C380' // 30 M gas
     if (config.staticGasEstimate) {
       callback(null, config.staticGasEstimate)
+      countSuccessResponse(api_name, 'success using static gas estimate', 'static')
       return
     }
 
@@ -1626,11 +1733,13 @@ export const methods = {
     try {
       if (!args[0]['to'] && !args[0]['data']) {
         callback(null, result)
+        countSuccessResponse(api_name, 'success to and data args not set (default to 3M)', 'fallback')
         return
       }
       if (args[0]['to'] === '0x0000000000000000000000000000000000000001') {
         // TODO: Calculate according to formula
         callback(null, result)
+        countSuccessResponse(api_name, 'success to set to 0x...0001 (default to 3M)', 'fallback')
         return
       }
       if (!args[0]['data']) {
@@ -1639,6 +1748,7 @@ export const methods = {
         if (res.contractCode === '0x') {
           // return 21000
           callback(null, '0x5208')
+          countSuccessResponse(api_name, 'success no data (default to 21000)', 'fallback')
           return
         }
       }
@@ -1653,6 +1763,7 @@ export const methods = {
         gasEstimate.imuln(BUFFER)
         result = '0x' + gasEstimate.toString(16)
         callback(null, result)
+        countSuccessResponse(api_name, 'success using cached gas estimate', 'cache')
         return
       }
       let originalEstimate = new BN(0)
@@ -1678,6 +1789,7 @@ export const methods = {
 
         if (originalEstimate.gt(MAX_ESTIMATE_GAS)) {
           callback(null, '0x' + MAX_ESTIMATE_GAS.toString('hex'))
+          countSuccessResponse(api_name, 'success using max gas estimate', 'TBD')
           return
         }
 
@@ -1699,11 +1811,14 @@ export const methods = {
     }
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
   },
   eth_getBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockByHash'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1724,11 +1839,14 @@ export const methods = {
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
   },
   eth_getBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockByNumber'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1756,12 +1874,15 @@ export const methods = {
     }
     if (verbose) console.log('BLOCK DETAIL', result)
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: result ? true : false }, performance.now())
   },
   eth_getBlockReceipts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockReceipts'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1796,6 +1917,7 @@ export const methods = {
         }
         if (verbose) console.log('BLOCK RECEIPTS DETAIL', result)
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       }
@@ -1816,6 +1938,7 @@ export const methods = {
       const nodeUrl = config.explorerUrl
       if (verbose) console.log('BLOCK RECEIPTS DETAIL', result)
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'explorer')
       logEventEmitter.emit(
         'fn_end',
         ticket,
@@ -1824,12 +1947,15 @@ export const methods = {
       )
     }
     callback(null, null)
+    countFailedResponse(api_name, 'neither collector or explorer are enabled')
     logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
   eth_feeHistory: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_feeHistory'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1850,6 +1976,7 @@ export const methods = {
         message: 'invalid input',
       }
       callback(null, error)
+      countFailedResponse(api_name, 'invalid input')
     } else {
       if (blockCount > newestBlock) {
         blockCount = newestBlock
@@ -1899,13 +2026,16 @@ export const methods = {
         console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
       }
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'TBD')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
   eth_getTransactionByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionByHash'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -1918,6 +2048,7 @@ export const methods = {
     if (!isHexString(txHash)) {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback({ message: 'Invalid transaction hex string' } as JSONRPCError, null)
+      countFailedResponse(api_name, 'invalid transaction hex string')
       return
     }
     let retry = 0
@@ -1928,6 +2059,7 @@ export const methods = {
       // optimistically return null if the transaction is not found in the collector
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(null, null)
+      countFailedResponse(api_name, 'transaction not found in collector')
       return
     } else if (!isErr(result)) {
       // result found, skipping querying from archiver, validator and explorer.
@@ -1935,6 +2067,7 @@ export const methods = {
       retry = 100
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'collector')
       return
     } else {
       result = null
@@ -1988,20 +2121,24 @@ export const methods = {
     if (!result) {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(null, null) // tx not found
+      countFailedResponse(api_name, 'transaction not found in validator, archiver and explorer')
       return
     }
     result = extractTransactionObject(result)
     if (verbose) console.log('Final Tx:', txHash, result)
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
   },
   eth_getTransactionByBlockHashAndIndex: async function (
     args: RequestParamsLike,
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2019,11 +2156,13 @@ export const methods = {
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       }
     } catch (e) {
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in collectorAPI.getBlock')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
     const blockHash = args[0]
@@ -2049,6 +2188,7 @@ export const methods = {
         const nodeUrl = config.explorerUrl
         if (verbose) console.log('TRANSACTION DETAIL', result)
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'explorer')
         logEventEmitter.emit(
           'fn_end',
           ticket,
@@ -2058,14 +2198,17 @@ export const methods = {
       } catch (error) {
         /* prettier-ignore */ if (verbose) console.log('Error: eth_getTransactionByBlockHashAndIndex', (error as AxiosError).message)
         callback(null, null)
+        countFailedResponse(api_name, 'exception in axios.get')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
     } else {
       console.log('queryFromValidator and/or queryFromExplorer turned off. Could not process request')
       callback(null, null)
+      countFailedResponse(api_name, 'queryFromValidator and/or queryFromExplorer turned off')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'fallback')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getTransactionByBlockNumberAndIndex: async function (
@@ -2073,8 +2216,10 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2087,11 +2232,13 @@ export const methods = {
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       }
     } catch (e) {
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in collectorAPI.getBlock')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
     if (verbose) {
@@ -2121,6 +2268,7 @@ export const methods = {
         const nodeUrl = config.explorerUrl
         if (verbose) console.log('TRANSACTION DETAIL', result)
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'explorer')
         logEventEmitter.emit(
           'fn_end',
           ticket,
@@ -2130,20 +2278,25 @@ export const methods = {
       } catch (error) {
         /* prettier-ignore */ if (verbose) console.log('Error: eth_getTransactionByBlockNumberAndIndex', (error as AxiosError).message)
         callback(null, null)
+        countFailedResponse(api_name, 'exception in axios.get')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       }
     } else {
       console.log('queryFromExplorer turned off. Could not process request')
       callback(null, null)
+      countFailedResponse(api_name, 'queryFromExplorer turned off')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'fallback')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getTransactionReceipt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionReceipt'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2161,12 +2314,14 @@ export const methods = {
         // optimistically return null if the receipt is not found in the collector
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback(null, null)
+        countFailedResponse(api_name, 'transaction receipt not found in collector')
         return
       } else if (!isErr(result)) {
         // result found, skipping querying from archiver, validator and explorer.
         result = extractTransactionReceiptObject(result)
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, result)
+        countSuccessResponse(api_name, 'success', 'collector')
         return
       } else {
         result = null
@@ -2205,11 +2360,13 @@ export const methods = {
         if (verbose) console.log(`getTransactionReceipt result for ${txHash}`, result)
       }
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'TBD')
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
     } catch (e) {
       console.log('Unable to eth_getTransactionReceipt', e)
       //callback(null, errorHexStatus)
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in axios.get')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
@@ -2229,6 +2386,7 @@ export const methods = {
     }
     const result = null
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getUncleByBlockNumberAndIndex: async function (
@@ -2247,6 +2405,7 @@ export const methods = {
     }
     const result = null
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getCompilers: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2262,6 +2421,7 @@ export const methods = {
     }
     const result = ['solidity', 'lll', 'serpent']
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_compileSolidity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2277,6 +2437,7 @@ export const methods = {
     }
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_compileLLL: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2290,6 +2451,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_compileSerpent: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2303,6 +2465,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_newBlockFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2332,6 +2495,7 @@ export const methods = {
     filtersMap.set(filterId.toString(), internalFilter)
 
     callback(null, filterId)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_newPendingTransactionFilter: async function (
@@ -2367,12 +2531,15 @@ export const methods = {
     filtersMap.set(filterId.toString(), internalFilter)
 
     callback(null, filterId)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_uninstallFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_uninstallFilter'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2383,6 +2550,7 @@ export const methods = {
     const internalFilter = filtersMap.get(filterId)
     if (internalFilter == null) {
       callback(null, false)
+      countFailedResponse(api_name, 'filter not found')
       return
     }
 
@@ -2390,13 +2558,15 @@ export const methods = {
     filtersMap.delete(filterId)
 
     callback(null, true)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_newFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_newFilter'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2408,6 +2578,7 @@ export const methods = {
 
     if (inputFilter == null) {
       callback(null, null)
+      countFailedResponse(api_name, 'filter not found')
       return
     }
     const { address, topics } = parseFilterDetails(inputFilter || {})
@@ -2435,12 +2606,15 @@ export const methods = {
     filtersMap.set(filterId.toString(), internalFilter)
 
     callback(null, filterId)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getFilterChanges: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getFilterChanges'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2517,12 +2691,15 @@ export const methods = {
       )
 
     callback(null, updates)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getFilterLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getFilterLogs'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2547,6 +2724,7 @@ export const methods = {
         const logsFromCollector = await collectorAPI.getLogsByFilter(request)
         if (logsFromCollector) {
           callback(null, logsFromCollector)
+          countSuccessResponse(api_name, 'success', 'collector')
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
           return
         }
@@ -2559,12 +2737,15 @@ export const methods = {
     if (config.verbose) console.log(`eth_getFilterLogs: filterId: ${filterId}`, logs)
 
     callback(null, logs)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getLogs'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2579,6 +2760,7 @@ export const methods = {
 
     if (!logParamsAreValid(fromBlock, toBlock, blockHash)) {
       callback(null, new Error('eth_getLogs: Invalid parameters'))
+      countFailedResponse(api_name, 'invalid parameters')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       return
     }
@@ -2590,6 +2772,7 @@ export const methods = {
       fromBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!fromBlock || !isHex(fromBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
+        countFailedResponse(api_name, 'failed to get current block 1')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         return
       }
@@ -2599,6 +2782,7 @@ export const methods = {
       toBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!toBlock || !isHex(toBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
+        countFailedResponse(api_name, 'failed to get current block 2')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         return
       }
@@ -2610,12 +2794,14 @@ export const methods = {
         toBlock = res.data.block.number
         if (!fromBlock || !toBlock || !isHex(fromBlock) || !isHex(toBlock)) {
           callback(null, new Error(`eth_getLogs: failed to get valid block by hash`))
+          countFailedResponse(api_name, 'failed to get valid block by hash')
           logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
           return
         }
       } else {
         console.error(`eth_getLogs: failed to get block by hash`)
         callback(null, new Error(`eth_getLogs: failed to get block by hash`))
+        countFailedResponse(api_name, 'failed to get block by hash')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         return
       }
@@ -2625,10 +2811,12 @@ export const methods = {
 
       if (logsFromCollector) {
         callback(null, logsFromCollector)
+        countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         return
       } else {
         callback(null, [])
+        countFailedResponse(api_name, 'failed to get logs from collector')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         return
       }
@@ -2684,10 +2872,12 @@ export const methods = {
         address,
       })
       callback(null, logs)
+      countSuccessResponse(api_name, 'success', 'explorer')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     } catch (error: any) {
       console.error(`eth_getLogs: ${error.message}`)
       callback(null, new Error(`eth_getLogs: ${error.message}`))
+      countFailedResponse(api_name, 'exception in getLogsFromExplorer')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
   },
@@ -2703,6 +2893,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_submitWork: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2717,6 +2908,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_submitHashrate: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2731,13 +2923,15 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   debug_traceTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceTransaction'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2751,6 +2945,7 @@ export const methods = {
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
       callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      countFailedResponse(api_name, 'only the default opcode tracer is supported')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       return
     }
@@ -2758,17 +2953,20 @@ export const methods = {
     try {
       const result = await replayTransaction(args[0], '-s')
       callback(null, { structLogs: result })
+      countSuccessResponse(api_name, 'success', 'replayer')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in replayTransaction')
     }
   },
   debug_traceBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByHash'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2782,6 +2980,7 @@ export const methods = {
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
       callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      countFailedResponse(api_name, 'only the default opcode tracer is supported')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       return
     }
@@ -2803,6 +3002,7 @@ export const methods = {
         }
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback(null, null)
+        countFailedResponse(api_name, 'block not found')
         return
       }
 
@@ -2824,16 +3024,20 @@ export const methods = {
       }
 
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'replayer')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in replayTransaction')
     }
   },
   debug_traceBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByNumber'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2847,6 +3051,7 @@ export const methods = {
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
       callback({ code: errorCode, message: 'Only the default opcode tracer is supported' })
+      countFailedResponse(api_name, 'only the default opcode tracer is supported')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       return
     }
@@ -2874,6 +3079,7 @@ export const methods = {
         }
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback(null, null)
+        countFailedResponse(api_name, 'block not found')
         return
       }
 
@@ -2895,17 +3101,20 @@ export const methods = {
       }
 
       callback(null, result)
+      countSuccessResponse(api_name, 'success', 'replayer')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in replayTransaction')
     }
   },
   debug_storageRangeAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2939,12 +3148,14 @@ export const methods = {
       console.log('THE LOGS ARE', logs)
     }
     callback(null, { storage: {} })
+    countSuccessResponse(api_name, 'success', 'explorer')
   },
   debug_storageRangeAt2: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt2'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
-
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -2973,10 +3184,12 @@ export const methods = {
         storageObject[bufferToHex(keyHash)] = state
       })
       callback(null, { storage: storageObject })
+      countSuccessResponse(api_name, 'success', 'collector')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in fetchStorage')
     }
   },
   db_putString: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -2991,6 +3204,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   db_getString: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3005,6 +3219,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   db_putHex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3019,6 +3234,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   db_getHex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3032,6 +3248,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_version: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3046,6 +3263,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_post: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3059,6 +3277,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_newIdentity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3072,6 +3291,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_hasIdentity: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3086,6 +3306,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_newGroup: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3100,6 +3321,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_addToGroup: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3114,6 +3336,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_newFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3128,6 +3351,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_uninstallFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3142,6 +3366,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_getFilterChanges: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3156,6 +3381,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   shh_getMessages: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3170,6 +3396,7 @@ export const methods = {
 
     const result = 'test'
     callback(null, result)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_chainId: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
@@ -3187,12 +3414,15 @@ export const methods = {
     const chainId = `${config.chainId}`
     const hexValue = '0x' + parseInt(chainId, 10).toString(16)
     callback(null, hexValue)
+    countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
   eth_getAccessList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getAccessList'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) return
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -3211,6 +3441,7 @@ export const methods = {
     if (accessList) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, accessList)
+      countSuccessResponse(api_name, 'success', 'servicevalidator')
       return
     }
 
@@ -3222,21 +3453,27 @@ export const methods = {
       if (res.data == null || res.data.accessList == null) {
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
         callback(errorBusy)
+        countFailedResponse(api_name, 'no accessList')
         return
       }
       if (verbose)
         console.log('predicted accessList from', res.data.nodeUrl, JSON.stringify(res.data.accessList))
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, res.data.accessList)
+      countSuccessResponse(api_name, 'success', 'TBD')
     } catch (e) {
       console.log(`Error while making an eth call`, e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback(errorBusy)
+      countFailedResponse(api_name, 'exception in /contract/accesslist')
     }
   },
   eth_subscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    nestedCountersInstance.countEvent('endpoint', 'eth_subscribe')
-    if (!ensureArrayArgs(args, callback)) return
+    const api_name = 'eth_subscribe'
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback({ message: 'Subscription feature disabled' } as JSONRPCError, null)
       return
@@ -3248,11 +3485,13 @@ export const methods = {
       if (subscription_name !== 'logs') {
         logSubscriptionList.removeById(args[10])
         callback({ message: 'Shardeum only support logs subscriptions' } as JSONRPCError, null)
+        countFailedResponse(api_name, 'Shardeum only support logs subscriptions')
         return
       }
       if (!filters.address && !filters.topics) {
         logSubscriptionList.removeById(args[10])
         callback({ message: 'Invalid Filters' } as JSONRPCError, null)
+        countFailedResponse(api_name, 'Invalid Filters')
         return
       }
       if (!sub_id) {
@@ -3269,18 +3508,24 @@ export const methods = {
         throw new Error('RPC cannot established connection to evm log provider')
       }
       subscriptionEventEmitter.emit('evm_log_subscribe', payload)
+      countNonResponse('eth_subscribe', 'success')
     } catch (e: unknown) {
       logSubscriptionList.removeById(args[10])
       callback({ message: (e as Error).message } as JSONRPCError, null)
+      countFailedResponse('eth_subscribe', (e as Error).message)
       // subscription failed, will not be tracking it
     }
   },
 
   eth_unsubscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    nestedCountersInstance.countEvent('endpoint', 'eth_unsubscribe')
-    if (!ensureArrayArgs(args, callback)) return
+    const api_name = 'eth_unsubscribe'
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
     if (!CONFIG.websocket.enabled || !CONFIG.websocket.serveSubscriptions) {
       callback({ message: 'Subscription feature disabled' } as JSONRPCError, null)
+      countFailedResponse(api_name, 'Subscription feature disabled')
       return
     }
     try {
@@ -3296,8 +3541,10 @@ export const methods = {
         throw new Error('Subscription not found')
       }
       subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
+      countNonResponse(api_name, 'success')
     } catch (e: unknown) {
       callback({ message: (e as Error).message } as JSONRPCError, null)
+      countFailedResponse(api_name, (e as Error).message)
       // subscription failed, will not be tracking it
     }
   },
