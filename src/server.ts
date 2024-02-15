@@ -165,10 +165,10 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
     return
   }
   let ip = req.ip
-  if (ip.substr(0, 7) == '::ffff:') {
-    ip = ip.substr(7)
+  if (ip.substring(0, 7) == '::ffff:') {
+    ip = ip.substring(7)
   }
-  //console.log('IP is ', ip)
+  console.log('IP is ', ip)
 
   const reqParams = req.body.params
   const isRequestOkay = await requestersList.isRequestOkay(ip, req.body.method, reqParams)
