@@ -4,7 +4,7 @@ import { serializeError } from 'eth-rpc-errors'
 import { BN, bufferToHex, isHexPrefixed, isHexString, isValidAddress, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
-  getAccount,
+  getAccountFromValidator,
   getArchiverUrl,
   getBaseUrl,
   getFilterId,
@@ -825,7 +825,7 @@ export const methods = {
     try {
       if (verbose) console.log('address', address)
       if (verbose) console.log('ETH balance', typeof balance, balance)
-      const res = await getAccount(address)
+      const res = await getAccountFromValidator(address)
       const account = res.account
       nodeUrl = res.nodeUrl
       if (account) {
@@ -907,7 +907,7 @@ export const methods = {
         }
       }
       if (config.queryFromValidator) {
-        const res: any = await getAccount(storageAccountId)
+        const res: any = await getAccountFromValidator(storageAccountId)
         if (res && res.account && res.account['value']) {
           const value = Uint8Array.from(Object.values(res?.account['value']))
           const hexValue = bytesToHex(value)
@@ -968,7 +968,7 @@ export const methods = {
     let nodeUrl
     try {
       const address = args[0]
-      const res = await getAccount(address)
+      const res = await getAccountFromValidator(address)
       const account = res.account
       nodeUrl = res.nodeUrl
       if (account) {
