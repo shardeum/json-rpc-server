@@ -23,7 +23,7 @@ interface Request {
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   socket.on('message', (message: string) => {
-    console.log(`Received message: ${message}`)
+    if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
       jsonrpc: '',
@@ -34,7 +34,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
 
     try {
       request = JSON.parse(message)
-      console.log(request.params)
+      if (CONFIG.verbose) console.log(request.params)
     } catch (e: unknown) {
       nestedCountersInstance.countEvent('websocket', 'message-received-error')
       if (e instanceof Error) {
@@ -97,11 +97,8 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         if (
           typeof request.params[1] === 'object' &&
-          'address' in request.params[1] &&
-          'topics' in request.params[1]
+          ('address' in request.params[1] || 'topics' in request.params[1])
         ) {
-          // in this case we need to keep track of a connection
-          // We will NOT keep track of connection for other interface call
           let subscription_id = crypto.randomBytes(32).toString('hex')
           subscription_id =
             '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
