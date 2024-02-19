@@ -17,6 +17,7 @@ import {
   checkArchiverHealth,
   sleep,
   cleanBadNodes,
+  initSyncTime,
 } from './utils'
 import { router as logRoute } from './routes/log'
 import { router as authenticate } from './routes/authenticate'
@@ -201,6 +202,7 @@ setupArchiverDiscovery({
     debug_info.interfaceRecordingStartTime = config.statLog ? Date.now() : 0
     debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
     setConsensorNode()
+    initSyncTime()
     setInterval(updateNodeList, config.nodelistRefreshInterval)
     setInterval(saveTxStatus, 5000)
     setInterval(checkArchiverHealth, 60000)

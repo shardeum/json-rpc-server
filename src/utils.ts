@@ -30,10 +30,13 @@ import {
   AccountTypesData,
   Account2,
 } from './types'
+import Sntp from '@hapi/sntp'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
 const existingArchivers: Archiver[] = []
+const timeServers = ['0.pool.ntp.org', '1.pool.ntp.org', '2.pool.ntp.org', '3.pool.ntp.org']
+let ntpOffset = 0
 
 export const node = {
   ip: '127.0.0.1',
@@ -60,6 +63,21 @@ let archiverIndex = 0
 export enum RequestMethod {
   Get = 'get',
   Post = 'post',
+}
+
+export async function initSyncTime() {
+  for (const host of timeServers) {
+    const time = await Sntp.time({
+      host,
+      timeout: 10000,
+    })
+    ntpOffset = time.t
+    return
+  }
+}
+
+export function getSyncTime(): number {
+  return Date.now() + ntpOffset
 }
 
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
