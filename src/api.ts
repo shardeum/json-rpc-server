@@ -904,17 +904,26 @@ export const methods = {
       if (verbose) console.log('address', address)
       if (verbose) console.log('ETH balance', typeof balance, balance)
       const res = await getAccountFromValidator(address)
-      const account = res.account
       nodeUrl = res.nodeUrl
-      if (account) {
+      if ('account' in res) {
+        const account = res.account
         if (verbose) console.log('account', account)
-        if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
-        const SHD = intStringToHex(account.balance)
-        if (verbose) console.log('SHD', typeof SHD, SHD)
-        balance = intStringToHex(account.balance)
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-        callback(null, balance)
-        countSuccessResponse(api_name, 'success', 'validator')
+        if (!account) {
+          // This covers the case where this is an uninitialized EOA
+          // and our validators return { account: null }
+          // hence returning balance as 0x0
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, balance)
+          countSuccessResponse(api_name, 'success', 'validator')
+        } else {
+          if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
+          const SHD = intStringToHex(account.balance)
+          if (verbose) console.log('SHD', typeof SHD, SHD)
+          balance = intStringToHex(account.balance)
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+          callback(null, balance)
+          countSuccessResponse(api_name, 'success', 'validator')
+        }
       } else {
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback({ code: 503, message: 'unable to get balanace' }, null)
