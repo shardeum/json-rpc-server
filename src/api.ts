@@ -925,7 +925,7 @@ export const methods = {
           countSuccessResponse(api_name, 'success', 'validator')
         }
       } else {
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
         callback({ code: 503, message: 'unable to get balanace' }, null)
         countFailedResponse(api_name, 'Unable to get account')
       }
