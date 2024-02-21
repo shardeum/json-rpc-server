@@ -1672,6 +1672,16 @@ export const methods = {
     }
     if (verbose) console.log('callObj', callObj)
 
+    if (!callObj.to || !callObj.data) {
+      const error: JSONRPCError = {
+        code: -32602, // JSON-RPC error code for invalid params
+        message: "Invalid params: 'to' or 'data' not provided",
+      }
+      callback(error)
+      countFailedResponse(api_name, 'Invalid params: "to" or "data" not provided')
+      return
+    }
+
     let response = await serviceValidator.ethCall(callObj)
     if (response && !isErr(response)) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
