@@ -407,7 +407,9 @@ export function sleep(ms: number): Promise<boolean> {
   })
 }
 
-export async function getAccountFromValidator(addressStr: string): Promise<{ account?: Account2; nodeUrl?: string }> {
+export async function getAccountFromValidator(
+  addressStr: string
+): Promise<{ account?: Account2; nodeUrl?: string }> {
   const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
   return res.data
 }
