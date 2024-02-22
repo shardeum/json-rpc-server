@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosRequestConfig } from 'axios'
-import { verbose } from '../api'
+import { verbose, firstLineLogs } from '../api'
 import { CONFIG } from '../config'
 import { LogQueryRequest, TxByBlockRequest } from '../types'
 import { BaseExternal, axiosWithRetry } from './BaseExternal'
@@ -24,7 +24,7 @@ class Collector extends BaseExternal {
   async getLogsByFilter(request: LogQueryRequest): Promise<any[] | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getLogsByFilter')
-    /* prettier-ignore */ console.log(`Collector: getLogsByFilter call for request: ${JSON.stringify(request)}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getLogsByFilter call for request: ${JSON.stringify(request)}`)
     try {
       const url = this.buildLogAPIUrl(request, this.baseUrl)
       /* prettier-ignore */ if (verbose) console.log(`Collector: getLogsByFilter built log API URL: ${url}`)
@@ -45,7 +45,7 @@ class Collector extends BaseExternal {
   async getTransactionByHash(txHash: string): Promise<readableTransaction | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
     nestedCountersInstance.countEvent('collector', 'getTransactionByHash')
-    /* prettier-ignore */ console.log(`Collector: getTransactionByHash call for txHash: ${txHash}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTransactionByHash call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: `${this.baseUrl}/api/transaction?txHash=${txHash}`,
@@ -74,7 +74,7 @@ class Collector extends BaseExternal {
   async getTransactionReceipt(txHash: string): Promise<any | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector: collectorSourcing is not enabled')
     nestedCountersInstance.countEvent('collector', 'getTransactionReceipt')
-    /* prettier-ignore */ console.log(`Collector: getTransactionReceipt call for txHash: ${txHash}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTransactionReceipt call for txHash: ${txHash}`)
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: `${this.baseUrl}/api/transaction?txHash=${txHash}`,
@@ -99,7 +99,7 @@ class Collector extends BaseExternal {
   async getTxReceiptDetails(txHash: string): Promise<any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getTxReceiptDetails')
-    /* prettier-ignore */ console.log(`Collector: getTxReceiptDetails call for txHash: ${txHash}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTxReceiptDetails call for txHash: ${txHash}`)
     try {
       const apiQuery = `${this.baseUrl}/api/transaction?txHash=${txHash}`
       const response = await axios.get(apiQuery).then((response) => {
@@ -151,7 +151,7 @@ class Collector extends BaseExternal {
       headers: this.defaultHeaders,
     }
 
-    /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber call`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getLatestBlockNumber call`)
     try {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber requestConfig: ${JSON.stringify(requestConfig)}`)
       const res = await axiosWithRetry<{
@@ -174,7 +174,7 @@ class Collector extends BaseExternal {
   async getTransactionByBlock(request: TxByBlockRequest): Promise<number | any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
 
-    /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
     let url = `${this.baseUrl}/api/transaction?`
     if (request.blockNumber) {
       url += `blockNumber=${request.blockNumber}`
@@ -217,7 +217,7 @@ class Collector extends BaseExternal {
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlock')
-    /* prettier-ignore */ console.log(`Collector: getBlock call for block: ${block}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${block}`)
     try {
       let blockQuery
       if (inpType === 'hex_num') {
@@ -267,7 +267,7 @@ class Collector extends BaseExternal {
     }
 
     try {
-      console.log(`Collector: fetchAccount call for key: ${key}`)
+      /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: fetchAccount call for key: ${key}`)
       nestedCountersInstance.countEvent('collector', 'fetchTxHistory')
       const accountKey = `0x${key.slice(0, -24)}`
       const apiQuery = `${this.baseUrl}/api/transaction?address=${accountKey}&beforeTimestamp=${timestamp}`

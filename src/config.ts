@@ -63,6 +63,7 @@ type Config = {
   adaptiveRejection: boolean
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
+  firstLineLogs: boolean 
 
   dashboard: {
     enabled: boolean
@@ -145,6 +146,7 @@ export const CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
+  firstLineLogs: true, // default is true and turn off for prod for perf
   dashboard: {
     enabled: true,
     // relative path will work but absolute path is recommended

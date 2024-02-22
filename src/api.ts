@@ -45,6 +45,7 @@ import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 
 export const verbose = config.verbose
+export const firstLineLogs = config.firstLineLogs
 const MAX_ESTIMATE_GAS = new BN(30_000_000)
 
 const lastCycleCounter = '0x0'
@@ -341,7 +342,7 @@ interface BlockInfo {
 }
 
 async function getCurrentBlockInfo(): Promise<BlockInfo> {
-  if (verbose) console.log('Running getCurrentBlockInfo')
+  /* prettier-ignore */ if (firstLineLogs) console.log('Running getCurrentBlockInfo')
   let result: BlockInfo = { ...lastBlockInfo, nodeUrl: undefined }
 
   try {
@@ -378,7 +379,7 @@ async function getCurrentBlock(): Promise<CurrentBlockInfo> {
   } catch (e) {
     console.log('Error getCurrentBlockInfo', e)
   }
-  if (verbose) console.log('Running getcurrentBlock', blockNumber, timestamp)
+  /* prettier-ignore */ if (firstLineLogs) { console.log('Running getcurrentBlock', blockNumber, timestamp) }
   const result: CurrentBlockInfo = {
     nodeUrl: nodeUrl,
     difficulty: '0x4ea3f27bc',
@@ -599,12 +600,8 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    if (verbose) {
-      console.log('Running web3_clientVersion', args)
-    }
-    if (verbose) {
-      console.log('Running getCurrentBlockInfo', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running web3_clientVersion', args) }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getCurrentBlockInfo', args) }
     const result = 'Mist/v0.9.3/darwin/go1.4.1'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -620,9 +617,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    if (verbose) {
-      console.log('Running web3_sha', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running web3_sha3', args) }
     const result = '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -638,9 +633,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    if (verbose) {
-      console.log('Running net_version', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_version', args) }
     const chainId = config.chainId.toString()
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -655,9 +648,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running net_listening', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_listening', args) }
     const result = true
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -672,9 +663,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running net_peerCount', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_peerCount', args) }
     const result = '0x2'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -689,9 +678,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_protocolVersion', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_protocolVersion', args) }
     const result = '54'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -706,9 +693,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_syncing', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_syncing', args) }
     // RPC talks only to active nodes, so result is always false.
     const result = false
 
@@ -724,9 +709,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_coinbase', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_coinbase', args) }
     const result = ''
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -741,9 +724,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_mining', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_mining', args) }
     const result = true
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -758,9 +739,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_hashrate', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_hashrate', args) }
     const result = '0x38a'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -775,9 +754,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_gasPrice', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_gasPrice', args) }
 
     const gasPrice = await serviceValidator.getGasPrice()
     if (gasPrice) {
@@ -809,9 +786,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_accounts', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_accounts', args) }
     const result = ['0x407d73d8a49eeb85d32cf465507dd71d507100c1']
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -826,9 +801,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_blockNumber', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_blockNumber', args) }
     const result = await collectorAPI.getLatestBlockNumber()
     if (result) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -860,9 +833,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_getBalance', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBalance', args) }
 
     let address
     try {
@@ -950,9 +921,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_getStorageAt', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getStorageAt', args) }
     try {
       const contractAddress = args[0]
       let position = args[1]
@@ -1039,9 +1008,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getTransactionCount', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getTransactionCount', args) }
 
     let address
     try {
@@ -1117,9 +1084,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_getBlockTransactionCountByHash', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBlockTransactionCountByHash', args) }
     let blockHash = (args as string[])[0]
     if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
       console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
@@ -1188,9 +1153,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_getBlockTransactionCountByNumber', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBlockTransactionCountByNumber', args) }
 
     let blockNumber = args[0]
 
@@ -1261,9 +1224,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getUncleCountByBlockHash', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getUncleCountByBlockHash', args) }
     const result = '0x0'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1281,9 +1242,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getUnbleCountByBlockNumber', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getUnbleCountByBlockNumber', args) }
     const result = '0x0'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1302,9 +1261,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getCode', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getCode', args) }
 
     let contractAddress
     try {
@@ -1358,9 +1315,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_signTransaction', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_signTransaction', args) }
     const result =
       '0xa3f20717a250c2b0b729b7e5becbff67fdaef7e0699da4de7ca5895b02a170a12d887fd3b17bfdce3481f10bea41f45ba9f709d39ce8325427b57afcfc994cee1b'
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1376,9 +1331,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    if (verbose) {
-      console.log('Running sendTransaction', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running sendTransaction', args) }
     const result = '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1398,7 +1351,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     const now = Date.now()
-    if (verbose) {
+    if (firstLineLogs) {
       console.log('Sending raw tx to /inject endpoint', new Date(now), now)
       console.log('Running sendRawTransaction', args)
     }
@@ -1601,7 +1554,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     const now = Date.now()
-    if (verbose) {
+    if (firstLineLogs) {
       console.log('Sending internal tx to /inject endpoint', new Date(now), now)
       console.log('Running eth_sendInternalTransaction', args)
     }
@@ -1679,9 +1632,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_call', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_call', args) }
     const callObj = args[0]
     //callObj.gasPrice = new BN(0)
     if (!callObj.from || callObj.from === '0x0000000000000000000000000000000000000000') {
@@ -1761,9 +1712,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running estimateGas', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running estimateGas', args) }
     // const result = '0x1C9C380' // 30 M gas
     if (config.staticGasEstimate) {
       callback(null, config.staticGasEstimate)
@@ -1867,9 +1816,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getBlockByHash', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getBlockByHash', args) }
     let result: readableBlock | null = null
     //getCurrentBlock handles errors, no try catch needed
     result = await collectorAPI.getBlock(args[0], 'hash', args[1])
@@ -1896,9 +1843,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getBlockByNumber', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getBlockByNumber', args) }
     let result: readableBlock | null = null
     let nodeUrl = null
     let blockNumber = args[0]
@@ -1939,9 +1884,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getBlockReceipts', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getBlockReceipts', args) }
     let blockNumber = args[0]
     if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
       console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
@@ -2013,9 +1956,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_feeHistory', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_feeHistory', args) }
     let blockCount = args[0]
     let newestBlock = args[1]
     // technically, the argument "reward" is required
@@ -2094,9 +2035,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getTransactionByHash', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getTransactionByHash', args) }
     const txHash = args[0]
     if (!isHexString(txHash)) {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
@@ -2198,9 +2137,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_getTransactionByBlockHashAndIndex', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getTransactionByBlockHashAndIndex', args) }
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     let result: string | completeReadableReceipt | null | undefined = null
@@ -2296,9 +2233,7 @@ export const methods = {
       countFailedResponse(api_name, 'exception in collectorAPI.getBlock')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
     }
-    if (verbose) {
-      console.log('Running eth_getTransactionByBlockNumberAndIndex', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getTransactionByBlockNumberAndIndex', args) }
     let blockNumber = args[0]
     const index = parseInt(args[1], 16)
     if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
@@ -2359,7 +2294,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     const now = Date.now()
-    if (verbose) console.log('Getting tx receipt', new Date(now), now, 'args', args)
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Getting tx receipt', new Date(now), now, 'args', args) }
     let nodeUrl
     try {
       let res
@@ -2437,9 +2372,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getUncleByBlockHashAndIndex', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getUncleByBlockHashAndIndex', args) }
     const result = null
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
@@ -2456,9 +2389,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getUncleByBlockNumberAndIndex', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getUncleByBlockNumberAndIndex', args) }
     const result = null
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
@@ -2472,9 +2403,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getCompilers', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getCompilers', args) }
     const result = ['solidity', 'lll', 'serpent']
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
@@ -2488,9 +2417,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running compileSolidity', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running compileSolidity', args) }
     const result = 'test'
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
@@ -2565,9 +2492,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running newPendingTransactionFilter', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running newPendingTransactionFilter', args) }
 
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
@@ -2692,9 +2617,7 @@ export const methods = {
         topics: logFilter.topics,
         fromBlock: String(logFilter.lastQueriedBlock + 1),
       }
-      if (verbose) {
-        console.log('filter changes request', request)
-      }
+      /* prettier-ignore */ if (verbose) { console.log('filter changes request', request) }
       // try sourcing from collector api server
       const updatesFromCollector = await collectorAPI.getLogsByFilter(request)
       if (!updatesFromCollector) {
@@ -2813,9 +2736,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running getLogs', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getLogs', args) }
 
     let { fromBlock, toBlock, blockHash, address, topics } = args[0]
 
@@ -3000,9 +2921,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
-    if (verbose) {
-      console.log('Running debug_traceTransaction', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_traceTransaction', args) }
 
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
@@ -3036,9 +2955,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
-    if (verbose) {
-      console.log('Running debug_traceBlockByHash', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_traceBlockByHash', args) }
 
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
@@ -3108,9 +3025,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1])
-    if (verbose) {
-      console.log('Running debug_traceBlockByNumber', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_traceBlockByNumber', args) }
 
     // Check if tracer is defined
     if (args[1] && args[1].tracer) {
@@ -3196,9 +3111,7 @@ export const methods = {
       args[3],
       args[4]
     )
-    if (verbose) {
-      console.log('Running debug_storageRangeAt', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_storageRangeAt', args) }
 
     // Fetch blockNumber by using eth_getBlockByHash
     const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByHash?blockHash=${args[0]}`)
@@ -3228,9 +3141,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1], args[2], args[3])
-    if (verbose) {
-      console.log('Running debug_storageRangeAt2', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_storageRangeAt2', args) }
 
     try {
       const txHash = args[0]
@@ -3474,9 +3385,7 @@ export const methods = {
       .digest('hex')
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    if (verbose) {
-      console.log('Running eth_chainId', args)
-    }
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_chainId', args) }
     const chainId = `${config.chainId}`
     const hexValue = '0x' + parseInt(chainId, 10).toString(16)
     callback(null, hexValue)
@@ -3495,8 +3404,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-
-    console.log('Running eth_getAccessList', args)
+    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getAccessList', args) }
 
     const callObj = args[0]
     if (!callObj.from) {
