@@ -475,6 +475,8 @@ function injectAndRecordTx(
   const { baseUrl } = getBaseUrl()
   totalResult += 1
   return new Promise((resolve, reject) => {
+    let startTimestamp = Date.now()
+    console.log(`injecting tx to`, `${baseUrl}/inject`, startTimestamp)
     axios
       .post(`${baseUrl}/inject`, tx)
       .then((response) => {
@@ -488,7 +490,7 @@ function injectAndRecordTx(
           countInjectTxRejections(injectResult.reason)
         }
 
-        console.log('inject tx result', txHash, injectResult)
+        console.log('inject tx result', txHash, injectResult, Date.now(), Date.now() - startTimestamp)
         console.log(`Total count: ${totalResult}, Nonce fail count: ${nonceFailCount}`)
         if (config.recordTxStatus === false) {
           return resolve({
