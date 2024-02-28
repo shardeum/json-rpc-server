@@ -80,6 +80,23 @@ export function getSyncTime(): number {
   return Date.now() + ntpOffset
 }
 
+async function checkIfNodeIsActive(node: Node): Promise<boolean> {
+  try {
+    const res = await axios({
+      method: 'GET',
+      url: `http://${node.ip}:${node.port}/nodeinfo`,
+      timeout: 10000,
+    })
+    if (res.status !== 200) return false
+    if (res.data.nodeInfo?.status === 'active') {
+      return true
+    }
+  } catch (e) {
+    return false
+  }
+  return false
+}
+
 // if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 // linear complexity, O(n) where n is the amount of nodes object { ip: string, port number }
 export async function updateNodeList(tryInfinate = false): Promise<void> {
@@ -103,7 +120,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     true
   )
 
-  const nodes = res.data.nodeList // <-
+  const nodes: Node[] = res.data.nodeList // <-
   nodeListMap = new Map() // clean old nodelist map
 
   if (nodes.length > 0) {
@@ -113,31 +130,12 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
       })
     }
     if (config.filterDeadNodesFromArchiver) {
-      const allNodes = [...nodes]
-      const onlineNodes = []
-      let count = 0
-      for (const node of allNodes) {
-        count++
-        try {
-          const res = await axios({
-            method: 'GET',
-            url: `http://${node.ip}:${node.port}/nodeinfo`,
-            timeout: 1000,
-          })
-          if (res.status !== 200) continue
-          if (res.data.nodeInfo && res.data.nodeInfo.status === 'active') {
-            console.log(`No. ${count} this node is ONLINE`, node.ip, node.port)
-            onlineNodes.push(node)
-            nodeListMap.set(`${node.ip}:${node.port}`, node)
-          }
-        } catch (e) {
-          console.log(`No. ${count} this node is offline`, node.ip, node.port)
-          continue
-        }
-      }
-      nodeList = [...onlineNodes]
+      const promises = nodes.map(checkIfNodeIsActive)
+      const results = await Promise.all(promises)
+      const activeNodes = nodes.filter((_, index) => results[index])
+      nodeList = activeNodes
       if (verbose)
-        console.log(`Nodelist is updated. All nodes ${allNodes.length}, online nodes ${onlineNodes.length}`)
+        console.log(`Nodelist is updated. All nodes ${nodes.length}, online nodes ${activeNodes.length}`)
     } else {
       for (const node of nodes) {
         nodeListMap.set(`${node.ip}:${node.port}`, node)
