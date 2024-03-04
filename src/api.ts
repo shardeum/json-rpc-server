@@ -836,6 +836,7 @@ export const methods = {
   },
   eth_getBalance: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBalance'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -915,6 +916,7 @@ export const methods = {
   },
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getStorageAt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1004,6 +1006,7 @@ export const methods = {
   },
   eth_getTransactionCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionCount'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1152,6 +1155,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getBlockTransactionCountByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1265,6 +1269,7 @@ export const methods = {
   },
   eth_getCode: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getCode'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1359,6 +1364,7 @@ export const methods = {
   },
   eth_sendRawTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendRawTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1561,6 +1567,7 @@ export const methods = {
   },
   eth_sendInternalTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_sendInternalTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1639,6 +1646,7 @@ export const methods = {
   },
   eth_call: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_call'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1710,6 +1718,7 @@ export const methods = {
   },
   eth_estimateGas: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_estimateGas'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1815,6 +1824,7 @@ export const methods = {
   },
   eth_getBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1843,6 +1853,7 @@ export const methods = {
   },
   eth_getBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1885,6 +1896,7 @@ export const methods = {
   },
   eth_getBlockReceipts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockReceipts'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -1958,6 +1970,7 @@ export const methods = {
   },
   eth_feeHistory: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_feeHistory'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2038,6 +2051,7 @@ export const methods = {
   },
   eth_getTransactionByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2141,6 +2155,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2222,6 +2237,7 @@ export const methods = {
     callback: JSONRPCCallbackTypePlain
   ) {
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2299,6 +2315,7 @@ export const methods = {
   },
   eth_getTransactionReceipt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionReceipt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2542,6 +2559,7 @@ export const methods = {
   },
   eth_uninstallFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_uninstallFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2569,6 +2587,7 @@ export const methods = {
   },
   eth_newFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_newFilter'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2617,6 +2636,7 @@ export const methods = {
   },
   eth_getFilterChanges: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getFilterChanges'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2702,6 +2722,7 @@ export const methods = {
   },
   eth_getFilterLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getFilterLogs'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2748,6 +2769,7 @@ export const methods = {
   },
   eth_getLogs: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getLogs'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2934,6 +2956,7 @@ export const methods = {
   },
   debug_traceTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -2969,6 +2992,7 @@ export const methods = {
   },
   debug_traceBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3040,6 +3064,7 @@ export const methods = {
   },
   debug_traceBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3117,6 +3142,7 @@ export const methods = {
   },
   debug_storageRangeAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3158,6 +3184,7 @@ export const methods = {
   },
   debug_storageRangeAt2: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt2'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3425,6 +3452,7 @@ export const methods = {
   },
   eth_getAccessList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getAccessList'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3476,6 +3504,7 @@ export const methods = {
   },
   eth_subscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_subscribe'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
@@ -3525,6 +3554,7 @@ export const methods = {
 
   eth_unsubscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_unsubscribe'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
