@@ -1871,6 +1871,12 @@ export const methods = {
       )
       result = res.data.block
       nodeUrl = res.data.nodeUrl
+      if (!result) {
+        callback({ code: 214, message: 'failed to get block by number' })
+        countFailedResponse(api_name, 'failed to get block by number')
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
+      }
     }
     if (verbose) console.log('BLOCK DETAIL', result)
     callback(null, result)
