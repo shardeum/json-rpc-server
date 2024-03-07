@@ -478,12 +478,12 @@ function injectAndRecordTx(
       .then((response) => {
         const injectResult: InjectResponse = response.data
 
-        if (
-          injectResult &&
-          injectResult.success === false &&
-          injectResult.reason.includes('Transaction nonce')
-        ) {
-          nonceFailCount += 1
+        if (injectResult && injectResult.success === false) {
+          if (injectResult.reason.includes('Transaction nonce')) {
+            nonceFailCount += 1
+          }
+
+          countInjectTxRejections(injectResult.reason)
         }
 
         console.log('inject tx result', txHash, injectResult)
@@ -515,6 +515,7 @@ function injectAndRecordTx(
             status: injectResult.status,
           })
         } else {
+          countInjectTxRejections('No injection result')
           recordTxStatus({
             txHash,
             raw,
@@ -529,6 +530,7 @@ function injectAndRecordTx(
         }
       })
       .catch(() => {
+        countInjectTxRejections('Caught Exception')
         if (config.recordTxStatus)
           recordTxStatus({
             txHash,
@@ -573,6 +575,10 @@ function countNonResponse(apiName: string, details: string): void {
 
 function countSuccessResponse(apiName: string, details: string, source?: string): void {
   countApiResponse('endpoint-success', apiName, details, source)
+}
+
+function countInjectTxRejections(details: string): void {
+  nestedCountersInstance.countEvent('injectTx-rejected', details)
 }
 
 export const methods = {
