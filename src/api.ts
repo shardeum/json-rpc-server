@@ -529,8 +529,8 @@ function injectAndRecordTx(
           reject({ nodeUrl: baseUrl, error: 'Unable inject transaction to the network' })
         }
       })
-      .catch(() => {
-        countInjectTxRejections('Caught Exception')
+      .catch((e: Error) => {
+        countInjectTxRejections('Caught Exception: ' + e.message)
         if (config.recordTxStatus)
           recordTxStatus({
             txHash,
