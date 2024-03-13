@@ -530,7 +530,9 @@ function injectAndRecordTx(
         }
       })
       .catch((e: Error) => {
-        countInjectTxRejections('Caught Exception: ' + e.message)
+        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
+        countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
+
         if (config.recordTxStatus)
           recordTxStatus({
             txHash,
@@ -579,6 +581,12 @@ function countSuccessResponse(apiName: string, details: string, source?: string)
 
 function countInjectTxRejections(details: string): void {
   nestedCountersInstance.countEvent('injectTx-rejected', details)
+}
+
+function trimInjectRejection(message: string): string {
+  if (message.includes('ECONNREFUSED')) {
+    return 'ECONNREFUSED'
+  } else return message
 }
 
 export const methods = {
