@@ -836,8 +836,10 @@ export const methods = {
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBalance', args) }
 
     let address
+    let blockNumber
     try {
       address = args[0]
+      blockNumber = args[1] || undefined
     } catch (e) {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -855,7 +857,7 @@ export const methods = {
 
     let balance
     try {
-      balance = await serviceValidator.getBalance(address)
+      balance = await serviceValidator.getBalance(address, blockNumber)
       if (balance) {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, intStringToHex(balance))
@@ -1011,8 +1013,10 @@ export const methods = {
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running getTransactionCount', args) }
 
     let address
+    let blockNumber
     try {
       address = args[0]
+      blockNumber = args[1] || undefined
     } catch (e) {
       if (verbose) console.log('Unable to get address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1029,7 +1033,7 @@ export const methods = {
     }
 
     try {
-      const nonce = await serviceValidator.getTransactionCount(address)
+      const nonce = await serviceValidator.getTransactionCount(address, blockNumber)
       if (nonce) {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, intStringToHex(nonce))
@@ -1264,8 +1268,10 @@ export const methods = {
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running getCode', args) }
 
     let contractAddress
+    let blockNumber
     try {
       contractAddress = args[0]
+      blockNumber = args[1] || undefined
     } catch (e) {
       console.log('Unable to get contract address', e)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -1281,7 +1287,7 @@ export const methods = {
       return
     }
 
-    const code = await serviceValidator.getContractCode(args[0])
+    const code = await serviceValidator.getContractCode(contractAddress, blockNumber)
     if (code) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, code)
@@ -1650,7 +1656,17 @@ export const methods = {
       return
     }
 
-    let response = await serviceValidator.ethCall(callObj)
+    let blockNumber: string | undefined
+    let blockTimestamp: string | undefined
+    if (args[1]) {
+      const block = await collectorAPI.getBlock(args[1], 'hex_num')
+      if (block) {
+        blockNumber = block.number
+        blockTimestamp = block.timestamp
+      }
+    }
+
+    let response = await serviceValidator.ethCall(callObj, blockNumber, blockTimestamp)
     if (response && !isErr(response)) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       if (typeof response !== 'string' && response.error) {

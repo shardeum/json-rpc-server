@@ -17,7 +17,7 @@ class ServiceValidator extends BaseExternal {
     })
   }
 
-  async getContractCode(address: string): Promise<string | null> {
+  async getContractCode(address: string, blockNumberHex?: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getContractCode call for address: ${address}`)
@@ -25,6 +25,9 @@ class ServiceValidator extends BaseExternal {
       method: 'get',
       url: `${this.baseUrl}/eth_getCode?address=${address}`,
       headers: this.defaultHeaders,
+    }
+    if (blockNumberHex) {
+      requestConfig.params = { blockNumber: blockNumberHex }
     }
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getContractCode requestConfig: ${JSON.stringify(requestConfig)}`)
     try {
@@ -39,7 +42,7 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async getAccount(address: string): Promise<any> {
+  async getAccount(address: string, blockNumberHex?: string): Promise<any> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
     if (verbose) console.log(`ServiceValidator: getAccount call for address: ${address}`)
 
@@ -47,6 +50,9 @@ class ServiceValidator extends BaseExternal {
       method: 'get',
       url: `${this.baseUrl}/account/${address}`,
       headers: this.defaultHeaders,
+    }
+    if (blockNumberHex) {
+      requestConfig.params = { blockNumber: blockNumberHex }
     }
     if (verbose) console.log(`ServiceValidator: getAccount requestConfig: ${JSON.stringify(requestConfig)}`)
 
@@ -66,13 +72,13 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async getBalance(address: string): Promise<string | null> {
+  async getBalance(address: string, blockNumberHex?: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
     if (verbose) console.log(`ServiceValidator: getBalance call for address: ${address}`)
 
     try {
       nestedCountersInstance.countEvent('service-validator', 'getBalance')
-      const account = await this.getAccount(address)
+      const account = await this.getAccount(address, blockNumberHex)
       return account?.balance ?? '0'
     } catch (e) {
       nestedCountersInstance.countEvent('service-validator', 'getBalance-error')
@@ -81,13 +87,13 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async getTransactionCount(address: string): Promise<string | null> {
+  async getTransactionCount(address: string, blockNumberHex?: string): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 
     /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: getTransactionCount call for address: ${address}`)
     try {
       nestedCountersInstance.countEvent('service-validator', 'getTransactionCount')
-      const account = await this.getAccount(address)
+      const account = await this.getAccount(address, blockNumberHex)
       if (!account) return '0'
       return account.nonce
     } catch (e) {
@@ -165,10 +171,20 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
-  async ethCall(callObj: any): Promise<string | { error: JSONRPCError } | Err | null> {
+  async ethCall(
+    callObj: any,
+    blockNumberHex?: string,
+    blockTimestampHex?: string
+  ): Promise<string | { error: JSONRPCError } | Err | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return NewErr('ServiceValidator sourcing is not enabled')
 
-    if (CONFIG.collectorSourcing.enabled) {
+    if (blockNumberHex && blockTimestampHex) {
+      callObj.block = {
+        number: blockNumberHex,
+        timestamp: blockTimestampHex,
+        useLatestState: false,
+      }
+    } else if (CONFIG.collectorSourcing.enabled) {
       if (this.cachedLatestBlock === null) {
         await this.updateCachedLatestBlock()
       } else if (this.cachedLatestBlock.cachedAt < Date.now() - 1000 * 12) {
@@ -179,6 +195,7 @@ class ServiceValidator extends BaseExternal {
         callObj.block = {
           number: this.cachedLatestBlock.blockNumber,
           timestamp: this.cachedLatestBlock.blockTimestamp,
+          useLatestState: true,
         }
       }
     }
