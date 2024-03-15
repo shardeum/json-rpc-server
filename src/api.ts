@@ -1667,7 +1667,7 @@ export const methods = {
     }
 
     let response = await serviceValidator.ethCall(callObj, blockNumber, blockTimestamp)
-    if (response && !isErr(response)) {
+    if (response !== null && !isErr(response)) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       if (typeof response !== 'string' && response.error) {
         // evm execution error (revert)
