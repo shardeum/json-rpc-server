@@ -227,7 +227,7 @@ class Collector extends BaseExternal {
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${block}`)
 
     const cacheKey = `${inpType}:${block}`
-    if (block !== 'latest' && block !== 'earliest') {
+    if (block !== 'latest') {
       const cachedBlock = this.blockCacheManager.get(cacheKey)
       if (cachedBlock) {
         return cachedBlock
@@ -250,7 +250,7 @@ class Collector extends BaseExternal {
       const blockNumber = number
       const resultBlock = readableBlock
 
-      if (block !== 'latest' && block !== 'earliest') {
+      if (block !== 'latest') {
         this.blockCacheManager.update(cacheKey, resultBlock)
       }
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
