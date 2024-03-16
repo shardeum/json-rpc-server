@@ -225,13 +225,14 @@ class Collector extends BaseExternal {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlock')
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${block}`)
+
     const cacheKey = `${inpType}:${block}`
-    const cachedBlock = this.blockCacheManager.get(cacheKey)
-
-    if (cachedBlock) {
-      return cachedBlock
+    if (block !== 'latest' && block !== 'earliest') {
+      const cachedBlock = this.blockCacheManager.get(cacheKey)
+      if (cachedBlock) {
+        return cachedBlock
+      }
     }
-
     try {
       let blockQuery
       if (inpType === 'hex_num') {
@@ -248,7 +249,10 @@ class Collector extends BaseExternal {
       const { readableBlock, number } = response
       const blockNumber = number
       const resultBlock = readableBlock
-      this.blockCacheManager.update(cacheKey, resultBlock)
+
+      if (block !== 'latest' && block !== 'earliest') {
+        this.blockCacheManager.update(cacheKey, resultBlock)
+      }
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
 
       resultBlock.transactions = await axios
