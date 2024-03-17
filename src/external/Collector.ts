@@ -14,9 +14,13 @@ import { bufferToHex, toBuffer } from 'ethereumjs-util'
 import { Err, NewErr, NewInternalErr } from './Err'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { BlockCacheManager } from '../cache/BlockCacheManager'
+import { getBlock } from 'web3/lib/commonjs/eth.exports'
+import { sleep } from '../utils'
 
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
+
+  private pendingRequests: Set<string>
 
   constructor(baseURL: string) {
     super(baseURL, 3, {
@@ -26,6 +30,7 @@ class Collector extends BaseExternal {
       CONFIG.blockCacheSettings.lastNBlocksSize,
       CONFIG.blockCacheSettings.lruMBlocksSize
     )
+    this.pendingRequests = new Set<string>()
   }
 
   async getLogsByFilter(request: LogQueryRequest): Promise<any[] | null> {
@@ -217,7 +222,33 @@ class Collector extends BaseExternal {
     }
   }
 
+
   async getBlock(
+    blockSearchValue: string,
+    blockSearchType: 'hex_num' | 'hash' | 'tag',
+    details = false
+  ): Promise<readableBlock | null> {
+
+    const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
+    // pendingRequests
+    if(this.pendingRequests.has(request_key)){
+      while(this.pendingRequests.has(request_key)){
+        await sleep(200)
+      }
+    } else {
+      try{
+        this.pendingRequests.add(request_key)
+        nestedCountersInstance.countEvent('getBlock', 'first')
+        return await this.inner_getBlock(blockSearchValue, blockSearchType, details)
+      } finally {
+        this.pendingRequests.delete(request_key)
+      }
+    }
+    nestedCountersInstance.countEvent('getBlock', 'waited')
+    return await this.inner_getBlock(blockSearchValue, blockSearchType, details)
+  }
+
+  async inner_getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
     details = false
@@ -227,6 +258,7 @@ class Collector extends BaseExternal {
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${blockSearchValue}`)
 
 
+    nestedCountersInstance.countEvent('blockcache', `details ${details}`)
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
 
     if (blockSearchValue !== 'latest') {
@@ -264,10 +296,10 @@ class Collector extends BaseExternal {
         //look it up by hash 
         let cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
-          nestedCountersInstance.countEvent('blockcache', `hit latest ${resultBlock.hash}`)
+          nestedCountersInstance.countEvent('blockcache', `hit latest`)
           return cachedBlock
         } else {
-          nestedCountersInstance.countEvent('blockcache', `miss latest ${resultBlock.hash}`)
+          nestedCountersInstance.countEvent('blockcache', `miss latest`)
         }
       }
 
@@ -278,6 +310,7 @@ class Collector extends BaseExternal {
         .then((response) => {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
+            //need to review the safety of this for caching and support that this could change!
             if (details === true) {
               return this.decodeTransaction(tx)
             }
