@@ -87,16 +87,17 @@ export class BlockCacheManager {
 
   //update will not take a cache key.   it should take the    inpType and 'block' but will prob rename block to blockQueryValue
   update(blockSearchValue: string, blockSearchType: 'hex_num' | 'hash' | 'tag', block: readableBlock): void {
-    nestedCountersInstance.countEvent('blockcache', `update ${blockSearchType}`)    
+    //nestedCountersInstance.countEvent('blockcache', `update ${blockSearchType}`)    
     
 
     if(blockSearchValue != 'earliest'){
       if(blockSearchValue.startsWith('0x')){
         nestedCountersInstance.countEvent('blockcache', `update 0x ${blockSearchType}`)
       } else if (blockSearchValue.startsWith('0X')){
-        nestedCountersInstance.countEvent('blockcache', `update 0X ${blockSearchType}`)
+        nestedCountersInstance.countEvent('blockcache', `update 0X ${blockSearchType} ${blockSearchValue}`)
       } else {
-        nestedCountersInstance.countEvent('blockcache', `update _ ${blockSearchType}`)
+        nestedCountersInstance.countEvent('blockcache', `update _ ${blockSearchType} ${blockSearchValue}`)
+        blockSearchValue = '0x' + blockSearchValue
       }
     }
 

@@ -267,7 +267,7 @@ class Collector extends BaseExternal {
           nestedCountersInstance.countEvent('blockcache', `hit latest ${resultBlock.hash}`)
           return cachedBlock
         } else {
-          nestedCountersInstance.countEvent('blockcache', `hit latest ${resultBlock.hash}`)
+          nestedCountersInstance.countEvent('blockcache', `miss latest ${resultBlock.hash}`)
         }
       }
 
