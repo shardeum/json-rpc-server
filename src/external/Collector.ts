@@ -226,8 +226,11 @@ class Collector extends BaseExternal {
     nestedCountersInstance.countEvent('collector', 'getBlock')
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${block}`)
 
+
+    //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
     const cacheKey = `${inpType}:${block}`
     if (block !== 'latest') {
+      //instead of look up by key we need to give the inp type and block 
       const cachedBlock = this.blockCacheManager.get(cacheKey)
       if (cachedBlock) {
         return cachedBlock
@@ -235,6 +238,8 @@ class Collector extends BaseExternal {
     }
     try {
       let blockQuery
+      //Note:  the latest / earlier tags actually get passed through numberHex or hash and the collector api will sort that out
+      //       it seems that if tag is used that will also look up by hash which is fine based on how the collector handles this endpoint
       if (inpType === 'hex_num') {
         // int to hex
         blockQuery = `${this.baseUrl}/api/blocks?numberHex=${block}`
@@ -250,9 +255,14 @@ class Collector extends BaseExternal {
       const blockNumber = number
       const resultBlock = readableBlock
 
+      //allow inserting latest block into the cache, but it will be a generic key
+      //when we look up by latest we still have to get latest block but but then once 
+      //we have the block we should look at the cache for it because it may have all the transactions.
       if (block !== 'latest') {
         this.blockCacheManager.update(cacheKey, resultBlock)
       }
+
+
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
 
       resultBlock.transactions = await axios
@@ -272,6 +282,8 @@ class Collector extends BaseExternal {
           return []
         })
 
+        //should update the cache here after we safely have the transaciton data in hand 
+        
       return resultBlock
     } catch (e) {
       nestedCountersInstance.countEvent('collector', 'getBlock-error')
