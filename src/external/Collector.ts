@@ -264,7 +264,10 @@ class Collector extends BaseExternal {
         //look it up by hash 
         let cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
+          nestedCountersInstance.countEvent('blockcache', `hit latest ${resultBlock.hash}`)
           return cachedBlock
+        } else {
+          nestedCountersInstance.countEvent('blockcache', `hit latest ${resultBlock.hash}`)
         }
       }
 

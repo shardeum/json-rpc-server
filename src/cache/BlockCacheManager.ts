@@ -43,13 +43,25 @@ export class BlockCacheManager {
   // but we could find it by hash or number.   earliest will be a special case
   get(blockSearchValue: string, blockSearchType: 'hex_num' | 'hash' | 'tag'): readableBlock | undefined {
 
+
+    if(blockSearchValue != 'earliest'){
+      if(blockSearchValue.startsWith('0x')){
+        nestedCountersInstance.countEvent('blockcache', `search 0x ${blockSearchType}`)
+      } else if (blockSearchValue.startsWith('0X')){
+        nestedCountersInstance.countEvent('blockcache', `search 0X ${blockSearchType}`)
+      } else {
+        nestedCountersInstance.countEvent('blockcache', `search _ ${blockSearchType}`)
+      }
+    }
+
+
     let cachedBlock = undefined
     if(blockSearchValue === 'earliest'){
       cachedBlock = this.earliest
     } else if (blockSearchType === 'hash'){
       cachedBlock = this.lruCacheByHash.get(blockSearchValue)
     } else if (blockSearchType === 'hex_num'){
-      cachedBlock = this.lruCacheByHexNum.get(blockSearchValue)
+      cachedBlock = this.lruCacheByHexNum.get(blockSearchValue)   
     }
     if(cachedBlock != undefined){
       nestedCountersInstance.countEvent('blockcache', `hit ${blockSearchType}`)
@@ -66,7 +78,8 @@ export class BlockCacheManager {
       this.lruCacheByHexNum.set(hex_num, cachedBlock)
 
     } else {
-      nestedCountersInstance.countEvent('blockcache', `miss ${blockSearchType}`)
+      nestedCountersInstance.countEvent('blockcache', `miss ${blockSearchType} ${blockSearchValue}`)
+
     }
 
     return cachedBlock
@@ -76,6 +89,18 @@ export class BlockCacheManager {
   update(blockSearchValue: string, blockSearchType: 'hex_num' | 'hash' | 'tag', block: readableBlock): void {
     nestedCountersInstance.countEvent('blockcache', `update ${blockSearchType}`)    
     
+
+    if(blockSearchValue != 'earliest'){
+      if(blockSearchValue.startsWith('0x')){
+        nestedCountersInstance.countEvent('blockcache', `update 0x ${blockSearchType}`)
+      } else if (blockSearchValue.startsWith('0X')){
+        nestedCountersInstance.countEvent('blockcache', `update 0X ${blockSearchType}`)
+      } else {
+        nestedCountersInstance.countEvent('blockcache', `update _ ${blockSearchType}`)
+      }
+    }
+
+
     if (blockSearchValue === 'earliest') {
       //update earliest
       this.earliest = block
@@ -111,11 +136,13 @@ export class BlockCacheManager {
     if (this.lruCacheByHash.size >= this.M) {
       const firstKey = this.lruCacheByHash.keys().next().value
       this.lruCacheByHash.delete(firstKey)
+      nestedCountersInstance.countEvent('blockcache', `clean lruCacheByHash ${this.lruCacheByHash.size}`)
     }
     // resize cache if needed
     if (this.lruCacheByHexNum.size >= this.M) {
       const firstKey = this.lruCacheByHexNum.keys().next().value
       this.lruCacheByHexNum.delete(firstKey)
+      nestedCountersInstance.countEvent('blockcache', `clean lruCacheByHexNum ${this.lruCacheByHexNum.size}`)
     }
 
   }
