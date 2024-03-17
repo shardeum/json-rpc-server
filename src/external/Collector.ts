@@ -318,17 +318,19 @@ class Collector extends BaseExternal {
           })
         })
         .catch((e) => {
-          nestedCountersInstance.countEvent('collector', 'getBlock-error')
+          nestedCountersInstance.countEvent('collector', `getBlock-error tx ${e.message}`)
           console.error('collector.getBlock could not get txs for the block', e)
           return []
         })
+
 
       this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
 
         
       return resultBlock
     } catch (e) {
-      nestedCountersInstance.countEvent('collector', 'getBlock-error')
+      let er = e as Error
+      nestedCountersInstance.countEvent('collector', `getBlock-error ${er.message}`)
       console.error('An error occurred for Collector.getBlock:', e)
       return null
     }

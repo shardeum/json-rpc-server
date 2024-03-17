@@ -65,6 +65,7 @@ export class BlockCacheManager {
     }
     if(cachedBlock != undefined){
       nestedCountersInstance.countEvent('blockcache', `hit ${blockSearchType}`)
+      nestedCountersInstance.countEvent('blockcache', `hit`)
 
       //update lru for each cache
       const blockHash = cachedBlock.hash
@@ -79,7 +80,7 @@ export class BlockCacheManager {
 
     } else {
       nestedCountersInstance.countEvent('blockcache', `miss ${blockSearchType} ${blockSearchValue}`)
-
+      nestedCountersInstance.countEvent('blockcache', `miss`)
     }
 
     return cachedBlock
@@ -89,8 +90,13 @@ export class BlockCacheManager {
   update(blockSearchValue: string, blockSearchType: 'hex_num' | 'hash' | 'tag', block: readableBlock): void {
     //nestedCountersInstance.countEvent('blockcache', `update ${blockSearchType}`)    
     
-
-    if(blockSearchValue != 'earliest'){
+    
+    if(blockSearchValue === 'latest'){
+      nestedCountersInstance.countEvent('blockcache', `update latest`)
+      blockSearchValue = block.hash
+      blockSearchType = 'hash'
+      blockSearchValue = '0x' + blockSearchValue
+    } else if(blockSearchValue != 'earliest'){
       if(blockSearchValue.startsWith('0x')){
         nestedCountersInstance.countEvent('blockcache', `update 0x ${blockSearchType}`)
       } else if (blockSearchValue.startsWith('0X')){
@@ -105,25 +111,37 @@ export class BlockCacheManager {
     if (blockSearchValue === 'earliest') {
       //update earliest
       this.earliest = block
+      nestedCountersInstance.countEvent('blockcache', `update earliest`)
       return
     }
 
-    if (blockSearchValue === 'latest') {
-      const hash = block.hash
-      //insert by hash 
-      this.lruCacheByHash.delete(hash)
-      this.lruCacheByHash.set(hash, block)
-    }  else if (blockSearchType === 'hash'){
-        this.lruCacheByHash.delete(blockSearchValue)
-        this.lruCacheByHash.set(blockSearchValue, block)
-    } else if (blockSearchType === 'hex_num'){
-        this.lruCacheByHexNum.delete(blockSearchValue)
-        this.lruCacheByHexNum.set(blockSearchValue, block)
+    // if (blockSearchValue === 'latest') {
+    //   const hash = block.hash
+    //   //insert by hash 
+    //   this.lruCacheByHash.delete(hash)
+    //   this.lruCacheByHash.set(hash, block)
+    // }  else if (blockSearchType === 'hash'){
+    //     this.lruCacheByHash.delete(blockSearchValue)
+    //     this.lruCacheByHash.set(blockSearchValue, block)
+    // } else if (blockSearchType === 'hex_num'){
+    //     this.lruCacheByHexNum.delete(blockSearchValue)
+    //     this.lruCacheByHexNum.set(blockSearchValue, block)
 
+    // }
+
+    let blockHash = block.hash
+    let hex_num = block.number //this is already in hex
+
+    if(blockHash.startsWith('0x') === false){
+      blockHash = '0x' + blockHash
+      nestedCountersInstance.countEvent('blockcache', `fix hash`)
     }
 
-    const blockHash = block.hash
-    const hex_num = block.number //this is already in hex
+    if(hex_num.startsWith('0x') === false){
+      hex_num = '0x' + hex_num
+      nestedCountersInstance.countEvent('blockcache', `fix hex_num`)
+    }
+
     //update cache by hash
     this.lruCacheByHash.delete(blockHash)
     this.lruCacheByHash.set(blockHash, block)
