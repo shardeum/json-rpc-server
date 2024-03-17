@@ -218,20 +218,22 @@ class Collector extends BaseExternal {
   }
 
   async getBlock(
-    block: string,
-    inpType: 'hex_num' | 'hash' | 'tag',
+    blockSearchValue: string,
+    blockSearchType: 'hex_num' | 'hash' | 'tag',
     details = false
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlock')
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${block}`)
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${blockSearchValue}`)
 
 
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
-    const cacheKey = `${inpType}:${block}`
-    if (block !== 'latest') {
+
+    if (blockSearchValue !== 'latest') {
       //instead of look up by key we need to give the inp type and block 
-      const cachedBlock = this.blockCacheManager.get(cacheKey)
+      const cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
+
+      //should we retry for tranactions if there are not any??
       if (cachedBlock) {
         return cachedBlock
       }
@@ -240,11 +242,11 @@ class Collector extends BaseExternal {
       let blockQuery
       //Note:  the latest / earlier tags actually get passed through numberHex or hash and the collector api will sort that out
       //       it seems that if tag is used that will also look up by hash which is fine based on how the collector handles this endpoint
-      if (inpType === 'hex_num') {
+      if (blockSearchType === 'hex_num') {
         // int to hex
-        blockQuery = `${this.baseUrl}/api/blocks?numberHex=${block}`
+        blockQuery = `${this.baseUrl}/api/blocks?numberHex=${blockSearchValue}`
       } else {
-        blockQuery = `${this.baseUrl}/api/blocks?hash=${block}`
+        blockQuery = `${this.baseUrl}/api/blocks?hash=${blockSearchValue}`
       }
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
 
@@ -255,13 +257,16 @@ class Collector extends BaseExternal {
       const blockNumber = number
       const resultBlock = readableBlock
 
-      //allow inserting latest block into the cache, but it will be a generic key
-      //when we look up by latest we still have to get latest block but but then once 
-      //we have the block we should look at the cache for it because it may have all the transactions.
-      if (block !== 'latest') {
-        this.blockCacheManager.update(cacheKey, resultBlock)
-      }
 
+      // if blockSearchValue is latest we still had to look it up above, but once we have the 
+      // block we can see if we have a niced cached version of it that will have all of the transactions 
+      if (blockSearchValue === 'latest' && resultBlock != null) {
+        //look it up by hash 
+        let cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
+        if (cachedBlock) {
+          return cachedBlock
+        }
+      }
 
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
 
@@ -282,7 +287,8 @@ class Collector extends BaseExternal {
           return []
         })
 
-        //should update the cache here after we safely have the transaciton data in hand 
+      this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
+
         
       return resultBlock
     } catch (e) {
