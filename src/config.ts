@@ -32,6 +32,8 @@ type Config = {
   nodelistRefreshInterval: number
   defaultRequestRetry: number
   defaultRequestTimeout: RequestTimeout
+  aalgWarmup: boolean
+  aalgWarmupServiceTPS: number
   recordTxStatus: boolean
   rateLimit: boolean
   staticGasEstimate?: string
@@ -64,7 +66,8 @@ type Config = {
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
   firstLineLogs: boolean 
-
+  verboseRequestWithRetry: boolean
+  verboseAALG: boolean
   dashboard: {
     enabled: boolean
     dist_path: string
@@ -113,7 +116,7 @@ export const CONFIG: Config = {
   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
   queryFromExplorer: false,
   generateTxTimestamp: true,
-  nodelistRefreshInterval: 5000,
+  nodelistRefreshInterval: 30000,
   defaultRequestRetry: 5,
   gasEstimateMethod: 'serviceValidator', //serviceValidator or replayEngine or validator
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
@@ -122,9 +125,11 @@ export const CONFIG: Config = {
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
-    account: 5000,
+    account: 10000,
     full_nodelist: 10000,
   },
+  aalgWarmup: true,
+  aalgWarmupServiceTPS: 10,
   recordTxStatus: false,
   rateLimit: false,
   rateLimitOption: {
@@ -147,6 +152,8 @@ export const CONFIG: Config = {
   filterDeadNodesFromArchiver: false,
   verbose: false,
   firstLineLogs: true, // default is true and turn off for prod for perf
+  verboseRequestWithRetry: false,
+  verboseAALG: true,
   dashboard: {
     enabled: true,
     // relative path will work but absolute path is recommended

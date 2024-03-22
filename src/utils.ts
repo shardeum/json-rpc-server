@@ -46,6 +46,7 @@ export const node = {
 const badNodesMap: Map<string, number> = new Map()
 
 const verbose = config.verbose
+const verboseRequestWithRetry = config.verboseRequestWithRetry
 let gotArchiver = false
 let nodeList: Node[] = []
 let nodeListMap: Map<string, Node> = new Map()
@@ -188,13 +189,26 @@ export async function waitRandomSecond(): Promise<void> {
 
 // TODO: check what happens if theres no type assertion
 function getTimeout(route: string): number {
-  const root = route.split('//')[1] ? route.split('//')[1].split('/')[1].split('?')[0] : null
-  // If 'root' exists and is a key in 'config.defaultRequestTimeout', return its corresponding value.
-  // The type assertion ensures 'root' is treated as a key of 'config.defaultRequestTimeout' for TypeScript.
-  if (root && 'defaultRequestTimeout' in config && root in config.defaultRequestTimeout) {
-    return config.defaultRequestTimeout[root as keyof typeof config.defaultRequestTimeout]
+  // const root = route.split('//')[1] ? route.split('//')[1].split('/')[1].split('?')[0] : null
+  // // If 'root' exists and is a key in 'config.defaultRequestTimeout', return its corresponding value.
+  // // The type assertion ensures 'root' is treated as a key of 'config.defaultRequestTimeout' for TypeScript.
+  // if (root && 'defaultRequestTimeout' in config && root in config.defaultRequestTimeout) {
+  //   return config.defaultRequestTimeout[root as keyof typeof config.defaultRequestTimeout]
+  // }
+  // if (route.includes('full-nodelist')) return config.defaultRequestTimeout['full_nodelist']
+  // return config.defaultRequestTimeout[`default`]
+
+  //get rid of regex.
+
+  for(const key of Object.keys(config.defaultRequestTimeout)){
+    if(route.includes(key)){
+      const requestKey = key as keyof typeof config.defaultRequestTimeout
+      const timeout = config.defaultRequestTimeout[requestKey]
+      if(timeout > 0){
+        return timeout
+      }
+    }
   }
-  if (route.includes('full-nodelist')) return config.defaultRequestTimeout['full_nodelist']
   return config.defaultRequestTimeout[`default`]
 }
 
@@ -225,15 +239,23 @@ export async function requestWithRetry(
     } else {
       url = route
     }
+    const timeout = getTimeout(route)
     try {
-      if (verbose) console.log(`timeout for ${route} is ${getTimeout(route)}`)
+      if (verboseRequestWithRetry && verbose) console.log(`timeout for ${route} is ${timeout}`)
+      const queryStartTime = Date.now()
       const res = await axios({
         method,
         url,
         data,
-        timeout: getTimeout(route),
+        timeout,
       })
       if (res.status === 200 && !res.data.error) {
+        const totalTime = Date.now() - queryStartTime
+        if (verboseRequestWithRetry) console.log(
+          `success:  route: ${route}`,
+          'totalTime',
+          totalTime
+        )
         // success = true
         // we want to know which validator this is being injected to for debugging purposes
         if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
@@ -242,20 +264,25 @@ export async function requestWithRetry(
         console.log(`${nodeUrl} Node is close to rotation edges. Changing node...`)
       }
     } catch (e: unknown) {
-      console.log('Error: requestWithRetry', e, (e as Error).message)
+      if (verbose && verboseRequestWithRetry) console.log('Error: requestWithRetry', e, (e as Error).message)
       const badNodePercentage = badNodesMap.size / nodeList.length
       const shouldAddToBadNodeList = route.includes('eth_blockNumber')
-      console.log(
-        `shouldAddToBadNodeList: ${shouldAddToBadNodeList}, route: ${route}`,
+      if (verboseRequestWithRetry) console.log(
+        `FAIL:     route: ${route}`,
+        `shouldAddToBadNodeList: ${shouldAddToBadNodeList}`,
         'badNodePercentage',
         badNodePercentage,
         'bad node count',
-        badNodesMap.size
+        badNodesMap.size,
+        'timeout',
+        timeout,
+        //@ts-ignore
+        e?.message
       )
       if (shouldAddToBadNodeList && nodeIpPort && badNodePercentage < 2 / 3) {
         // don't add to bad list if 2/3 of nodes are already bad
         badNodesMap.set(nodeIpPort, Date.now())
-        console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
+        if (verboseRequestWithRetry && verbose) console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
       }
     }
 
