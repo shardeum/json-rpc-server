@@ -1378,7 +1378,7 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid contract address')
       return
     }
-
+    blockNumber = isHexString(blockNumber) ? blockNumber : null
     const code = await serviceValidator.getContractCode(contractAddress, blockNumber)
     if (code) {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
