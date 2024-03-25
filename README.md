@@ -8,8 +8,6 @@ For running existing dapps on Shardeum, refer to EVM [JSON-RPC API](https://ethe
 
 If you running it in production, you can simply use `docker compose` command.
 
-> Make sure necessary components which are required to run json-rpc-server are smoke testing stack in networking mode host
-
 env `NO_OF_RPC_SERVERS` creates replicas of rpc servers using pm2. default is 1. Default port is 8080, port for each replicas will increment by 1 on default port. i.e 8081, 8082, 8083, etc.
 
 ### Start json-rpc-server
