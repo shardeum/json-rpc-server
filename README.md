@@ -67,7 +67,7 @@ If you are building using `Docker`, you can start the JSON-RPC server by running
 make run
 ```
 
-This will start a container running the `shardeum-json-rpc` server image,  available on port `8080`. The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additinaly, you can manage the server's access control lists by editing the `whitelist.json`, `blacklist.json` and `spammerlist.json`.
+This will start a container running the `shardeum-json-rpc` server image, available on port `8080`. The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additinaly, you can manage the server's access control lists by editing the `whitelist.json`, `blacklist.json` and `spammerlist.json`.
 
 But if you are using NPM, use the below command too run the server:
 
