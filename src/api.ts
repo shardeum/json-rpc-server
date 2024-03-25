@@ -1389,7 +1389,7 @@ export const methods = {
 
     let nodeUrl
     try {
-      const res = await getCode(args[0], blockNumber)
+      const res = await getCode(contractAddress, blockNumber)
       const contractCode = res.contractCode
       nodeUrl = res.nodeUrl ? res.nodeUrl : undefined
 
