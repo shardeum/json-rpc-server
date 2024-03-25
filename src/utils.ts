@@ -477,8 +477,12 @@ export async function getGasPrice(): Promise<{ result?: string }> {
  * @param addressStr
  * @returns
  */
-export async function getCode(addressStr: string): Promise<{ contractCode: string; nodeUrl: string }> {
-  const res = await requestWithRetry(RequestMethod.Get, `/eth_getCode?address=${addressStr}`)
+export async function getCode(addressStr: string, blockNumber?: string): Promise<{ contractCode: string; nodeUrl: string }> {
+  let url = `/eth_getCode?address=${addressStr}`;
+  if (blockNumber) {
+    url += `&blockNumber=${blockNumber}`;
+  }
+  const res = await requestWithRetry(RequestMethod.Get, url)
   return res.data
 }
 
