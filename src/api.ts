@@ -459,6 +459,29 @@ export function recordTxStatus(txStatus: TxStatus): void {
   }
 }
 
+async function injectWithRetries(txHash: string, tx: any, args: any, retries = 3) {
+  let result: TransactionInjectionOutcome
+  let retryCount = 0
+  while (retryCount < retries) {
+    result = await injectAndRecordTx(txHash, tx, args)
+    if (result.success) {
+      return result
+    } else if (result.reason !== 'Node not active. Rejecting inject.') {
+      return result
+    } else {
+      console.log('Injected to an inactive node. Retrying...')
+      retryCount++
+      await sleep(1000)
+    }
+  }
+  return {
+    nodeUrl: '',
+    success: false,
+    reason: 'Failed to inject transaction after retries',
+    status: 500,
+  }
+}
+
 function injectAndRecordTx(
   txHash: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1056,6 +1079,8 @@ export const methods = {
       const res = await getAccountFromValidator(address)
       const account = res.account
       nodeUrl = res.nodeUrl
+      console.log(nodeUrl)
+      console.log(account?.nonce)
       if (account) {
         const nonce = parseInt(account.nonce)
         let result = '0x' + nonce.toString(16)
@@ -1435,7 +1460,7 @@ export const methods = {
         }
       }
 
-      injectAndRecordTx(txHash, tx, args)
+      injectWithRetries(txHash, tx, args)
         .then((res) => {
           nodeUrl = res.nodeUrl
           if (res.success === true) {
