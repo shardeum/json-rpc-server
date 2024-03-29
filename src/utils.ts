@@ -428,7 +428,7 @@ export function sleep(ms: number): Promise<boolean> {
 export async function getAccountFromValidator(
   addressStr: string
 ): Promise<{ account?: Account2; nodeUrl?: string }> {
-  const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`)
+  const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`, {}, 8)
   return res.data
 }
 
