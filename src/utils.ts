@@ -238,6 +238,8 @@ export async function requestWithRetry(
         // we want to know which validator this is being injected to for debugging purposes
         if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
         return res //break
+      } else if (res.data.error === 'node close to rotation edges') {
+        console.log(`${nodeUrl} Node is close to rotation edges. Changing node...`)
       }
     } catch (e: unknown) {
       console.log('Error: requestWithRetry', e, (e as Error).message)
