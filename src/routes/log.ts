@@ -16,10 +16,10 @@ import { debug_info } from '../logger'
  * - /cleanStatTable: Cleans the statistics table by deleting all entries.
  * - /txs: Retrieves transactions based on the provided filters.
  * - /cleanTxTable: Cleans the transactions table by deleting all entries.
- * - /startTxCapture: Enables the recording of transaction status.
- * - /stopTxCapture: Disables the recording of transaction status.
- * - /startRPCCapture: Enables the recording of interface statistics.
- * - /stopRPCCapture: Disables the recording of interface statistics.
+ * - /startTxCapture: Enables the recording of incoming transaction status.
+ * - /stopTxCapture: Disables the recording of incoming transaction status.
+ * - /startRPCCapture: Enables the recording of incoming RPC interface call statistics.
+ * - /stopRPCCapture: Disables the recording of incoming RPC interface call statistics.
  * - /status: Retrieves the current status of transaction and interface recording.
  */
 
@@ -185,7 +185,7 @@ router.route('/api-stats').get(async (req: any, res: any) => {
     }
 
     if(Number(page) > 0){
-      data.prev = Number(page) -1;
+      data.prev = Number(page) -1
     }
     if(data.length >= max){
       data.next = Number(page)+1

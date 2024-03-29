@@ -15,7 +15,7 @@ import { bufferToHex, toBuffer } from 'ethereumjs-util'
 /**
  * This file contains the implementation of the `Collector` class, which is responsible for interacting with an external API to collect data related to Ethereum transactions, logs, blocks, and accounts.
  * The `Collector` class extends the `BaseExternal` class and provides methods for retrieving logs, transactions, transaction receipts, storage data, blocks, and account information.
- * It also includes helper methods for building API URLs and decoding transactions.
+ * It also includes helper methods for building Log API URLs and decoding transactions.
  */
 
 class Collector extends BaseExternal {
@@ -28,7 +28,7 @@ class Collector extends BaseExternal {
   /**
    * Retrieves logs based on the provided filter.
    * @param request - The log query request object.
-   * @returns A promise that resolves to an array of logs or null if the collector sourcing is disabled or an error occurs.
+   * @returns A promise that resolves to an array of logs or null if the collector sourcing is disabled, data.success is absent from the response or an error occurs.
    */
   async getLogsByFilter(request: LogQueryRequest): Promise<any[] | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
@@ -53,7 +53,7 @@ class Collector extends BaseExternal {
   /**
    * Retrieves a transaction by its hash.
    * @param txHash The hash of the transaction to retrieve.
-   * @returns A Promise that resolves to the readableTransaction object if found, or null if not found.
+   * @returns A Promise that resolves to the readableTransaction object if found. It returns null if object is not found or if collector sourcing is disabled.
    */
   async getTransactionByHash(txHash: string): Promise<readableTransaction | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
@@ -86,7 +86,7 @@ class Collector extends BaseExternal {
   /**
    * Retrieves the transaction receipt for a given transaction hash.
    * @param txHash The transaction hash.
-   * @returns A Promise that resolves to the transaction receipt, or null if the collector sourcing is disabled or an error occurs.
+   * @returns A Promise that resolves to the transaction receipt. It returns null if the collector sourcing is disabled, if res.data.success or res.data.transactions are missing or if an error occurs.
    */
   async getTransactionReceipt(txHash: string): Promise<any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
@@ -168,7 +168,7 @@ class Collector extends BaseExternal {
    * @param block - The block identifier (hex number, hash, or tag).
    * @param inpType - The type of the block identifier ('hex_num', 'hash', or 'tag').
    * @param details - Optional flag indicating whether to include transaction details (default: false).
-   * @returns A Promise that resolves to the readableBlock object representing the retrieved block, or null if the collector sourcing is disabled or an error occurs.
+   * @returns A Promise that resolves to the readableBlock object representing the retrieved block. It returns null if the collector sourcing is disabled or if blockquery request is not a success. In some cases it can return an empty array.
    */
   async getBlock(
     block: string,
@@ -224,7 +224,7 @@ class Collector extends BaseExternal {
    * Fetches the account information for a given key and timestamp.
    * @param key - The account key.
    * @param timestamp - The timestamp before which transactions should be fetched.
-   * @returns A promise that resolves to an object containing the account ID and data, or null if the account does not exist.
+   * @returns A promise that resolves to an object containing the account ID and data. It returns null if the account does not exist or if the collector sourcing is disabled.
    */
   async fetchAccount(key: string, timestamp: number): Promise<{ accountId: any; data: any } | null> {
     if (!CONFIG.collectorSourcing.enabled) return null

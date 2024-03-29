@@ -8,12 +8,12 @@
 ![banner](./img/banner.png)
 
 ## Overview
-The Shardeum Server is a lightweight server providing a JSON-RPC interface for interacting with the Shardeum blockchain network. It allows developers to post requests to the Shardeum chain, obtain information and perform multiple other operations using JSON-RPC over HTTP. Additionally, the server provides a REST API for debugging and monitoring purposes.
+The Shardeum JSON-RPC Server is a lightweight server providing a JSON-RPC interface for interacting with the Shardeum blockchain network. It allows developers to post requests to the Shardeum chain, obtain information and perform multiple other operations using JSON-RPC over HTTP. Additionally, the server provides REST APIs for debugging and monitoring purposes.
 
 ## What's Inside
-The Shardeum Server exposes the following services:
+The Shardeum JSON-RPC Server exposes the following services:
 - [JSON-RPC API](docs/jsonrpc-api.md).: A lightweight server providing a JSON-RPC interface for interacting with the Shardeum blockchain network.
-- [REST API](docs/rest-api.md): A REST API for debugging and monitoring purposes.
+- [REST API](docs/rest-api.md): REST APIs for debugging and monitoring purposes.
 
 The full specification for the APIs is available in the [docs](docs) folder.
 
@@ -43,10 +43,10 @@ docker compose down
 ```
 
 ## Getting Started
-The recommended way to run the Shardeum server is using [Docker](https://www.docker.com/). This will ensure that all dependencies are installed and that the server is running in a consistent environment. Optionally, you can also install the server locally using [npm](https://www.npmjs.com/).
+The recommended way to run The Shardeum JSON-RPC Server is using [Docker](https://www.docker.com/). This will ensure that all dependencies are installed and that the server is running in a consistent environment. Optionally, you can also install the server locally using [npm](https://www.npmjs.com/).
 
 ### Requirements
-In order to run the Shardeum server you must install the following:
+In order to run The Shardeum JSON-RPC Server you must install the following:
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) - A distributed version control system.
 - [Docker](https://www.docker.com/) - A containerization platform.
 
@@ -55,7 +55,7 @@ Additionally, you should have [make](https://man7.org/linux/man-pages/man1/make.
 ### Installation
 In order to install the server, run the following command:
 ```sh
-git clone https://github.com/threesigmaxyz/shardeum-json-rpc
+git clone https://gitlab.com/shardeum/json-rpc-server
 cd shardeum-json-rpc
 make build
 ```
@@ -75,13 +75,13 @@ Afterwards, you can start the server, by running the following command:
 ```sh
 make run
 ```
-This will start a container running the `shardeum-json-rpc` server image,  available on port `4000`.
+This will start a container running the `shardeum-json-rpc` server image,  available on port `8080`.
 The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additinaly, the `whitelist.json`, `blacklist.json` and `spammerlist.json` can be edited to manage the servers access control lists.
 
 ### Usage
 Currently, no default client application is provided. You can develop you own based on the available endpoints or you can use `curl`:
 ```bash
-curl http://localhost:4000 \
+curl http://localhost:8080 \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"eth_getBalance",\
@@ -89,7 +89,7 @@ curl http://localhost:4000 \
 ```
 
 #### Sending a Request
-To invoke an RPC method, send a POST request to `http://localhost:4000`, with this or an equivalent format:
+To invoke an RPC method, send a POST request to `http://localhost:8080`, with this or an equivalent format:
 
 ```json
 {

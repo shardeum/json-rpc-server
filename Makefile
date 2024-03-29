@@ -8,8 +8,8 @@ build:
 	docker build -t $(DOCKER_IMAGE) .
 
 # Run the Docker container
-run:
-	docker run -d --name $(APP_NAME) $(DOCKER_IMAGE)
+run: build
+	docker run -d -p 8080:8080 --name $(APP_NAME) $(DOCKER_IMAGE)
 
 # Stop the Docker container
 stop:

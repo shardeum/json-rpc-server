@@ -35,6 +35,11 @@ async function createTables() {
     'CREATE TABLE IF NOT EXISTS interface_stats ' +
       '(`id` INTEGER PRIMARY KEY AUTOINCREMENT, `api_name` VARCHAR NOT NULL, `tfinal` BIGINT, `timestamp` BIGINT, `nodeUrl` VARCHAR, `success` boolean, `reason` VARCHAR, `hash` VARCHAR)'
   )
+  await db.exec(
+    'CREATE TABLE IF NOT EXISTS gas_estimations ' +
+      '(`contract_address` VARCHAR, `function_signature` VARCHAR, `gasEstimate` VARCHAR, `timestamp` BIGINT, ' +
+      'PRIMARY KEY (`contract_address`, `function_signature`))'
+  )
 }
 
 /**
