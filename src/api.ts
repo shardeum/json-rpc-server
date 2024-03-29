@@ -459,7 +459,7 @@ export function recordTxStatus(txStatus: TxStatus): void {
   }
 }
 
-async function injectWithRetries(txHash: string, tx: any, args: any, retries = 3) {
+async function injectWithRetries(txHash: string, tx: any, args: any, retries = 5) {
   let result: TransactionInjectionOutcome
   let retryCount = 0
   while (retryCount < retries) {
