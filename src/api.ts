@@ -466,12 +466,14 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = 3
     result = await injectAndRecordTx(txHash, tx, args)
     if (result.success) {
       return result
-    } else if (result.reason !== 'Node not active. Rejecting inject.') {
-      return result
-    } else {
+    } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
+      console.log('Node is close to rotation edges. Rotating node...')
+      retryCount++
+    } else if (result.reason === 'Node not active. Rejecting inject.') {
       console.log('Injected to an inactive node. Retrying...')
       retryCount++
-      await sleep(1000)
+    } else {
+      return result
     }
   }
   return {
