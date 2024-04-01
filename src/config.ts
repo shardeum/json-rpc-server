@@ -65,7 +65,7 @@ type Config = {
   adaptiveRejection: boolean
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
-  firstLineLogs: boolean 
+  firstLineLogs: boolean
   verboseRequestWithRetry: boolean
   verboseAALG: boolean
   dashboard: {
@@ -98,6 +98,13 @@ type Config = {
 }
 
 export type ServicePointTypes = 'aalg-warmup'
+
+  /** Set the number of nodes to avoid from either side of rotation.
+   * That is, nodes freshly rotated in or nodes about to rotate out.
+   * Set this to 0, or leave it undefined to disable this feature
+   * and consider all nodes from the nodelist
+   */
+  rotationEdgeToAvoid?: number
 
 export const CONFIG: Config = {
   websocket: {
@@ -184,4 +191,5 @@ export const CONFIG: Config = {
   ServicePoints: {
     ['aalg-warmup']: 20,
   },
+  rotationEdgeToAvoid: 3,
 }

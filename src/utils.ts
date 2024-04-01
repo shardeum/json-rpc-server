@@ -143,6 +143,10 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
       }
       nodeList = [...nodes]
     }
+
+    if (config.rotationEdgeToAvoid && nodeList.length >= 10) {
+      nodeList = nodeList.slice(config.rotationEdgeToAvoid, nodeList.length - config.rotationEdgeToAvoid)
+    }
   }
   console.timeEnd('nodelist_update')
 }
