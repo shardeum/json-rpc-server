@@ -88,7 +88,16 @@ type Config = {
     enabled: boolean
     serviceValidatorUrl: string
   }
+
+
+  ServicePointsPerSecond: number //service function points per second
+  ServicePointsInterval: number
+  ServicePoints: {
+    ['aalg-warmup']: number
+  }
 }
+
+export type ServicePointTypes = 'aalg-warmup'
 
 export const CONFIG: Config = {
   websocket: {
@@ -128,7 +137,7 @@ export const CONFIG: Config = {
     account: 10000,
     full_nodelist: 10000,
   },
-  aalgWarmup: true,
+  aalgWarmup: false,
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false,
   rateLimit: false,
@@ -151,9 +160,9 @@ export const CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
-  firstLineLogs: true, // default is true and turn off for prod for perf
+  firstLineLogs: false, // default is true and turn off for prod for perf
   verboseRequestWithRetry: false,
-  verboseAALG: true,
+  verboseAALG: false,
   dashboard: {
     enabled: true,
     // relative path will work but absolute path is recommended
@@ -168,5 +177,11 @@ export const CONFIG: Config = {
   serviceValidatorSourcing: {
     enabled: false,
     serviceValidatorUrl: 'http://0.0.0.0:9001',
+  },
+
+  ServicePointsPerSecond: 200,
+  ServicePointsInterval: 2,
+  ServicePoints: {
+    ['aalg-warmup']: 20,
   },
 }
