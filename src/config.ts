@@ -89,22 +89,22 @@ type Config = {
     serviceValidatorUrl: string
   }
 
-
   ServicePointsPerSecond: number //service function points per second
   ServicePointsInterval: number
   ServicePoints: {
     ['aalg-warmup']: number
   }
-}
-
-export type ServicePointTypes = 'aalg-warmup'
-
   /** Set the number of nodes to avoid from either side of rotation.
    * That is, nodes freshly rotated in or nodes about to rotate out.
    * Set this to 0, or leave it undefined to disable this feature
    * and consider all nodes from the nodelist
    */
   rotationEdgeToAvoid?: number
+}
+
+export type ServicePointTypes = 'aalg-warmup'
+
+
 
 export const CONFIG: Config = {
   websocket: {
