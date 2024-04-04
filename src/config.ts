@@ -191,7 +191,7 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: false,
+    enabled: true,
     collectorApiServerUrl: 'http://0.0.0.0:6001',
   },
   serviceValidatorSourcing: {

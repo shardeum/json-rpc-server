@@ -226,17 +226,17 @@ class Collector extends BaseExternal {
   async getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
-    details = false
+    details: boolean
   ): Promise<readableBlock | null> {
 
     const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
     // pendingRequests
-    if(this.pendingRequests.has(request_key)){
-      while(this.pendingRequests.has(request_key)){
+    if (this.pendingRequests.has(request_key)) {
+      while (this.pendingRequests.has(request_key)) {
         await sleep(200)
       }
     } else {
-      try{
+      try {
         this.pendingRequests.add(request_key)
         nestedCountersInstance.countEvent('getBlock', 'first')
         return await this.inner_getBlock(blockSearchValue, blockSearchType, details)
@@ -251,7 +251,7 @@ class Collector extends BaseExternal {
   async inner_getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
-    details = false
+    details: boolean
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlock')
@@ -267,7 +267,7 @@ class Collector extends BaseExternal {
 
       //should we retry for tranactions if there are not any??
       if (cachedBlock) {
-        return cachedBlock
+        return { ...cachedBlock }
       }
     }
     try {
@@ -294,7 +294,7 @@ class Collector extends BaseExternal {
       // block we can see if we have a niced cached version of it that will have all of the transactions 
       if (blockSearchValue === 'latest' && resultBlock != null) {
         //look it up by hash 
-        let cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
+        const cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
           nestedCountersInstance.countEvent('blockcache', `hit latest`)
           return cachedBlock
@@ -311,10 +311,8 @@ class Collector extends BaseExternal {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
             //need to review the safety of this for caching and support that this could change!
-            if (details === true) {
-              return this.decodeTransaction(tx)
-            }
-            return tx.wrappedEVMAccount.readableReceipt.transactionHash
+            // UPDATE: We are now storing the entire block data (i.e. with TX details) in the cache, the 'confirmations' value of a tx is the only stale piece of data in the cache.
+            return this.decodeTransaction(tx)
           })
         })
         .catch((e) => {
@@ -323,13 +321,10 @@ class Collector extends BaseExternal {
           return []
         })
 
-
-      this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
-
-        
+      this.blockCacheManager.update(blockSearchValue, blockSearchType, { ...resultBlock })
       return resultBlock
     } catch (e) {
-      let er = e as Error
+      const er = e as Error
       nestedCountersInstance.countEvent('collector', `getBlock-error ${er.message}`)
       console.error('An error occurred for Collector.getBlock:', e)
       return null
