@@ -1140,19 +1140,21 @@ export const methods = {
       return
     }
 
-    try {
-      const nonce = await serviceValidator.getTransactionCount(address, blockNumber)
-      if (nonce) {
+    if (CONFIG.serviceValidatorSourcing.enabled) {
+      try {
+        const nonce = await serviceValidator.getTransactionCount(address, blockNumber)
+        if (nonce) {
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, intStringToHex(nonce))
+          countSuccessResponse(api_name, 'success', 'serviceValidator')
+          return
+        }
+      } catch (e) {
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-        callback(null, intStringToHex(nonce))
-        countSuccessResponse(api_name, 'success', 'serviceValidator')
+        callback({ code: 503, message: 'Unable to get transaction count' }, null)
+        countFailedResponse(api_name, 'exception getting transaction count from serviceValidator')
         return
       }
-    } catch (e) {
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: 503, message: 'Unable to get transaction count' }, null)
-      countFailedResponse(api_name, 'exception getting transaction count from serviceValidator')
-      return
     }
 
     let nodeUrl
