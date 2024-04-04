@@ -6,7 +6,7 @@ For running existing dapps on Shardeum, refer to EVM [JSON-RPC API](https://ethe
 
 ## Docker setup
 
-If you running it in production, you can simply use `docker compose` command.
+For developers deploying to production environments, simply use `docker compose` command.
 
 env `NO_OF_RPC_SERVERS` creates replicas of rpc servers using pm2. default is 1. Default port is 8080, port for each replicas will increment by 1 on default port. i.e 8081, 8082, 8083, etc.
 
@@ -47,11 +47,13 @@ cd shardeum-json-rpc
 git switch dev
 ```
 
-If you are building using `Docker`, run the below command. You should now have built docker images the service
+If you are building using `Docker`, run the below command:
 
 ```bash
 make build
 ```
+
+This command will build Docker images for the service.
 
 If you are building using `NPM`, run the below command, it will install all the required dependencies
 
@@ -67,9 +69,9 @@ If you are building using `Docker`, you can start the JSON-RPC server by running
 make run
 ```
 
-This will start a container running the `shardeum-json-rpc` server image, available on port `8080`. The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additinaly, you can manage the server's access control lists by editing the `whitelist.json`, `blacklist.json` and `spammerlist.json`.
+This will start a container running the `shardeum-json-rpc` server image, available on port `8080`. The servers configuration fields can be viewed and edited in the `src/config.ts` file. Additionally, you can manage the server's access control lists by editing the `whitelist.json`, `blacklist.json` and `spammerlist.json`.
 
-But if you are using NPM, use the below command too run the server:
+But if you are using NPM, use the below command to run the server:
 
 ```bash
 npm run start
