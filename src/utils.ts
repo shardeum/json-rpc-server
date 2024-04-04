@@ -357,6 +357,7 @@ export function changeNode(ip: string, port: number, strict = false): boolean {
   }
   node.ip = ip
   node.port = port
+  console.log('SETTING NEW CONSENSOR NODE ', node.ip, node.port)
   if (verbose) console.log(`RPC server subscribes to ${ip}:${port}`)
   return true
 }

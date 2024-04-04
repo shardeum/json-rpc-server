@@ -1493,53 +1493,6 @@ export const methods = {
 
         txHash = bufferToHex(transaction.hash())
         gasLimit = transaction.gasLimit.toString(16)
-        const currentTxNonce = transaction.nonce.toNumber()
-        const sender = transaction.getSenderAddress().toString()
-        let memPoolTx = txMemPool[String(sender)]
-
-        if (config.nonceValidate && Array.isArray(memPoolTx) && memPoolTx.length > 0) {
-          const maxIteration = memPoolTx.length
-          let count = 0
-          while (count < maxIteration) {
-            count++
-
-            if (
-              memPoolTx[0].nonce < currentTxNonce &&
-              memPoolTx[0].nonce === nonceTracker[String(sender)] + 1
-            ) {
-              const pendingTx = memPoolTx.shift()
-              if (!pendingTx) {
-                console.error('No pending transaction found in the mem pool')
-                countNonResponse(api_name, 'No pending transaction found in the mem pool')
-                return
-              }
-              console.log(`Injecting pending tx in the mem pool`, pendingTx.nonce)
-              nodeUrl = await injectAndRecordTx(txHash, pendingTx.tx, args)
-                .then((res: TransactionInjectionOutcome) => res.nodeUrl)
-                .catch((e: TransactionInjectionOutcome) => e.nodeUrl)
-              nonceTracker[String(sender)] = pendingTx.nonce
-              const hexAddressRegex = /^0x[a-fA-F0-9]+$/
-              if (hexAddressRegex.test(sender)) {
-                console.log(`Pending tx count for ${sender}: ${txMemPool[sender].length}`) // eslint-disable-line security/detect-object-injection
-              }
-              await sleep(500)
-            }
-          }
-        }
-
-        const lastTxNonce = nonceTracker[String(sender)]
-
-        if (config.nonceValidate && lastTxNonce && currentTxNonce > lastTxNonce + 1) {
-          console.log('BUG: Incorrect tx nonce sequence', lastTxNonce, currentTxNonce)
-          if (memPoolTx) {
-            memPoolTx.push({ nonce: currentTxNonce, tx })
-            memPoolTx = memPoolTx.sort((a, b) => a.nonce - b.nonce)
-          } else {
-            memPoolTx = [{ nonce: currentTxNonce, tx }]
-          }
-          nonceTracker[String(sender)] = currentTxNonce
-          return txHash
-        }
       }
 
       injectWithRetries(txHash, tx, args)
@@ -1681,7 +1634,7 @@ export const methods = {
 
       if (config.generateTxTimestamp && internalTx.timestamp == null) internalTx.timestamp = now
 
-      injectAndRecordTx(txHash, internalTx, args)
+      injectWithRetries(txHash, internalTx, args)
         .then((res) => {
           if (res.success === true) {
             logEventEmitter.emit(
