@@ -166,7 +166,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
     next()
     return
   }
-  let ip = req.ip
+  let ip = String(req.socket.remoteAddress)
   if (ip.substring(0, 7) == '::ffff:') {
     ip = ip.substring(7)
   }
