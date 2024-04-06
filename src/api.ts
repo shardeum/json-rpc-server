@@ -1998,7 +1998,8 @@ export const methods = {
       }
     }
     if (verbose) console.log('BLOCK DETAIL', result)
-    if (!args[1]) result.transactions = result.transactions.map((tx: any, index: number) => tx.hash)
+    //pushed this functionality back to getblock()
+    //if (!args[1]) result.transactions = result.transactions.map((tx: any, index: number) => tx.hash)
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: result ? true : false }, performance.now())

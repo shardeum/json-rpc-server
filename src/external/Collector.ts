@@ -263,11 +263,17 @@ class Collector extends BaseExternal {
 
     if (blockSearchValue !== 'latest') {
       //instead of look up by key we need to give the inp type and block 
-      const cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
+      let cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
       //should we retry for tranactions if there are not any??
       if (cachedBlock) {
-        return { ...cachedBlock }
+	//if we dont need details we must adjust the return value that we got from cache
+	if (details === false) {
+	  //need a shallow copy because we will mutate transactions field
+	  cachedBlock = { ...cachedBlock }
+	  cachedBlock.transactions = cachedBlock.transactions.map((tx: any, index: number) => tx.hash)
+	}
+	return cachedBlock
       }
     }
     try {
@@ -287,7 +293,7 @@ class Collector extends BaseExternal {
 
       const { readableBlock, number } = response
       const blockNumber = number
-      const resultBlock = readableBlock
+      let resultBlock = readableBlock
 
 
       // if blockSearchValue is latest we still had to look it up above, but once we have the 
@@ -321,7 +327,14 @@ class Collector extends BaseExternal {
           return []
         })
 
-      this.blockCacheManager.update(blockSearchValue, blockSearchType, { ...resultBlock })
+      this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
+      //if we dont need details we must adjust the return value that we got from cache
+      if (details === false) {
+      //need a shallow copy because we will mutate transactions field
+        resultBlock = { ...resultBlock }
+        resultBlock.transactions = resultBlock.transactions.map((tx: any, index: number) => tx.hash)
+      }
+
       return resultBlock
     } catch (e) {
       const er = e as Error
