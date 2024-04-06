@@ -226,7 +226,7 @@ class Collector extends BaseExternal {
   async getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
-    details: boolean
+    details = false
   ): Promise<readableBlock | null> {
 
     const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
@@ -251,12 +251,11 @@ class Collector extends BaseExternal {
   async inner_getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
-    details: boolean
+    details = false
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlock')
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${blockSearchValue}`)
-
 
     nestedCountersInstance.countEvent('blockcache', `details ${details}`)
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
@@ -267,13 +266,13 @@ class Collector extends BaseExternal {
 
       //should we retry for tranactions if there are not any??
       if (cachedBlock) {
-	//if we dont need details we must adjust the return value that we got from cache
-	if (details === false) {
-	  //need a shallow copy because we will mutate transactions field
-	  cachedBlock = { ...cachedBlock }
-	  cachedBlock.transactions = cachedBlock.transactions.map((tx: any, index: number) => tx.hash)
-	}
-	return cachedBlock
+        //if we dont need details we must adjust the return value that we got from cache
+        if (details === false) {
+          //need a shallow copy because we will mutate transactions field
+          cachedBlock = { ...cachedBlock }
+          cachedBlock.transactions = cachedBlock.transactions.map((tx: any, index: number) => tx.hash)
+        }
+        return cachedBlock
       }
     }
     try {
@@ -317,7 +316,7 @@ class Collector extends BaseExternal {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
             //need to review the safety of this for caching and support that this could change!
-            // UPDATE: We are now storing the entire block data (i.e. with TX details) in the cache, the 'confirmations' value of a tx is the only stale piece of data in the cache.
+            // UPDATE: We're now handling the response as per the "details" flag by mutating the "transactions" field. The default cache storage contains the full transaction details.
             return this.decodeTransaction(tx)
           })
         })
