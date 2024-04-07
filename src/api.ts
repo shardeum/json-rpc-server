@@ -504,61 +504,70 @@ async function injectAndRecordTx(
   totalResult += 1
   const startTime = Date.now()
 
-  let warmupList:any = null
+  let warmupList: any = null
   let usingWarmup = false
-  if(config.aalgWarmup){
-
+  if (config.aalgWarmup) {
     const pointPermitWarmup = trySpendServicePoints('aalg-warmup')
 
-    if(pointPermitWarmup === true){
-      // get access list to use as warmupdata 
+    if (pointPermitWarmup === true) {
+      // get access list to use as warmupdata
       let nodeUrl
       let accessListResp = null
       try {
         const callObj = tx
         const res = await requestWithRetry(RequestMethod.Post, `/contract/accesslist`, callObj)
         nodeUrl = res.data.nodeUrl
-        if (verboseAALG && verbose) console.log('warmup-access-list eth_getAccessList res.data', callObj, res.data.nodeUrl, res.data)
+        if (verboseAALG && verbose)
+          console.log('warmup-access-list eth_getAccessList res.data', callObj, res.data.nodeUrl, res.data)
         if (res.data == null || res.data.accessList == null) {
           countFailedResponse('warmup-access-list', 'no accessList')
-          if(verboseAALG) console.log('warmup-access-list', 'no accessList', txHash)
+          if (verboseAALG) console.log('warmup-access-list', 'no accessList', txHash)
         } else {
           accessListResp = res.data
-          if(verboseAALG) console.log(`inject: predicted accessList for ${txHash} from`, res.data.nodeUrl, JSON.stringify(res.data.accessList,null,2))
-          countSuccessResponse('warmup-access-list', 'success TBD')     
+          if (verboseAALG)
+            console.log(
+              `inject: predicted accessList for ${txHash} from`,
+              res.data.nodeUrl,
+              JSON.stringify(res.data.accessList, null, 2)
+            )
+          countSuccessResponse('warmup-access-list', 'success TBD')
         }
       } catch (e: any) {
-        if(verboseAALG) console.log(`Error while making an eth call `, e.message)
+        if (verboseAALG) console.log(`Error while making an eth call `, e.message)
         countFailedResponse('warmup-access-list', 'exception in /contract/accesslist')
-        if(verboseAALG) console.log('warmup-access-list', 'exception in /contract/accesslist', e, txHash) 
+        if (verboseAALG) console.log('warmup-access-list', 'exception in /contract/accesslist', e, txHash)
       }
 
-      if(accessListResp != null){
-        warmupList = { accessList: accessListResp.accessList, codeHashes: accessListResp.codeHashes}
-        usingWarmup = true   
-        if(verboseAALG){   
+      if (accessListResp != null) {
+        warmupList = { accessList: accessListResp.accessList, codeHashes: accessListResp.codeHashes }
+        usingWarmup = true
+        if (verboseAALG) {
           console.log('warmup-access-list', txHash, 'req duration', Date.now() - startTime)
-          if (verbose) console.log('warmup-access-list accessList: ', JSON.stringify(accessListResp,null,2))
-          if (verbose) console.log('warmup-access-list warmupList: ', JSON.stringify(warmupList,null,2))
-          console.log('warmup-access-list', 'usingWarmup', `accessList ${warmupList.accessList?.length} codeHashes ${warmupList.codeHashes?.length}`) 
+          if (verbose) console.log('warmup-access-list accessList: ', JSON.stringify(accessListResp, null, 2))
+          if (verbose) console.log('warmup-access-list warmupList: ', JSON.stringify(warmupList, null, 2))
+          console.log(
+            'warmup-access-list',
+            'usingWarmup',
+            `accessList ${warmupList.accessList?.length} codeHashes ${warmupList.codeHashes?.length}`
+          )
         }
-      } 
+      }
     } else {
-      //pointPermitWarmup === false 
-      if(verboseAALG){   
+      //pointPermitWarmup === false
+      if (verboseAALG) {
         console.log('warmup-access-list', txHash, ' POINTS do not permit spend')
       }
     }
   }
 
-  let  injectEndpoint = `inject`
-  let  injectPayload = tx
-  if(usingWarmup){
+  let injectEndpoint = `inject`
+  let injectPayload = tx
+  if (usingWarmup) {
     injectEndpoint = `inject-with-warmup`
-    injectPayload = {tx, warmupList}
+    injectPayload = { tx, warmupList }
   }
 
-  if(verboseAALG) console.log('inject', injectEndpoint, 'warmup-access-list', usingWarmup)
+  if (verboseAALG) console.log('inject', injectEndpoint, 'warmup-access-list', usingWarmup)
 
   return new Promise((resolve, reject) => {
     const injectStartTime = Date.now()
@@ -577,7 +586,13 @@ async function injectAndRecordTx(
         let now = Date.now()
         const totalTime = now - startTime
         const injectTime = now - injectStartTime
-        console.log('inject tx result', txHash, injectResult, Date.now(), `totalTime: ${totalTime} injectTime: ${injectTime} aalgTime: ${aalgTime}`)
+        console.log(
+          'inject tx result',
+          txHash,
+          injectResult,
+          Date.now(),
+          `totalTime: ${totalTime} injectTime: ${injectTime} aalgTime: ${aalgTime}`
+        )
         console.log(`Total count: ${totalResult}, Nonce fail count: ${nonceFailCount}`)
         if (config.recordTxStatus === false) {
           return resolve({
@@ -1568,7 +1583,7 @@ export const methods = {
           }
           return res
         })
-        .catch((e:any) => {
+        .catch((e: any) => {
           console.log('inject raw ', e.message, e.stack)
           logEventEmitter.emit(
             'fn_end',
@@ -1968,7 +1983,7 @@ export const methods = {
 
     result = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
     if (!result) {
-      if (verbose) console.log('eth_getBlockByNumber !result' ,blockNumber, args[0])
+      if (verbose) console.log('eth_getBlockByNumber !result', blockNumber, args[0])
       const res = await requestWithRetry(
         RequestMethod.Get,
         `/eth_getBlockByNumber?blockNumber=${blockNumber}`

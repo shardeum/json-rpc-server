@@ -104,8 +104,6 @@ type Config = {
 
 export type ServicePointTypes = 'aalg-warmup'
 
-
-
 export const CONFIG: Config = {
   websocket: {
     enabled: true,

@@ -208,11 +208,11 @@ function getTimeout(route: string): number {
 
   //get rid of regex.
 
-  for(const key of Object.keys(config.defaultRequestTimeout)){
-    if(route.includes(key)){
+  for (const key of Object.keys(config.defaultRequestTimeout)) {
+    if (route.includes(key)) {
       const requestKey = key as keyof typeof config.defaultRequestTimeout
       const timeout = config.defaultRequestTimeout[requestKey]
-      if(timeout > 0){
+      if (timeout > 0) {
         return timeout
       }
     }
@@ -259,11 +259,7 @@ export async function requestWithRetry(
       })
       if (res.status === 200 && !res.data.error) {
         const totalTime = Date.now() - queryStartTime
-        if (verboseRequestWithRetry) console.log(
-          `success:  route: ${route}`,
-          'totalTime',
-          totalTime
-        )
+        if (verboseRequestWithRetry) console.log(`success:  route: ${route}`, 'totalTime', totalTime)
         // success = true
         // we want to know which validator this is being injected to for debugging purposes
         if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
@@ -275,22 +271,24 @@ export async function requestWithRetry(
       if (verbose && verboseRequestWithRetry) console.log('Error: requestWithRetry', e, (e as Error).message)
       const badNodePercentage = badNodesMap.size / nodeList.length
       const shouldAddToBadNodeList = route.includes('eth_blockNumber')
-      if (verboseRequestWithRetry) console.log(
-        `FAIL:     route: ${route}`,
-        `shouldAddToBadNodeList: ${shouldAddToBadNodeList}`,
-        'badNodePercentage',
-        badNodePercentage,
-        'bad node count',
-        badNodesMap.size,
-        'timeout',
-        timeout,
-        //@ts-ignore
-        e?.message
-      )
+      if (verboseRequestWithRetry)
+        console.log(
+          `FAIL:     route: ${route}`,
+          `shouldAddToBadNodeList: ${shouldAddToBadNodeList}`,
+          'badNodePercentage',
+          badNodePercentage,
+          'bad node count',
+          badNodesMap.size,
+          'timeout',
+          timeout,
+          //@ts-ignore
+          e?.message
+        )
       if (shouldAddToBadNodeList && nodeIpPort && badNodePercentage < 2 / 3) {
         // don't add to bad list if 2/3 of nodes are already bad
         badNodesMap.set(nodeIpPort, Date.now())
-        if (verboseRequestWithRetry && verbose) console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
+        if (verboseRequestWithRetry && verbose)
+          console.log(`Adding node to bad nodes map: ${nodeIpPort}, total bad nodes: ${badNodesMap.size}`)
       }
     }
 
@@ -477,10 +475,13 @@ export async function getGasPrice(): Promise<{ result?: string }> {
  * @param addressStr
  * @returns
  */
-export async function getCode(addressStr: string, blockNumber?: string): Promise<{ contractCode: string; nodeUrl: string }> {
-  let url = `/eth_getCode?address=${addressStr}`;
+export async function getCode(
+  addressStr: string,
+  blockNumber?: string
+): Promise<{ contractCode: string; nodeUrl: string }> {
+  let url = `/eth_getCode?address=${addressStr}`
   if (blockNumber) {
-    url += `&blockNumber=${blockNumber}`;
+    url += `&blockNumber=${blockNumber}`
   }
   const res = await requestWithRetry(RequestMethod.Get, url)
   return res.data
