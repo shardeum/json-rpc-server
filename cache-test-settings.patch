@@ -1,0 +1,20 @@
+diff --git a/src/config.ts b/src/config.ts
+index f2d9f91..19c03c8 100644
+--- a/src/config.ts
++++ b/src/config.ts
+@@ -167,12 +167,12 @@ export const CONFIG: Config = {
+   isRemoteLocalNetwork: false,
+   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
+   collectorSourcing: {
+-    enabled: false,
++    enabled: true,
+     collectorApiServerUrl: 'http://0.0.0.0:6001',
+   },
+   serviceValidatorSourcing: {
+-    enabled: false,
++    enabled: true,
+     serviceValidatorUrl: 'http://0.0.0.0:9001',
+   },
+-  enableBlockCache: false
++  enableBlockCache: true
+ }
