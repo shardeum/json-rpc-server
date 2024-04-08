@@ -260,7 +260,7 @@ class Collector extends BaseExternal {
     nestedCountersInstance.countEvent('blockcache', `details ${details}`)
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
 
-    if (blockSearchValue !== 'latest') {
+    if (CONFIG.enableBlockCache && blockSearchValue !== 'latest') {
       //instead of look up by key we need to give the inp type and block
       let cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
@@ -296,7 +296,7 @@ class Collector extends BaseExternal {
 
       // if blockSearchValue is latest we still had to look it up above, but once we have the 
       // block we can see if we have a niced cached version of it that will have all of the transactions 
-      if (blockSearchValue === 'latest' && resultBlock != null) {
+      if (CONFIG.enableBlockCache && blockSearchValue === 'latest' && resultBlock != null) {
         //look it up by hash 
         const cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
@@ -325,8 +325,9 @@ class Collector extends BaseExternal {
           console.error('collector.getBlock could not get txs for the block', e)
           return []
         })
-
-      this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
+      
+      if (CONFIG.enableBlockCache)
+        this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
       //if we dont need details we must adjust the return value that we got from cache
       if (details === false) {
         //need a shallow copy because we will mutate transactions field

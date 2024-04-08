@@ -71,12 +71,9 @@ type Config = {
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
   firstLineLogs: boolean
-<<<<<<< HEAD
   verboseRequestWithRetry: boolean
   verboseAALG: boolean
-=======
 
->>>>>>> d872bd1 (Add two-tier cache system for storing blocks)
   dashboard: {
     enabled: boolean
     dist_path: string
@@ -109,6 +106,7 @@ type Config = {
    * and consider all nodes from the nodelist
    */
   rotationEdgeToAvoid?: number
+  enableBlockCache: boolean
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -205,4 +203,5 @@ export const CONFIG: Config = {
     ['aalg-warmup']: 20,
   },
   rotationEdgeToAvoid: 3,
+  enableBlockCache: false
 }
