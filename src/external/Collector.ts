@@ -261,7 +261,7 @@ class Collector extends BaseExternal {
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
 
     if (blockSearchValue !== 'latest') {
-      //instead of look up by key we need to give the inp type and block 
+      //instead of look up by key we need to give the inp type and block
       let cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
       //should we retry for tranactions if there are not any??
@@ -269,8 +269,7 @@ class Collector extends BaseExternal {
         //if we dont need details we must adjust the return value that we got from cache
         if (details === false) {
           //need a shallow copy because we will mutate transactions field
-          cachedBlock = { ...cachedBlock }
-          cachedBlock.transactions = cachedBlock.transactions.map((tx: any, index: number) => tx.hash)
+          return this.mutateTxField(cachedBlock)
         }
         return cachedBlock
       }
@@ -302,6 +301,7 @@ class Collector extends BaseExternal {
         const cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
           nestedCountersInstance.countEvent('blockcache', `hit latest`)
+          if (details === false) return this.mutateTxField(resultBlock)
           return cachedBlock
         } else {
           nestedCountersInstance.countEvent('blockcache', `miss latest`)
@@ -329,9 +329,8 @@ class Collector extends BaseExternal {
       this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
       //if we dont need details we must adjust the return value that we got from cache
       if (details === false) {
-      //need a shallow copy because we will mutate transactions field
-        resultBlock = { ...resultBlock }
-        resultBlock.transactions = resultBlock.transactions.map((tx: any, index: number) => tx.hash)
+        //need a shallow copy because we will mutate transactions field
+        return this.mutateTxField(resultBlock)
       }
 
       return resultBlock
@@ -341,6 +340,14 @@ class Collector extends BaseExternal {
       console.error('An error occurred for Collector.getBlock:', e)
       return null
     }
+  }
+  /**
+   * This function replaces the transaction details with transaction hashes when details are not required (details = false)
+   */
+  mutateTxField = (block: readableBlock): readableBlock => {
+    const blockData = { ...block }
+    blockData.transactions = blockData.transactions.map((tx: any) => tx.hash)
+    return blockData
   }
 
   async fetchTxHistory(key: string, timestamp: number): Promise<{ accountId: any; data: any } | null> {
