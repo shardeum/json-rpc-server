@@ -35,7 +35,7 @@ For end users, such as exchanges and large decentralized applications (dApps), s
 
 ## Requirements
 
-If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you must have the [Docker](https://docs.docker.com/get-docker/) installed.
+If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you must have the [Docker](https://docs.docker.com/get-docker/) daemon installed.
 
 ## Installing project source code
 
