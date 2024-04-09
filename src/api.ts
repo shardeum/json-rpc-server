@@ -127,6 +127,9 @@ interface TransactionInjectionOutcome {
 }
 
 function hexStrToInt(hexStr: string): number {
+  if (!isHex(hexStr)) {
+    return 0
+  }
   return parseInt(hexStr.slice(2), 16)
 }
 
