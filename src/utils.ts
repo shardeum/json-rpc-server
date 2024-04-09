@@ -43,6 +43,8 @@ export const node = {
   port: 9001,
 }
 
+let rotationEdgeToAvoid = config.defaultRotationEdgeToAvoid
+
 const badNodesMap: Map<string, number> = new Map()
 
 const verbose = config.verbose
@@ -144,15 +146,25 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
       nodeList = [...nodes]
     }
 
-    if (
-      config.rotationEdgeToAvoid &&
-      nodeList.length >= 10 &&
-      nodeList.length > config.rotationEdgeToAvoid * 2
-    ) {
-      nodeList = nodeList.slice(config.rotationEdgeToAvoid, nodeList.length - config.rotationEdgeToAvoid)
+    if (rotationEdgeToAvoid && nodeList.length >= 10 && nodeList.length > rotationEdgeToAvoid * 2) {
+      nodeList = nodeList.slice(rotationEdgeToAvoid, nodeList.length - rotationEdgeToAvoid)
     }
   }
   console.timeEnd('nodelist_update')
+}
+
+export async function updateEdgeNodeConfig(): Promise<void> {
+  console.log(`Updating rotationEdgeToAvoid configuration`)
+
+  const res = await requestWithRetry(RequestMethod.Get, `/netconfig`)
+
+  if (res.data && res.data.config) {
+    const newRotationEdgeToAvoid = res.data.config.p2p.rotationEdgeToAvoid
+    rotationEdgeToAvoid = newRotationEdgeToAvoid
+    console.log(`Setting rotationEdgeToAvoid to ${newRotationEdgeToAvoid}`)
+  } else if (res.data && res.data.error) {
+    console.log(`Error getting rotationEdgeToAvoid configuration: ${res.data.error}`)
+  }
 }
 
 export async function checkArchiverHealth(): Promise<void> {

@@ -104,8 +104,8 @@ type Config = {
    * Set this to 0, or leave it undefined to disable this feature
    * and consider all nodes from the nodelist
    */
-  rotationEdgeToAvoid?: number
   enableBlockCache: boolean
+  defaultRotationEdgeToAvoid?: number
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -200,6 +200,6 @@ export const CONFIG: Config = {
   ServicePoints: {
     ['aalg-warmup']: 20,
   },
-  rotationEdgeToAvoid: 3,
   enableBlockCache: false,
+  defaultRotationEdgeToAvoid: Number(process.env.DEFAULT_EDGE_TO_AVOID) || 4,
 }
