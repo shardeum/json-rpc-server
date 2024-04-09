@@ -14,7 +14,6 @@ import { bufferToHex, toBuffer } from 'ethereumjs-util'
 import { Err, NewErr, NewInternalErr } from './Err'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { BlockCacheManager } from '../cache/BlockCacheManager'
-import { getBlock } from 'web3/lib/commonjs/eth.exports'
 import { sleep } from '../utils'
 
 class Collector extends BaseExternal {
@@ -260,7 +259,7 @@ class Collector extends BaseExternal {
 
     if (CONFIG.enableBlockCache && blockSearchValue !== 'latest') {
       //instead of look up by key we need to give the inp type and block
-      let cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
+      const cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
       //should we retry for tranactions if there are not any??
       if (cachedBlock) {
@@ -289,7 +288,7 @@ class Collector extends BaseExternal {
 
       const { readableBlock, number } = response
       const blockNumber = number
-      let resultBlock = readableBlock
+      const resultBlock = readableBlock
 
       // if blockSearchValue is latest we still had to look it up above, but once we have the
       // block we can see if we have a niced cached version of it that will have all of the transactions

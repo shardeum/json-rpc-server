@@ -41,23 +41,23 @@ type SectionStat = BigNumberStat & {
   reentryCountEver: number
 }
 
-type TimesDataReport = {
-  name: string
-  minMs: number
-  maxMs: number
-  totalMs: number
-  avgMs: number
-  c: number
-  data: NumberStat | Record<string, unknown>
-  dataReq: NumberStat | Record<string, unknown>
-}
+// type TimesDataReport = {
+//   name: string
+//   minMs: number
+//   maxMs: number
+//   totalMs: number
+//   avgMs: number
+//   c: number
+//   data: NumberStat | Record<string, unknown>
+//   dataReq: NumberStat | Record<string, unknown>
+// }
 
-type ScopedTimesDataReport = {
-  scopedTimes: TimesDataReport[]
-  cycle?: number
-  node?: string
-  id?: string
-}
+// type ScopedTimesDataReport = {
+//   scopedTimes: TimesDataReport[]
+//   cycle?: number
+//   node?: string
+//   id?: string
+// }
 
 export interface NodeLoad {
   internal: number

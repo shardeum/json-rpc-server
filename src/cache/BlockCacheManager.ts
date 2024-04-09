@@ -1,10 +1,10 @@
 import { readableBlock } from '../external/Collector'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 
-type CacheEntry = {
-  key: string
-  value: readableBlock
-}
+// type CacheEntry = {
+//   key: string
+//   value: readableBlock
+// }
 
 //reference to block as stored by the collector db
 // export interface DbBlock {
