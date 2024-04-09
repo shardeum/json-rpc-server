@@ -222,13 +222,11 @@ class Collector extends BaseExternal {
     }
   }
 
-
   async getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
     details = false
   ): Promise<readableBlock | null> {
-
     const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
     // pendingRequests
     if (this.pendingRequests.has(request_key)) {
@@ -293,11 +291,10 @@ class Collector extends BaseExternal {
       const blockNumber = number
       let resultBlock = readableBlock
 
-
-      // if blockSearchValue is latest we still had to look it up above, but once we have the 
-      // block we can see if we have a niced cached version of it that will have all of the transactions 
+      // if blockSearchValue is latest we still had to look it up above, but once we have the
+      // block we can see if we have a niced cached version of it that will have all of the transactions
       if (CONFIG.enableBlockCache && blockSearchValue === 'latest' && resultBlock != null) {
-        //look it up by hash 
+        //look it up by hash
         const cachedBlock = this.blockCacheManager.get(resultBlock.hash, 'hash')
         if (cachedBlock) {
           nestedCountersInstance.countEvent('blockcache', `hit latest`)
@@ -325,7 +322,7 @@ class Collector extends BaseExternal {
           console.error('collector.getBlock could not get txs for the block', e)
           return []
         })
-      
+
       if (CONFIG.enableBlockCache)
         this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
       //if we dont need details we must adjust the return value that we got from cache

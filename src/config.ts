@@ -203,5 +203,5 @@ export const CONFIG: Config = {
     ['aalg-warmup']: 20,
   },
   rotationEdgeToAvoid: 3,
-  enableBlockCache: false
+  enableBlockCache: false,
 }
