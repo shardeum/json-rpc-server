@@ -99,13 +99,8 @@ type Config = {
   ServicePoints: {
     ['aalg-warmup']: number
   }
-  /** Set the number of nodes to avoid from either side of rotation.
-   * That is, nodes freshly rotated in or nodes about to rotate out.
-   * Set this to 0, or leave it undefined to disable this feature
-   * and consider all nodes from the nodelist
-   */
+
   enableBlockCache: boolean
-  defaultRotationEdgeToAvoid?: number
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -201,5 +196,4 @@ export const CONFIG: Config = {
     ['aalg-warmup']: 20,
   },
   enableBlockCache: false,
-  defaultRotationEdgeToAvoid: Number(process.env.DEFAULT_EDGE_TO_AVOID) || 4,
 }

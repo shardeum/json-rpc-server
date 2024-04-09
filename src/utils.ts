@@ -43,7 +43,7 @@ export const node = {
   port: 9001,
 }
 
-let rotationEdgeToAvoid = config.defaultRotationEdgeToAvoid
+let rotationEdgeToAvoid = 0
 
 const badNodesMap: Map<string, number> = new Map()
 
