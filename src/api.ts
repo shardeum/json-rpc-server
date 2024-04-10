@@ -46,7 +46,6 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
-import { url } from 'inspector'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
