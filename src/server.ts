@@ -24,7 +24,7 @@ import { CONFIG, CONFIG as config } from './config'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
-import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
+import { setupEvmLogProviderConnectionStream, setupNewHeadSubscriptionProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardeum-foundation/lib-archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
@@ -208,6 +208,7 @@ setupArchiverDiscovery({
       setupLogEvents()
       setupSubscriptionEventHandlers(ipport)
       setupEvmLogProviderConnectionStream()
+      setupNewHeadSubscriptionProviderConnectionStream()
     })
   })
 })
