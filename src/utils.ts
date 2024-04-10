@@ -145,9 +145,6 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
       }
       nodeList = [...nodes]
     }
-
-    if (rotationEdgeToAvoid && nodeList.length >= 10 && nodeList.length > rotationEdgeToAvoid * 2) {
-      nodeList = nodeList.slice(rotationEdgeToAvoid, nodeList.length - rotationEdgeToAvoid)
   }
   console.timeEnd('nodelist_update')
 }
