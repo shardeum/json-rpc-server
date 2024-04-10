@@ -30,7 +30,7 @@ import {
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
 import { CONFIG, CONFIG as config } from './config'
-import { logSubscriptionList } from './websocket/clients'
+import { blockSubscriptionList, logSubscriptionList } from './websocket/clients'
 import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/log_server'
@@ -3558,13 +3558,22 @@ export const methods = {
     try {
       const subscription_name = args[0]
       const filters = args[1]
-      const sub_id = args[10]
-      if (subscription_name !== 'logs') {
+
+      // this is pre injected before calling this api, check src/websocket/index.ts
+      const sub_id = args[10] 
+
+      if (subscription_name !== 'logs' && subscription_name !== 'newHeads') {
         logSubscriptionList.removeById(args[10])
-        callback({ message: 'Shardeum only support logs subscriptions' } as JSONRPCError, null)
-        countFailedResponse(api_name, 'Shardeum only support logs subscriptions')
+        callback({ message: 'Shardeum only support logs and newHeads subscriptions' } as JSONRPCError, null)
+        countFailedResponse(api_name, 'Shardeum only support logs and newHeads subscriptions')
         return
       }
+
+      if (subscription_name === 'newHeads' && blockSubscriptionList.has(sub_id)) {
+         callback(null, sub_id)
+         return
+      }
+
       if (!filters.address && !filters.topics) {
         logSubscriptionList.removeById(args[10])
         callback({ message: 'Invalid Filters' } as JSONRPCError, null)

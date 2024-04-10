@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
 import { methods } from '../api'
-import { logSubscriptionList } from './clients'
+import { blockSubscriptionList, logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { ipport } from '../server'
@@ -95,15 +95,21 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
       }
       try {
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
+        let subscription_id = crypto.randomBytes(32).toString('hex')
+        subscription_id =
+          '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
+        subscription_id = subscription_id.substring(0, 46)
+        request.params[10] = subscription_id
+
+        if(request.params[0] === 'newHeads') {
+          blockSubscriptionList.set(subscription_id, { socket: socket, rpc_request_id: request.id })
+        }
+
         if (
+          request.params[0] === 'logs' &&
           typeof request.params[1] === 'object' &&
           ('address' in request.params[1] || 'topics' in request.params[1])
         ) {
-          let subscription_id = crypto.randomBytes(32).toString('hex')
-          subscription_id =
-            '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
-          subscription_id = subscription_id.substring(0, 46)
-          request.params[10] = subscription_id
           const address = request.params[1].address
           const topics = request.params[1].topics
 
@@ -222,13 +228,36 @@ export const setupSubscriptionEventHandlers = (): void => {
     }
   })
 
-  interface SUBSCRIPTION_PAYLOAD {
+  subscriptionEventEmitter.on('evm_newblock_received', (newblock) => {
+    try{
+      for (let [key, value] of blockSubscriptionList) {
+        if (value.socket.readyState === 2 || value.socket.readyState === 3) {
+          blockSubscriptionList.delete(key)
+          continue
+        }
+        value.socket.send(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_subscription',
+            params: {
+              subscription: key,
+              result: newblock,
+            },
+          })
+        )
+      }
+    }catch(e){
+      return;
+    }
+  })
+
+  interface LOG_SUBSCRIPTION_PAYLOAD {
     subscription_id: string
     address: string[]
     topics: string[]
     ipport: string
   }
-  subscriptionEventEmitter.on('evm_log_subscribe', async (payload: SUBSCRIPTION_PAYLOAD) => {
+  subscriptionEventEmitter.on('evm_log_subscribe', async (payload: LOG_SUBSCRIPTION_PAYLOAD) => {
     console.log('Sending subscription request to log server')
     nestedCountersInstance.countEvent('websocket', 'evm_log_subscribe')
     const method = 'subscribe'
@@ -240,6 +269,7 @@ export const setupSubscriptionEventHandlers = (): void => {
     const method = 'unsubscribe'
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: { subscription_id } }))
   })
+
 }
 
 const constructRPCErrorRes = (

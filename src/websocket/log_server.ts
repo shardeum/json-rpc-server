@@ -1,11 +1,15 @@
 import WebSocket from 'ws'
 import { subscriptionEventEmitter } from '.'
 import { CONFIG } from '../config'
-import { logSubscriptionList } from './clients'
+import { nestedCountersInstance } from '../utils/nestedCounters'
+import { blockSubscriptionList, logSubscriptionList } from './clients'
 
 export let evmLogProvider_ConnectionStream: WebSocket | null = null
+export let newHeadSubscriptionProvider_ConnectionStream: WebSocket | null = null
 
 const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port}`
+
+  console.log(log_server_ws_url)
 
 export const setupEvmLogProviderConnectionStream = (): void => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
@@ -29,7 +33,7 @@ export const setupEvmLogProviderConnectionStream = (): void => {
       value.socket.close()
     })
 
-    console.log('Attempting to establish websocket stream to log_server...')
+    console.log('Attempting to establish websocket stream to log_server for log subscription...')
     setTimeout(setupEvmLogProviderConnectionStream, 5000)
   })
   evmLogProvider_ConnectionStream.on('message', function message(data) {
@@ -95,8 +99,54 @@ export const setupEvmLogProviderConnectionStream = (): void => {
           console.error(e)
         }
       }
+
     } catch (e) {
       console.log(e)
     }
+
+
   })
+}
+
+export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
+
+    if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
+    if (newHeadSubscriptionProvider_ConnectionStream?.readyState === 1 || newHeadSubscriptionProvider_ConnectionStream?.readyState === 0)
+    return
+    newHeadSubscriptionProvider_ConnectionStream = new WebSocket.WebSocket(log_server_ws_url + '/newHead_subscription')
+
+    newHeadSubscriptionProvider_ConnectionStream.on('error', (e) => {
+      newHeadSubscriptionProvider_ConnectionStream?.close()
+    })
+
+    newHeadSubscriptionProvider_ConnectionStream.on('open', function open() {
+      console.log('NewHead Websocket Connection Established')
+      newHeadSubscriptionProvider_ConnectionStream?.send("Mingalabar")
+    })
+    
+    newHeadSubscriptionProvider_ConnectionStream.on('message', function message(data) {
+      try{
+        const message = JSON.parse(data.toString())
+        switch(message.method){
+          case 'newBlock_produced': {
+            const block = message.payload
+            console.log('Received new block from log_server', block);
+            subscriptionEventEmitter.emit('evm_newHead_received', block)
+          }
+        }
+      }catch(e){
+        nestedCountersInstance.countEvent('websocket_subscriptions', 'Failed to broadcast new block to subscribers')
+      }
+    })
+
+    newHeadSubscriptionProvider_ConnectionStream.on('close', function close() {
+      for (const [k,v] of blockSubscriptionList.entries()) {
+        v.socket.close()
+      }
+
+      blockSubscriptionList.clear()
+
+      console.log('Attempting to establish websocket stream to log_server for newHeads subscription...')
+      setTimeout(setupNewHeadSubscriptionProviderConnectionStream, 5000)
+    })
 }
