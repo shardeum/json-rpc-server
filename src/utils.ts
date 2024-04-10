@@ -148,9 +148,12 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
 
     if (rotationEdgeToAvoid && nodeList.length >= 10 && nodeList.length > rotationEdgeToAvoid * 2) {
       nodeList = nodeList.slice(rotationEdgeToAvoid, nodeList.length - rotationEdgeToAvoid)
-    }
   }
   console.timeEnd('nodelist_update')
+}
+
+export function removeFromNodeList(ip: string, port: string): void {
+  nodeList = nodeList.filter((node) => node.ip !== ip || node.port !== Number(port))
 }
 
 export async function updateEdgeNodeConfig(): Promise<void> {
@@ -278,6 +281,10 @@ export async function requestWithRetry(
         return res //break
       } else if (res.data.error === 'node close to rotation edges') {
         console.log(`${nodeUrl} Node is close to rotation edges. Changing node...`)
+        if (nodeIpPort) {
+          const urlParts = nodeIpPort.split(':')
+          removeFromNodeList(urlParts[0], urlParts[1])
+        }
       }
     } catch (e: unknown) {
       if (verbose && verboseRequestWithRetry) console.log('Error: requestWithRetry', e, (e as Error).message)

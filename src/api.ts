@@ -25,6 +25,7 @@ import {
   fetchTxReceiptFromArchiver,
   calculateContractStorageAccountId,
   getSyncTime,
+  removeFromNodeList,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -45,6 +46,7 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
+import { url } from 'inspector'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -465,7 +467,7 @@ export function recordTxStatus(txStatus: TxStatus): void {
   }
 }
 
-async function injectWithRetries(txHash: string, tx: any, args: any, retries = 5) {
+async function injectWithRetries(txHash: string, tx: any, args: any, retries = config.defaultRequestRetry) {
   let result: TransactionInjectionOutcome
   let retryCount = 0
   while (retryCount < retries) {
@@ -474,6 +476,10 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = 5
       return result
     } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
       console.log('Node is close to rotation edges. Rotating node...')
+      if (result.nodeUrl) {
+        const urlParts = result.nodeUrl.split(':')
+        removeFromNodeList(urlParts[0], urlParts[1])
+      }
       retryCount++
     } else if (result.reason === 'Node not active. Rejecting inject.') {
       console.log('Injected to an inactive node. Retrying...')
