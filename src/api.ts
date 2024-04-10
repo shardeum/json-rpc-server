@@ -1947,9 +1947,16 @@ export const methods = {
     result = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
     if (!result) {
       if (verbose) console.log('eth_getBlockByNumber !result', blockNumber, args[0])
+      const responseCheck = (data: any): boolean => {
+        return data.block !== undefined
+      }
       const res = await requestWithRetry(
         RequestMethod.Get,
-        `/eth_getBlockByNumber?blockNumber=${blockNumber}`
+        `/eth_getBlockByNumber?blockNumber=${blockNumber}`,
+        undefined,
+        undefined,
+        undefined,
+        responseCheck
       )
       result = res.data.block
       nodeUrl = res.data.nodeUrl

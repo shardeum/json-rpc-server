@@ -238,7 +238,8 @@ export async function requestWithRetry(
   route: string,
   data: object = {},
   nRetry = config.defaultRequestRetry,
-  isFullUrl = false
+  isFullUrl = false,
+  responseCheck: (data: any) => boolean = () => true
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
   let retry = 0
@@ -270,12 +271,16 @@ export async function requestWithRetry(
         timeout,
       })
       if (res.status === 200 && !res.data.error) {
+        const isValidResponse = responseCheck(res.data)
+
         const totalTime = Date.now() - queryStartTime
         if (verboseRequestWithRetry) console.log(`success:  route: ${route}`, 'totalTime', totalTime)
         // success = true
         // we want to know which validator this is being injected to for debugging purposes
-        if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
-        return res //break
+        if (isValidResponse) {
+          if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
+          return res //break
+        }
       } else if (res.data.error === 'node close to rotation edges') {
         console.log(`${nodeUrl} Node is close to rotation edges. Changing node...`)
         if (nodeIpPort) {
@@ -477,7 +482,19 @@ export function sleep(ms: number): Promise<boolean> {
 export async function getAccountFromValidator(
   addressStr: string
 ): Promise<{ account?: Account2; nodeUrl?: string }> {
-  const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`, {}, 8)
+  function responseCheck(data: any): boolean {
+    return (
+      data.account !== undefined && data.account.nonce !== undefined && data.account.balance !== undefined
+    )
+  }
+  const res = await requestWithRetry(
+    RequestMethod.Get,
+    `/account/${addressStr}`,
+    {},
+    8,
+    undefined,
+    responseCheck
+  )
   return res.data
 }
 
