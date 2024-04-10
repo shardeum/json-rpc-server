@@ -483,9 +483,7 @@ export async function getAccountFromValidator(
   addressStr: string
 ): Promise<{ account?: Account2; nodeUrl?: string }> {
   function responseCheck(data: any): boolean {
-    return (
-      data.account !== undefined && data.account.nonce !== undefined && data.account.balance !== undefined
-    )
+    return data.account != null
   }
   const res = await requestWithRetry(
     RequestMethod.Get,
