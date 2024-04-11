@@ -139,6 +139,10 @@ function isHex(str: string) {
   return regexp.test(str)
 }
 
+function isHexOrEmptyHex(str: string) {
+  return str == '0x' || isHex(str)
+}
+
 // Utility function to ensure arguments are an array
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ensureArrayArgs(args: RequestParamsLike, callback: JSONRPCCallbackTypePlain): args is any[] {
@@ -1856,7 +1860,6 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
     }
-
     // Check input args not empty
     const callbackWithErrorMessage = function (errorMessage: string) {
       const error: JSONRPCError = {
@@ -1882,13 +1885,12 @@ export const methods = {
       callbackWithErrorMessage('Invalid params: to address is ill-formatted')
       return
     }
-
-    if (arg['data'] && !isHex(arg['data'])) {
+    if (arg['data'] && !isHexOrEmptyHex(arg['data'])) {
       callbackWithErrorMessage('Invalid params: data must be hex format')
       return
     }
 
-    if (arg['value'] && !isHex(arg['value'])) {
+    if (arg['value'] && !isHexOrEmptyHex(arg['value'])) {
       callbackWithErrorMessage('Invalid params: value must be hex format')
       return
     }
