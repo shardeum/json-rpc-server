@@ -31,6 +31,7 @@ import {
   Account2,
 } from './types'
 import Sntp from '@hapi/sntp'
+import { randomBytes, createHash } from 'crypto'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -1037,8 +1038,9 @@ export async function getTransactionReceipt(hash: string) {
 */
 
 export function getFilterId(): string {
-  // todo: use a better way to generate filter id
-  return '0x' + Math.round(Math.random() * 1000000000).toString(16)
+  return '0x' + createHash('sha256')
+    .update(randomBytes(16).toString('hex') + Date.now())
+    .digest('hex')
 }
 
 export function parseFilterDetails(filter: Filter): { address: string; topics: string[] } {
