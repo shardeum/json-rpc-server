@@ -314,10 +314,10 @@ export async function requestWithRetry(
     }
 
     if (retry <= maxRetry) {
-      if (verbose) console.log('Node is busy...will try again to another node in a few seconds')
+      if (verbose) console.log(`(Attempt ${retry}) Node is unable to respond. Trying a new node.`)
       await waitRandomSecond()
     } else {
-      if (verbose) console.log('Node is busy...out of retries')
+      if (verbose) console.log('Request was unsuccessful after all retries.')
     }
   }
   return { data: { nodeUrl } }
