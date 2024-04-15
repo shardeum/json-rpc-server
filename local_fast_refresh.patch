@@ -1,0 +1,14 @@
+diff --git a/src/config.ts b/src/config.ts
+--- a/src/config.ts	(revision e0fd622f7257642c37243f3da9303dfaa55c1872)
++++ b/src/config.ts	(date 1713205409743)
+@@ -131,8 +131,8 @@
+   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
+   queryFromExplorer: false,
+   generateTxTimestamp: true,
+-  nodelistRefreshInterval: 30000,
+-  defaultRequestRetry: 5,
++  nodelistRefreshInterval: 5000,
++  defaultRequestRetry: 10,
+   gasEstimateMethod: 'serviceValidator', //serviceValidator or replayEngine or validator
+   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
+   gasEstimateUseCache: false,
