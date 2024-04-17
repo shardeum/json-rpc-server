@@ -98,11 +98,11 @@ export type DetailedTxStatus = {
   from: string
   injected: boolean
   accepted:
-    | TxStatusCode.BAD_TX
-    | TxStatusCode.SUCCESS
-    | TxStatusCode.BUSY
-    | TxStatusCode.OTHER_FAILURE
-    | boolean
+  | TxStatusCode.BAD_TX
+  | TxStatusCode.SUCCESS
+  | TxStatusCode.BUSY
+  | TxStatusCode.OTHER_FAILURE
+  | boolean
   reason: string
   timestamp: string
   nodeUrl?: string
@@ -172,16 +172,16 @@ type Tx = readableTransaction & {
 
 type TxParam =
   | {
-      readableReceipt: Tx
-      txHash?: string
-      transactionType?: string | number
-    }
+    readableReceipt: Tx
+    txHash?: string
+    transactionType?: string | number
+  }
   | {
-      wrappedEVMAccount: {
-        readableReceipt: Tx
-        txHash: string
-      }
+    wrappedEVMAccount: {
+      readableReceipt: Tx
+      txHash: string
     }
+  }
 
 function extractTransactionObject(
   bigTransaction: TxParam,
@@ -702,7 +702,22 @@ function trimInjectRejection(message: string): string {
     return 'ECONNREFUSED'
   } else return message
 }
-
+async function validateBlockNumberInput(blockNumberInput: string) {
+  const { blockNumber } = await getCurrentBlockInfo()
+  if (blockNumberInput === 'latest') {
+    return blockNumber
+  }
+  if (blockNumberInput === 'earliest') {
+    return '0x0'
+  }
+  if (!isHex(blockNumberInput)) {
+    return undefined
+  }
+  if (parseInt(blockNumberInput, 16) > parseInt(blockNumber, 16)) {
+    return blockNumber
+  }
+  return blockNumberInput
+}
 export const methods = {
   web3_clientVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_clientVersion'
@@ -967,7 +982,8 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid address')
       return
     }
-
+    // validate input blockNumber that support text such 'latest', 'earliest' ...
+    blockNumber = await validateBlockNumberInput(blockNumber)
     let balance
     try {
       balance = await serviceValidator.getBalance(address, blockNumber)
@@ -2443,7 +2459,7 @@ export const methods = {
         }
         const explorerUrl = config.explorerUrl
         res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
-        /* prettier-ignore */ if (verbose) console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`,'res', JSON.stringify(res.data))
+        /* prettier-ignore */ if (verbose) console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`, 'res', JSON.stringify(res.data))
 
         result = res.data.transactions ? res.data.transactions[0] : null
       }
