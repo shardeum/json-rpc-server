@@ -129,9 +129,12 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
         const message = JSON.parse(data.toString())
         switch(message.method){
           case 'newBlock_produced': {
+            // don't even bother spawning event
+            if(blockSubscriptionList.size === 0) return
+
             const block = message.payload
-            console.log('Received new block from log_server', block);
             subscriptionEventEmitter.emit('evm_newHead_received', block)
+            break;
           }
         }
       }catch(e){
