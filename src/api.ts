@@ -483,6 +483,9 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
     } else if (result.reason === 'Node not active. Rejecting inject.') {
       console.log('Injected to an inactive node. Retrying...')
       retryCount++
+    } else if (result.reason === 'No validators found to forward the transaction') {
+      console.log('No validators found to forward the transaction. Retrying...')
+      retryCount++
     } else {
       return result
     }
