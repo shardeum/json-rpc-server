@@ -9,6 +9,10 @@ const timeInputProcessor = (timestamp: string): number => {
   return new Date(t).getTime()
 }
 
+function sanitizeSqlPayload(input: string): string {
+  return input.replace(/'/g, "''");
+}
+
 type SQLFiltersParam = {
   start?: string | number
   end?: string | number
@@ -20,7 +24,7 @@ type SQLFiltersParam = {
   reason?: string
   injected?: boolean
   accepted?: number
-  success?: boolean
+  success?: boolean | string
   api_name?: string
   nodeUrl?: string
   ip?: string
@@ -35,7 +39,7 @@ interface QueryParams {
   api_name?: string
   reason?: string
   hash?: string
-  success?: boolean
+  success?: boolean | string
 }
 
 type CustomRequest = Request & {
@@ -73,18 +77,23 @@ const prepareSQLFilters = ({
     sql += `AND id = ${id} `
   }
   if (hash) {
-    sql += `AND hash = ${hash} `
+    hash = sanitizeSqlPayload(hash)
+    sql += `AND hash = '${hash}' `
   }
   if (to) {
-    sql += `AND [to]=${to} `
+    to = sanitizeSqlPayload(to)
+    sql += `AND [to]='${to}' `
   }
   if (from) {
-    sql += `AND [from] = ${from} `
+    from = sanitizeSqlPayload(from)
+    sql += `AND [from] = '${from}' `
   }
   if (type) {
-    sql += `AND [type] = ${type} `
+    type = sanitizeSqlPayload(type)
+    sql += `AND [type] = '${type}' `
   }
   if (reason) {
+    reason = sanitizeSqlPayload(reason)
     sql += `AND reason LIKE '%${reason}%' `
   }
   if (injected) {
@@ -97,13 +106,16 @@ const prepareSQLFilters = ({
     sql += `AND success = ${success} `
   }
   if (api_name) {
-    sql += `AND api_name = ${api_name} `
+    api_name = sanitizeSqlPayload(api_name)
+    sql += `AND api_name = '${api_name}' `
   }
   if (nodeUrl) {
-    sql += `AND nodeUrl=${nodeUrl} `
+    nodeUrl = sanitizeSqlPayload(nodeUrl)
+    sql += `AND nodeUrl='${nodeUrl}' `
   }
   if (ip) {
-    sql += `And ip = ${ip} `
+    ip = sanitizeSqlPayload(ip)
+    sql += `And ip = '${ip}' `
   }
   return sql
 }
@@ -143,7 +155,7 @@ router.route('/api-stats').get(async (req: CustomRequest, res: Response) => {
       api_name: req.query.api_name,
       reason: req.query.reason,
       hash: req.query.hash,
-      success: req.query.success,
+      success: req.query.success === 'true' ? true : req.query.injected === 'false' ? false : undefined,
     })
 
     const sqlString =
