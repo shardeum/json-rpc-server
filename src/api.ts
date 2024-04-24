@@ -3511,10 +3511,18 @@ export const methods = {
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getAccessList', args) }
 
     const callObj = args[0]
-    if (!callObj.from) {
-      callObj['from'] = '0x2041B9176A4839dAf7A4DcC6a97BA023953d9ad9'
+    if (!callObj.hasOwnProperty('from')) {
+      callback({ code: -32000, message: 'Missing `from` parameter' }, null)
+      countFailedResponse(api_name, 'Invalid address')
+      return
     }
-    console.log('callObj', callObj)
+    
+    if (!isValidAddress(callObj.from)) {
+      if (verbose) console.log('Invalid params: `from` is not valid address', callObj.from)
+      callback({ code: -32000, message: 'Invalid params: `from` is not valid address' }, null)
+      countFailedResponse(api_name, 'Invalid params: `from` is not valid address')
+      return
+    }
 
     const accessList = await serviceValidator.getAccessList(callObj)
     if (accessList) {
