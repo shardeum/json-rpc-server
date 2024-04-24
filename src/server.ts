@@ -90,9 +90,6 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   app.set('views', clientDirectory)
   app.use('/static', express.static(staticDirectory))
   // app.set('views', clientDirectory);
-  app.get('/dashboard', function (req, res) {
-    return res.sendFile(path.join(clientDirectory, 'index.html'))
-  })
 }
 
 app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
