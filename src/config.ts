@@ -197,5 +197,5 @@ export const CONFIG: Config = {
     ['aalg-warmup']: 20,
   },
   enableBlockCache: false,
-  isDebugMode: true,
+  isDebugMode: false,
 }
