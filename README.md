@@ -42,7 +42,7 @@ If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you mus
 Let’s install the project source code, switch to `dev` branch and follow the below instructions:
 
 ```bash
-git clone https://github.com/shardeum/shardeum-json-rpc
+git clone https://github.com/shardeum/json-rpc-server.git
 cd shardeum-json-rpc
 git switch dev
 ```
@@ -86,7 +86,7 @@ port: 8080
 
 The RPC URL for using Metamask with Remix IDE and for running scripts is <http://localhost:port> (default: <http://localhost:8080>)
 
-If you are contributing to this project, use Shardeum server to create the network from within the [validator repo](https://gitlab.com/shardus/archive/archive-server). You can find more details [here](https://gitlab.com/shardeum/server)
+If you are contributing to this project, use Shardeum server to create the network from within the [validator repo](https://gitlab.com/shardus/archive/archive-server). You can find more details [here](https://github.com/shardeum/shardeum)
 
 ## Cleanup
 
