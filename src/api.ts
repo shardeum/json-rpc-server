@@ -98,11 +98,11 @@ export type DetailedTxStatus = {
   from: string
   injected: boolean
   accepted:
-  | TxStatusCode.BAD_TX
-  | TxStatusCode.SUCCESS
-  | TxStatusCode.BUSY
-  | TxStatusCode.OTHER_FAILURE
-  | boolean
+    | TxStatusCode.BAD_TX
+    | TxStatusCode.SUCCESS
+    | TxStatusCode.BUSY
+    | TxStatusCode.OTHER_FAILURE
+    | boolean
   reason: string
   timestamp: string
   nodeUrl?: string
@@ -172,16 +172,16 @@ type Tx = readableTransaction & {
 
 type TxParam =
   | {
-    readableReceipt: Tx
-    txHash?: string
-    transactionType?: string | number
-  }
-  | {
-    wrappedEVMAccount: {
       readableReceipt: Tx
-      txHash: string
+      txHash?: string
+      transactionType?: string | number
     }
-  }
+  | {
+      wrappedEVMAccount: {
+        readableReceipt: Tx
+        txHash: string
+      }
+    }
 
 function extractTransactionObject(
   bigTransaction: TxParam,
@@ -217,7 +217,44 @@ function extractTransactionObject(
 
   return null
 }
-
+async function getFromBlockInput(fromBlock: string) {
+  if (fromBlock == null || fromBlock === '' || fromBlock === 'earliest') {
+    return '0x0'
+  }
+  const { blockNumber } = await getCurrentBlockInfo()
+  if (fromBlock === 'latest') {
+    return blockNumber
+  }
+  if (!isHex(fromBlock)) {
+    return null
+  }
+  if (parseInt(fromBlock, 16) > parseInt(blockNumber, 16)) {
+    return blockNumber
+  }
+  return fromBlock
+}
+async function getToBlockInput(toBlock: string) {
+  const { blockNumber } = await getCurrentBlockInfo()
+  if (toBlock == null || toBlock === '' || toBlock === 'latest') {
+    return blockNumber
+  }
+  if (!isHex(toBlock)) {
+    return null
+  }
+  if (parseInt(toBlock, 16) > parseInt(blockNumber, 16)) {
+    return blockNumber
+  }
+  return toBlock
+}
+function checkValidHexTopics(topics: any[]) {
+  let flattenTopics = topics.reduce((accumulator, value) => accumulator.concat(value), [])
+  for (var flattenTopic of flattenTopics) {
+    if (flattenTopic && !isHex(flattenTopic)) {
+      return false
+    }
+  }
+  return true
+}
 interface ReceiptObject {
   blockHash: string
   blockNumber: string
@@ -2674,31 +2711,55 @@ export const methods = {
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
-
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-
     const inputFilter = args[0]
-
     if (inputFilter == null) {
       callback(null, null)
       countFailedResponse(api_name, 'filter not found')
       return
     }
     const { address, topics } = parseFilterDetails(inputFilter || {})
+    // Add validate address
+    if (address && address.length !== 42) {
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Invalid address' }, null)
+      countFailedResponse(api_name, 'Invalid address')
+      return
+    }
+    // Add validate topics
+    if (!checkValidHexTopics(topics)) {
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Invalid topics' }, null)
+      countFailedResponse(api_name, 'Invalid topics')
+      return
+    }
+    // Add validate fromBlock and toBlock
+    const fromBlock = await getFromBlockInput(inputFilter.fromBlock)
+    const toBlock = await getToBlockInput(inputFilter.toBlock)
+    if (fromBlock == null || toBlock == null) {
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Invalid block number' }, null)
+      countFailedResponse(api_name, 'Invalid block number')
+      return
+    }
+    if (parseInt(fromBlock, 16) > parseInt(toBlock, 16)) {
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Invalid block' }, null)
+      countFailedResponse(api_name, 'Invalid block')
+      return
+    }
     const currentBlock = await getCurrentBlock()
     const filterId = getFilterId()
     const filterObj: Types.LogFilter = {
       id: filterId,
       address: address,
       topics,
-      fromBlock: inputFilter.fromBlock,
-      toBlock: inputFilter.toBlock,
+      fromBlock,
+      toBlock,
       lastQueriedTimestamp: Date.now(),
       lastQueriedBlock: parseInt(currentBlock.number.toString()),
       createdBlock: parseInt(currentBlock.number.toString()),
     }
-    if (filterObj.fromBlock === 'latest') filterObj.fromBlock = lastBlockInfo.blockNumber
-    if (filterObj.toBlock === 'latest') delete filterObj.toBlock
     const unsubscribe = (): void => void 0
     const internalFilter: Types.InternalFilter = {
       updates: [],
