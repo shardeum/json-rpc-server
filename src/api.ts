@@ -3130,6 +3130,9 @@ export const methods = {
   },
   debug_traceTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceTransaction'
+    if (!config.isDebugMode) {
+      callback(null, "Not in the debug mode.")
+    }
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
@@ -3164,6 +3167,9 @@ export const methods = {
   },
   debug_traceBlockByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByHash'
+    if (!config.isDebugMode) {
+      callback(null, "Not in the debug mode.")
+    }
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
@@ -3234,6 +3240,9 @@ export const methods = {
   },
   debug_traceBlockByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_traceBlockByNumber'
+    if (!config.isDebugMode) {
+      callback(null, "Not in the debug mode.")
+    }
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
@@ -3310,6 +3319,9 @@ export const methods = {
   },
   debug_storageRangeAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt'
+    if (!config.isDebugMode) {
+      callback(null, "Not in the debug mode.")
+    }
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
@@ -3350,6 +3362,9 @@ export const methods = {
   },
   debug_storageRangeAt2: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'debug_storageRangeAt2'
+    if (!config.isDebugMode) {
+      callback(null, "Not in the debug mode.")
+    }
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
       countFailedResponse(api_name, 'Invalid params: non-array args')
