@@ -139,6 +139,10 @@ function isHex(str: string) {
   return regexp.test(str)
 }
 
+function isHexOrEmptyHex(str: string) {
+  return str == '0x' || isHex(str)
+}
+
 // Utility function to ensure arguments are an array
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ensureArrayArgs(args: RequestParamsLike, callback: JSONRPCCallbackTypePlain): args is any[] {
@@ -1856,6 +1860,41 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid params: non-array args')
       return
     }
+    // Check input args not empty
+    const callbackWithErrorMessage = function (errorMessage: string) {
+      const error: JSONRPCError = {
+        code: -32602, // JSON-RPC error code for invalid params
+        message: errorMessage,
+      }
+      callback(error, null)
+      countFailedResponse(api_name, errorMessage)
+    }
+    if (args.length == 0) {
+      callbackWithErrorMessage('Invalid params: empty array args')
+      return
+    }
+
+    // Check if input values are in hex format
+    const arg = args[0]
+    if (arg['from'] && !isValidAddress(arg['from'])) {
+      callbackWithErrorMessage('Invalid params: from address is ill-formatted')
+      return
+    }
+
+    if (arg['to'] && !isValidAddress(arg['to'])) {
+      callbackWithErrorMessage('Invalid params: to address is ill-formatted')
+      return
+    }
+    if (arg['data'] && !isHexOrEmptyHex(arg['data'])) {
+      callbackWithErrorMessage('Invalid params: data must be hex format')
+      return
+    }
+
+    if (arg['value'] && !isHexOrEmptyHex(arg['value'])) {
+      callbackWithErrorMessage('Invalid params: value must be hex format')
+      return
+    }
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
