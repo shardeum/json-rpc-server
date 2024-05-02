@@ -651,7 +651,7 @@ async function injectAndRecordTx(
             nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status ?? response.status
+            status: injectResult.status
           })
         }
 
@@ -670,7 +670,7 @@ async function injectAndRecordTx(
             nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status,
+            status: injectResult.status
           })
         } else {
           countInjectTxRejections('No injection result')
@@ -687,9 +687,9 @@ async function injectAndRecordTx(
           reject({ nodeUrl: baseUrl, error: 'Unable inject transaction to the network' })
         }
       })
-      .catch((e: Error) => {
-        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
-        countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
+      .catch((error) => {
+        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + error?.message)
+        countInjectTxRejections('Caught Exception: ' + trimInjectRejection(error?.message))
 
         if (config.recordTxStatus)
           recordTxStatus({
@@ -702,7 +702,12 @@ async function injectAndRecordTx(
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware l
             nodeUrl: baseUrl,
           })
-        reject({ nodeUrl: baseUrl, error: 'Unable inject transaction to the network' })
+        resolve({
+          nodeUrl: baseUrl,
+          reason: error.response?.data?.reason ?? 'Unable inject transaction to the network',
+          status: error.response?.status,
+          success: false
+        })
       })
   })
 }
