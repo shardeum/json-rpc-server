@@ -18,7 +18,7 @@ import {
   sleep,
   cleanBadNodes,
   initSyncTime,
-  updateEdgeNodeConfig,
+  updateRequestRetries,
 } from './utils'
 import { router as logRoute } from './routes/log'
 import { router as authenticate } from './routes/authenticate'
@@ -208,12 +208,12 @@ setupArchiverDiscovery({
     debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
     setConsensorNode()
     initSyncTime()
-    updateEdgeNodeConfig()
+    updateRequestRetries()
     setInterval(updateNodeList, config.nodelistRefreshInterval)
     setInterval(saveTxStatus, 5000)
     setInterval(checkArchiverHealth, 60000)
     setInterval(cleanBadNodes, 60000)
-    setInterval(updateEdgeNodeConfig, 60000 * 5)
+    setInterval(updateRequestRetries, 60000 * 5)
     extendedServer.listen(port, function () {
       console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
       setupDatabase()

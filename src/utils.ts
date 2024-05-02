@@ -44,8 +44,6 @@ export const node = {
   port: 9001,
 }
 
-let rotationEdgeToAvoid = 0
-
 const badNodesMap: Map<string, number> = new Map()
 
 const verbose = config.verbose
@@ -151,18 +149,20 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
 }
 
 export function removeFromNodeList(ip: string, port: string): void {
+  console.log(`Removing node ${ip}:${port} from nodeList`)
   nodeList = nodeList.filter((node) => node.ip !== ip || node.port !== Number(port))
+  console.log(nodeList.map((node) => `${node.port}`))
 }
 
-export async function updateEdgeNodeConfig(): Promise<void> {
-  console.log(`Updating rotationEdgeToAvoid configuration`)
+export async function updateRequestRetries(): Promise<void> {
+  console.log(`Updating defaultRequestRetry configuration`)
 
   const res = await requestWithRetry(RequestMethod.Get, `/netconfig`)
 
   if (res.data && res.data.config) {
     const newRotationEdgeToAvoid = res.data.config.p2p.rotationEdgeToAvoid
-    rotationEdgeToAvoid = newRotationEdgeToAvoid
-    console.log(`Setting rotationEdgeToAvoid to ${newRotationEdgeToAvoid}`)
+    config.defaultRequestRetry = newRotationEdgeToAvoid * 2
+    console.log(`Setting request retries to ${config.defaultRequestRetry}`)
   } else if (res.data && res.data.error) {
     console.log(`Error getting rotationEdgeToAvoid configuration: ${res.data.error}`)
   }
