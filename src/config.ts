@@ -101,6 +101,7 @@ type Config = {
   }
 
   enableBlockCache: boolean
+  useRoundRobinConsensorSelection: boolean
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -196,4 +197,5 @@ export const CONFIG: Config = {
     ['aalg-warmup']: 20,
   },
   enableBlockCache: false,
+  useRoundRobinConsensorSelection: true,
 }
