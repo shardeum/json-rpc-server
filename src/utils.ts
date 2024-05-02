@@ -282,8 +282,8 @@ export async function requestWithRetry(
           if (typeof res.data === 'object') res.data.nodeUrl = nodeUrl
           return res //break
         }
-      } else if (res.data.error === 'node close to rotation edges') {
-        console.log(`${nodeUrl} Node is close to rotation edges. Changing node...`)
+      } else if (res.status === 503) {
+        if (res.data.error) console.log(`${nodeUrl} ${res.data.error}`)
         if (nodeIpPort) {
           const urlParts = nodeIpPort.split(':')
           removeFromNodeList(urlParts[0], urlParts[1])

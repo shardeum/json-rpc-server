@@ -514,8 +514,8 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
     result = await injectAndRecordTx(txHash, tx, args)
     if (result.success) {
       return result
-    } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
-      console.log('Node is close to rotation edges. Rotating node...')
+    } else if (result.status === 503) {
+      if (result?.reason) console.log(result.reason)
       if (result.nodeUrl) {
         const urlParts = result.nodeUrl.split(':')
         removeFromNodeList(urlParts[0], urlParts[1])
@@ -651,7 +651,7 @@ async function injectAndRecordTx(
             nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status,
+            status: injectResult.status ?? response.status
           })
         }
 
@@ -3632,7 +3632,7 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid address')
       return
     }
-    
+
     if (!isValidAddress(callObj.from)) {
       if (verbose) console.log('Invalid params: `from` is not valid address', callObj.from)
       callback({ code: -32000, message: 'Invalid params: `from` is not valid address' }, null)
