@@ -276,7 +276,7 @@ class Collector extends BaseExternal {
       //instead of look up by key we need to give the inp type and block
       const cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
-      //should we retry for tranactions if there are not any??
+      //should we retry for transactions if there are not any??
       if (cachedBlock) {
         //if we dont need details we must adjust the return value that we got from cache
         if (details === false) {
@@ -343,7 +343,7 @@ class Collector extends BaseExternal {
       // Now we have the block gas used then return it to the RPC method
       resultBlock.gasUsed = blockGasUsed
       // Start to calculate the transaction root fot this block
-      resultBlock.transactionsRoot = await this.calculateTransactionRoot(readableBlock.tranactions)
+      resultBlock.transactionsRoot = await this.calculateTransactionRoot(resultBlock.transactions)
 
       if (CONFIG.enableBlockCache)
         this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
