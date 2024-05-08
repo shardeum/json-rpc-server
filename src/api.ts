@@ -1225,22 +1225,29 @@ export const methods = {
     try {
       const address = args[0]
       const res = await getAccountFromValidator(address)
-      const account = res.account
       nodeUrl = res.nodeUrl
-      console.log(nodeUrl)
-      console.log(account?.nonce)
-      if (account) {
-        const nonce = parseInt(account.nonce)
-        let result = '0x' + nonce.toString(16)
-        if (result === '0x') result = '0x0'
-        if (verbose) {
-          console.log('account.nonce', account.nonce)
-          console.log('Transaction count', result)
-        }
+      if ('account' in res) {
+        const account = res.account
+        if (!account) {
+          // This covers the case where this is an uninitialized EOA
+          // and our validators return { account: null }
+          // hence returning nonce as 0x0
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, '0x0')
+          countSuccessResponse(api_name, 'success', 'validator')
+        } else {
+          const nonce = parseInt(account.nonce)
+          let result = '0x' + nonce.toString(16)
+          if (result === '0x') result = '0x0'
+          if (verbose) {
+            console.log('account.nonce', account.nonce)
+            console.log('Transaction count', result)
+          }
 
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-        callback(null, result)
-        countSuccessResponse(api_name, 'success', 'validator')
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
+          callback(null, result)
+          countSuccessResponse(api_name, 'success', 'validator')
+        }
       } else {
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         callback({ code: -32001, message: 'Unable to get transaction count' }, null)
