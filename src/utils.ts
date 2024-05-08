@@ -317,6 +317,11 @@ export async function requestWithRetry(
     if (retry <= maxRetry) {
       if (verbose) console.log(`(Attempt ${retry}) Node is unable to respond. Trying a new node.`)
       await waitRandomSecond()
+    } else if (route.includes('/account/')) {
+      // Not able to find account after all retries
+      // This can happen in the case of accounts that have not been used yet
+      // or are uninitialized. Return null account to be handled by the caller
+      return { data: { account: null } }
     } else {
       if (verbose) console.log('Request was unsuccessful after all retries.')
     }
@@ -1038,9 +1043,12 @@ export async function getTransactionReceipt(hash: string) {
 */
 
 export function getFilterId(): string {
-  return '0x' + createHash('sha256')
-    .update(randomBytes(16).toString('hex') + Date.now())
-    .digest('hex')
+  return (
+    '0x' +
+    createHash('sha256')
+      .update(randomBytes(16).toString('hex') + Date.now())
+      .digest('hex')
+  )
 }
 
 export function parseFilterDetails(filter: Filter): { address: string; topics: string[] } {
