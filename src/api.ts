@@ -1063,9 +1063,8 @@ export const methods = {
           countSuccessResponse(api_name, 'success', 'validator')
         } else {
           if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
-          const SHD = intStringToHex(account.balance)
-          if (verbose) console.log('SHD', typeof SHD, SHD)
-          balance = intStringToHex(account.balance)
+          const balance = intStringToHex(account.balance)
+          if (verbose) console.log('SHD', typeof balance, balance)
           logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
           callback(null, balance)
           countSuccessResponse(api_name, 'success', 'validator')
@@ -3632,7 +3631,7 @@ export const methods = {
       countFailedResponse(api_name, 'Invalid address')
       return
     }
-    
+
     if (!isValidAddress(callObj.from)) {
       if (verbose) console.log('Invalid params: `from` is not valid address', callObj.from)
       callback({ code: -32000, message: 'Invalid params: `from` is not valid address' }, null)
