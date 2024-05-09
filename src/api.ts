@@ -2259,6 +2259,29 @@ export const methods = {
       // result found, skipping querying from archiver, validator and explorer.
       success = true
       retry = 100
+      // start to query getBlock to get transactionIndex
+      if (result) {
+        try {
+          // getBlock
+          const txBlockNumber = result.blockNumber
+          const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
+          if (blockResp) {
+            const txIndex = blockResp.transactions.findIndex((tx) => tx === txHash)
+            if (txIndex !== -1) {
+              result.transactionIndex = '0x' + txIndex.toString(16)
+            }
+          }
+        } catch (e) {
+          if (verbose)
+            console.log(
+              'try to get transactionIndex using collector but fail. Return default transactionIndex'
+            )
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, result)
+          countSuccessResponse(api_name, 'success', 'collector')
+          return
+        }
+      }
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
       countSuccessResponse(api_name, 'success', 'collector')
@@ -2512,6 +2535,29 @@ export const methods = {
       } else if (!isErr(result)) {
         // result found, skipping querying from archiver, validator and explorer.
         result = extractTransactionReceiptObject(result)
+        // start to query getBlock to get transactionIndex
+        if (result) {
+          try {
+            // getBlock
+            const txBlockNumber = result.blockNumber
+            const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
+            if (blockResp) {
+              const txIndex = blockResp.transactions.findIndex((tx) => tx === txHash)
+              if (txIndex !== -1) {
+                result.transactionIndex = '0x' + txIndex.toString(16)
+              }
+            }
+          } catch (e) {
+            if (verbose)
+              console.log(
+                'try to get transactionIndex using collector but fail. Return default transactionIndex'
+              )
+            logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+            callback(null, result)
+            countSuccessResponse(api_name, 'success', 'collector')
+            return
+          }
+        }
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')
