@@ -75,7 +75,7 @@ export async function initSyncTime() {
       host,
       timeout: 10000,
     })
-    ntpOffset = time.t
+    ntpOffset = Math.floor(time.t)
     return
   }
 }
