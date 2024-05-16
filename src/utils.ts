@@ -161,7 +161,9 @@ export async function updateRequestRetries(): Promise<void> {
 
   if (res.data && res.data.config) {
     const newRotationEdgeToAvoid = res.data.config.p2p.rotationEdgeToAvoid
-    config.defaultRequestRetry = newRotationEdgeToAvoid * 2
+    if (newRotationEdgeToAvoid > config.defaultRequestRetry) {
+        config.defaultRequestRetry = newRotationEdgeToAvoid * 2
+    }
     console.log(`Setting request retries to ${config.defaultRequestRetry}`)
   } else if (res.data && res.data.error) {
     console.log(`Error getting rotationEdgeToAvoid configuration: ${res.data.error}`)
