@@ -17,7 +17,7 @@ import { BlockCacheManager } from '../cache/BlockCacheManager'
 import { sleep } from '../utils'
 import { BaseTrie } from 'merkle-patricia-tree'
 import RLP from 'rlp'
-import { BigNumber } from 'ethers'
+import { BigNumber } from '@ethersproject/bignumber'
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
 
@@ -247,7 +247,7 @@ class Collector extends BaseExternal {
     return await this.inner_getBlock(blockSearchValue, blockSearchType, details)
   }
 
-  async calculateTransactionRoot(txns: String[]): Promise<String> {
+  async calculateTransactionRoot(txns: string[]): Promise<string> {
     const trie = new BaseTrie()
     for (let i = 0; i < txns.length; i++) {
       // i now is also the transactionIndex of transaction in the block
