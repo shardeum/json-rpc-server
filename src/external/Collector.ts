@@ -468,7 +468,7 @@ class Collector extends BaseExternal {
         from: readableReceipt.from,
         gas: readableReceipt.gasUsed,
         value: readableReceipt.value,
-        input: readableReceipt.input,
+        input: readableReceipt.data,
         gasPrice: readableReceipt.gasPrice,
         chainId: '0x' + CONFIG.chainId.toString(16),
         transactionIndex: readableReceipt.transactionIndex,
