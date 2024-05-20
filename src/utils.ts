@@ -75,7 +75,12 @@ export async function initSyncTime() {
       host,
       timeout: 10000,
     })
-    ntpOffset = time.t
+
+    ntpOffset = Math.floor(time.t)
+
+    if (isNaN(ntpOffset)) {
+      ntpOffset = 0
+    }
     return
   }
 }
