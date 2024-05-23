@@ -73,3 +73,25 @@ describe('GET /counts-reset', () => {
         expect(res.text).toContain(`counts reset`)
     })
 })
+
+describe('GET /api/subscribe', () => {
+    it('should return invalid ip or port response when missing parameters', async () => {
+        const res = await request(extendedServer).get('/api/subscribe');
+        expect(res.status).toBe(200);
+        expect(res.text).toBe('Invalid ip or port');
+    });
+
+    it('should return node subscription rejected for invalid ip and port', async () => {
+        const res = await request(extendedServer).get('/api/subscribe').query({ port: '9001' });
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('Ip not in the nodelist');
+    });
+});
+
+describe('GET /api/health', () => {
+    it('should return healthy status', async () => {
+        const res = await request(extendedServer).get('/api/health');
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ healthy: true });
+    });
+});
