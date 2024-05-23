@@ -411,7 +411,9 @@ function rotateConsensorNode(): void {
   let success = false
   while (count < maxRetry && !success) {
     count++
-    const consensor: Node | null = getNextConsensorNode() //getRandomConsensorNode()
+    const consensor: Node | null = config.useRoundRobinConsensorSelection
+      ? getNextConsensorNode()
+      : getRandomConsensorNode()
     const ipPort = `${consensor?.ip}:${consensor?.port}`
     if (consensor && !badNodesMap.has(ipPort)) {
       let nodeIp = consensor.ip
