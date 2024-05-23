@@ -514,8 +514,8 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
     result = await injectAndRecordTx(txHash, tx, args)
     if (result.success) {
       return result
-    } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
-      console.log('Node is close to rotation edges. Rotating node...')
+    } else if (result.status === 503) {
+      if (result?.reason) console.log(result.reason)
       if (result.nodeUrl) {
         const urlParts = result.nodeUrl.split(':')
         removeFromNodeList(urlParts[0], urlParts[1])
@@ -651,7 +651,7 @@ async function injectAndRecordTx(
             nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status,
+            status: injectResult.status
           })
         }
 
@@ -670,7 +670,7 @@ async function injectAndRecordTx(
             nodeUrl: baseUrl,
             success: injectResult ? injectResult.success : false,
             reason: injectResult.reason,
-            status: injectResult.status,
+            status: injectResult.status
           })
         } else {
           countInjectTxRejections('No injection result')
@@ -687,9 +687,9 @@ async function injectAndRecordTx(
           reject({ nodeUrl: baseUrl, error: 'Unable inject transaction to the network' })
         }
       })
-      .catch((e: Error) => {
-        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
-        countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
+      .catch((error) => {
+        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + error?.message)
+        countInjectTxRejections('Caught Exception: ' + trimInjectRejection(error?.message))
 
         if (config.recordTxStatus)
           recordTxStatus({
@@ -702,7 +702,12 @@ async function injectAndRecordTx(
             ip: args[1000], // this index slot is reserved for ip, check injectIP middleware l
             nodeUrl: baseUrl,
           })
-        reject({ nodeUrl: baseUrl, error: 'Unable inject transaction to the network' })
+        resolve({
+          nodeUrl: baseUrl,
+          reason: error.response?.data?.reason ?? 'Unable inject transaction to the network',
+          status: error.response?.status,
+          success: false
+        })
       })
   })
 }
