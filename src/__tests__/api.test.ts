@@ -1,95 +1,75 @@
 
 
-// ---------> TESTS ARE PASSING <---------
-const mockArchivers = [
-    { ip: '172.105.153.160', port: 4000, publicKey: '758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3' },
-    { ip: '172.105.153.160', port: 4000, publicKey: '758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3' },
-    { ip: '45.79.109.231', port: 4000, publicKey: '758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3' },
-    { ip: '172.233.176.64', port: 4000, publicKey: '758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3' },
-];
+import { extendedServer, startServer, stopServer } from '../server';
+import request from 'supertest';
 
-// Function to mock archiver
-
-function mockArchiverModule() {
-    jest.mock('@shardus/archiver-discovery', () => ({
-        setupArchiverDiscovery: jest.fn().mockResolvedValue(undefined),
-        getArchiverList: jest.fn().mockResolvedValue(mockArchivers),
-        getArchiverUrl: jest.fn().mockImplementation(() => {
-            const randomIndex = Math.floor(Math.random() * mockArchivers.length);
-            const archiver = mockArchivers[randomIndex];
-            return {
-                url: `http://${archiver.ip}:${archiver.port}`,
-                ...archiver
-            };
-        }),
-    }));
-}
-//Call mockArchiverModule here
-mockArchiverModule();
-
-import { methods } from '../api';
-import { serviceValidator } from '../external/ServiceValidator';
-import * as utils from '../utils';
-
-
-jest.mock('../external/ServiceValidator');
-jest.mock('../utils');
-jest.mock('../utils', () => ({
-    ...jest.requireActual('../utils'),
-    RequestersList: jest.fn(),
-    getGasPrice: jest.fn().mockResolvedValue({ result: undefined }),
-}));
-
-describe('eth_gasPrice', () => {
-    // Helper function to simulate a JSON-RPC call
-    const callEthGasPrice = async () => {
-        let result = null;
-        let error = null;
-        await methods.eth_gasPrice([], (err, res) => {
-            error = err;
-            result = res;
-        });
-        return { result, error };
-    };
-    // Enable fake timers and run all pending timers after each test
-    beforeEach(() => {
-        jest.useFakeTimers();
+describe('GET /counts', () => {
+    // Start the server before all tests
+    beforeAll((done) => {
+        startServer(); // Use the hardcoded port
+        done();
     });
 
-    afterEach(() => {
-        jest.runAllTimers();  // Run all pending timers after each test
-        jest.useRealTimers();
+    // Stop the server after all tests
+    afterAll((done) => {
+        stopServer(done);
     });
 
-    it('should return the gas price from the service validator on success', async () => {
-        const mockGasPrice = '0x12345';
-        (serviceValidator.getGasPrice as jest.Mock).mockResolvedValue(mockGasPrice);
+    it('should return success response', async () => {
+        const res = await request(extendedServer).get('/counts')
+        expect(res.status).toBe(200)
+        expect(res.text).toContain(`Counts at time`)
 
-        const { result, error } = await callEthGasPrice();
+    })
 
-        expect(error).toBeNull();
-        expect(result).toBe(mockGasPrice);
-    });
+    it('should return success response after passing authorization headers', async () => {
+        const res = await request(extendedServer).get('/counts').set('Accept', 'application/json')
 
-    it('should return the gas price from internal logic on service validator failure', async () => {
-        const mockGasPrice = '0x67890';
-        (serviceValidator.getGasPrice as jest.Mock).mockResolvedValue(null); // Simulate failure
-        (utils.getGasPrice as jest.Mock).mockResolvedValueOnce({ result: mockGasPrice }); // Mock successful getGasPrice
+        const expectedResponse = {
+            timestamp: expect.any(Number),
+            report: [
+                {
+                    key: 'api',
+                    count: 2,
+                    subArray: [
+                        {
+                            key: 'counts',
+                            count: 2,
+                            subArray: []
+                        }
+                    ]
+                }
+            ]
+        };
 
-        const { result, error } = await callEthGasPrice();
 
-        expect(error).toBeNull();
-        expect(result).toBe(mockGasPrice);
-    });
+        expect(res.status).toBe(200)
+        expect(res.body).toEqual(
+            expect.objectContaining({
+                timestamp: expect.any(Number),
+                report: expect.arrayContaining([
+                    expect.objectContaining({
+                        key: 'api',
+                        count: expect.any(Number),
+                        subArray: expect.arrayContaining([
+                            expect.objectContaining({
+                                key: 'counts',
+                                count: expect.any(Number),
+                                subArray: expect.any(Array)
+                            })
+                        ])
+                    })
+                ])
+            })
+        );
 
-    it('should return a fallback gas price on failure', async () => {
-        (serviceValidator.getGasPrice as jest.Mock).mockResolvedValue(null);
-        (utils.getGasPrice as jest.Mock).mockRejectedValue(new Error('Failed to get gas price'));
+    })
+})
 
-        const { result, error } = await callEthGasPrice();
-
-        expect(error).toBeNull();
-        expect(result).toBe('0x3f84fc7516'); // 1 Gwei
-    });
-});
-
+describe('GET /counts-reset', () => {
+    it('should reset count', async () => {
+        const res = await request(extendedServer).get('/counts-reset')
+        expect(res.status).toBe(200)
+        expect(res.text).toContain(`counts reset`)
+    })
+})

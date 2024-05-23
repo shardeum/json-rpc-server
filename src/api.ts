@@ -1,7 +1,8 @@
 import axios, { AxiosError } from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex, isHexPrefixed, isHexString, isValidAddress, keccak256 } from 'ethereumjs-util'
+import { BN, bufferToHex, isHexPrefixed, isHexString, keccak256 } from 'ethereumjs-util'
+import { isAddress } from 'web3-validator'
 import {
   calculateInternalTxHash,
   getAccountFromValidator,
@@ -46,6 +47,7 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
+import { log } from 'console'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -98,11 +100,11 @@ export type DetailedTxStatus = {
   from: string
   injected: boolean
   accepted:
-    | TxStatusCode.BAD_TX
-    | TxStatusCode.SUCCESS
-    | TxStatusCode.BUSY
-    | TxStatusCode.OTHER_FAILURE
-    | boolean
+  | TxStatusCode.BAD_TX
+  | TxStatusCode.SUCCESS
+  | TxStatusCode.BUSY
+  | TxStatusCode.OTHER_FAILURE
+  | boolean
   reason: string
   timestamp: string
   nodeUrl?: string
@@ -176,16 +178,16 @@ type Tx = readableTransaction & {
 
 type TxParam =
   | {
-      readableReceipt: Tx
-      txHash?: string
-      transactionType?: string | number
-    }
+    readableReceipt: Tx
+    txHash?: string
+    transactionType?: string | number
+  }
   | {
-      wrappedEVMAccount: {
-        readableReceipt: Tx
-        txHash: string
-      }
+    wrappedEVMAccount: {
+      readableReceipt: Tx
+      txHash: string
     }
+  }
 
 function extractTransactionObject(
   bigTransaction: TxParam,
@@ -1019,13 +1021,18 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get address')
       return
     }
-    if (!isValidAddress(address)) {
+    if (!isAddress(address)) {
+      console.log('Invalid address', address)
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
       countFailedResponse(api_name, 'Invalid address')
       return
     }
+
+    console.log('blockNumber', blockNumber)
+    console.log('address', address);
+
     // validate input blockNumber that support text such 'latest', 'earliest' ...
     blockNumber = await validateBlockNumberInput(blockNumber)
     let balance
@@ -1196,7 +1203,7 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get address')
       return
     }
-    if (!isValidAddress(address)) {
+    if (!isAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
@@ -1462,7 +1469,7 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get contract address')
       return
     }
-    if (!isValidAddress(contractAddress)) {
+    if (!isAddress(contractAddress)) {
       console.log('Invalid contract address', contractAddress)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x')
@@ -1882,12 +1889,12 @@ export const methods = {
 
     // Check if input values are in hex format
     const arg = args[0]
-    if (arg['from'] && !isValidAddress(arg['from'])) {
+    if (arg['from'] && !isAddress(arg['from'])) {
       callbackWithErrorMessage('Invalid params: from address is ill-formatted')
       return
     }
 
-    if (arg['to'] && !isValidAddress(arg['to'])) {
+    if (arg['to'] && !isAddress(arg['to'])) {
       callbackWithErrorMessage('Invalid params: to address is ill-formatted')
       return
     }
@@ -3639,7 +3646,7 @@ export const methods = {
       return
     }
 
-    if (!isValidAddress(callObj.from)) {
+    if (!isAddress(callObj.from)) {
       if (verbose) console.log('Invalid params: `from` is not valid address', callObj.from)
       callback({ code: -32000, message: 'Invalid params: `from` is not valid address' }, null)
       countFailedResponse(api_name, 'Invalid params: `from` is not valid address')
