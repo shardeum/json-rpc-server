@@ -299,7 +299,6 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
 
       const response = await axios.get(blockQuery).then((response) => response.data)
-      console.log('blockQuery', blockQuery, response)
       if (!response.success) return null
 
       const { readableBlock, number } = response
@@ -329,11 +328,19 @@ class Collector extends BaseExternal {
         .then((response) => {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
-            const thisDecodeTransaction = this.decodeTransaction(tx)
-            blockGasUsed = BigNumber.from(blockGasUsed).add(thisDecodeTransaction.gas).toHexString()
-            //need to review the safety of this for caching and support that this could change!
+            const decodedTx = this.decodeTransaction(tx)
+            let gasUsedByThisTx = decodedTx.gas
+            if (
+              tx.wrappedEVMAccount &&
+              tx.wrappedEVMAccount.readableReceipt &&
+              tx.wrappedEVMAccount.readableReceipt.gasUsed
+            ) {
+              gasUsedByThisTx = tx.wrappedEVMAccount.readableReceipt.gasUsed
+            }
+            blockGasUsed = BigNumber.from(blockGasUsed).add(gasUsedByThisTx).toHexString()
+            // need to review the safety of this for caching and support that this could change!
             // UPDATE: We're now handling the response as per the "details" flag by mutating the "transactions" field. The default cache storage contains the full transaction details.
-            return thisDecodeTransaction
+            return decodedTx
           })
         })
         .catch((e) => {
@@ -477,7 +484,6 @@ class Collector extends BaseExternal {
     nestedCountersInstance.countEvent('collector', 'decodeTransaction')
     let result: any = null
     let txObj = null
-
     try {
       const raw = tx.originalTxData.tx.raw as string
       txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
