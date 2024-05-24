@@ -16,7 +16,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { BlockCacheManager } from '../cache/BlockCacheManager'
 import { sleep } from '../utils'
 import { BaseTrie } from 'merkle-patricia-tree'
-import RLP from 'rlp'
+import * as RLP from 'rlp'
 import { BigNumber } from '@ethersproject/bignumber'
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
@@ -251,12 +251,12 @@ class Collector extends BaseExternal {
     const trie = new BaseTrie()
     for (let i = 0; i < txns.length; i++) {
       // i now is also the transactionIndex of transaction in the block
+      // eslint-disable-next-line security/detect-object-injection
       const currTxnHash = txns[i]
       const path = Buffer.from(RLP.encode(i))
       await trie.put(path, Buffer.from(currTxnHash))
     }
     const evaluatedTxnRoot = '0x' + trie.root.toString('hex')
-    console.log(evaluatedTxnRoot)
     return evaluatedTxnRoot
   }
 
@@ -299,6 +299,7 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
 
       const response = await axios.get(blockQuery).then((response) => response.data)
+      console.log('blockQuery', blockQuery, response)
       if (!response.success) return null
 
       const { readableBlock, number } = response
@@ -328,7 +329,7 @@ class Collector extends BaseExternal {
         .then((response) => {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
-            let thisDecodeTransaction = this.decodeTransaction(tx)
+            const thisDecodeTransaction = this.decodeTransaction(tx)
             blockGasUsed = BigNumber.from(blockGasUsed).add(thisDecodeTransaction.gas).toHexString()
             //need to review the safety of this for caching and support that this could change!
             // UPDATE: We're now handling the response as per the "details" flag by mutating the "transactions" field. The default cache storage contains the full transaction details.
@@ -343,7 +344,9 @@ class Collector extends BaseExternal {
       // Now we have the block gas used then return it to the RPC method
       resultBlock.gasUsed = blockGasUsed
       // Start to calculate the transaction root fot this block
-      resultBlock.transactionsRoot = await this.calculateTransactionRoot(resultBlock.transactions)
+      resultBlock.transactionsRoot = await this.calculateTransactionRoot(
+        resultBlock.transactions.map((tx: any) => tx.hash)
+      )
 
       if (CONFIG.enableBlockCache)
         this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
