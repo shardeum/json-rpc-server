@@ -1,8 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import WebSocket from 'ws'
 import { serializeError } from 'eth-rpc-errors'
-import { BN, bufferToHex, isHexPrefixed, isHexString, keccak256 } from 'ethereumjs-util'
-import { isAddress } from 'web3-validator'
+import { BN, bufferToHex, isHexPrefixed, isHexString, isValidAddress, keccak256 } from 'ethereumjs-util'
 import {
   calculateInternalTxHash,
   getAccountFromValidator,
@@ -47,7 +46,6 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
-import { log } from 'console'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -1021,18 +1019,13 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get address')
       return
     }
-    if (!isAddress(address)) {
-      console.log('Invalid address', address)
+    if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
       countFailedResponse(api_name, 'Invalid address')
       return
     }
-
-    console.log('blockNumber', blockNumber)
-    console.log('address', address);
-
     // validate input blockNumber that support text such 'latest', 'earliest' ...
     blockNumber = await validateBlockNumberInput(blockNumber)
     let balance
@@ -1203,7 +1196,7 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get address')
       return
     }
-    if (!isAddress(address)) {
+    if (!isValidAddress(address)) {
       if (verbose) console.log('Invalid address', address)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback({ code: -32000, message: 'Invalid address' }, null)
@@ -1469,7 +1462,7 @@ export const methods = {
       countFailedResponse(api_name, 'Unable to get contract address')
       return
     }
-    if (!isAddress(contractAddress)) {
+    if (!isValidAddress(contractAddress)) {
       console.log('Invalid contract address', contractAddress)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, '0x')
@@ -1889,12 +1882,12 @@ export const methods = {
 
     // Check if input values are in hex format
     const arg = args[0]
-    if (arg['from'] && !isAddress(arg['from'])) {
+    if (arg['from'] && !isValidAddress(arg['from'])) {
       callbackWithErrorMessage('Invalid params: from address is ill-formatted')
       return
     }
 
-    if (arg['to'] && !isAddress(arg['to'])) {
+    if (arg['to'] && !isValidAddress(arg['to'])) {
       callbackWithErrorMessage('Invalid params: to address is ill-formatted')
       return
     }
@@ -3646,7 +3639,7 @@ export const methods = {
       return
     }
 
-    if (!isAddress(callObj.from)) {
+    if (!isValidAddress(callObj.from)) {
       if (verbose) console.log('Invalid params: `from` is not valid address', callObj.from)
       callback({ code: -32000, message: 'Invalid params: `from` is not valid address' }, null)
       countFailedResponse(api_name, 'Invalid params: `from` is not valid address')

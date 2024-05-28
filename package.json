@@ -4,7 +4,7 @@
   "description": "JSON RPC server for Shardeum",
   "main": "src/server.js",
   "scripts": {
-    "test": "NODE_ENV=test jest --silent",
+     "test": "NODE_ENV=test jest --detectOpenHandles --silent ",
     "start": "npm run compile && node dist/src/server.js",
     "dev": "nodemon",
     "compile": "tsc -p .",

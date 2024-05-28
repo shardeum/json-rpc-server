@@ -7,8 +7,6 @@ import { collectorAPI } from './Collector'
 import { Err, NewErr, NewInternalErr } from './Err'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { JSONRPCError } from 'jayson'
-import { log } from 'console'
-import { logEventEmitter } from '../logger'
 
 class ServiceValidator extends BaseExternal {
   cachedLatestBlock: { blockNumber: string; blockTimestamp: string; cachedAt: number } | null = null
