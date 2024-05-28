@@ -1,7 +1,5 @@
-
-
 import request from 'supertest';
-import { extendedServer } from '../../server';
+import { extendedServer } from '../server';
 
 describe('GET /counts', () => {
 

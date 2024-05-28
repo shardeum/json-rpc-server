@@ -24,8 +24,8 @@ describe('POST / eth_getTransactionCount', () => {
             .send({
                 jsonrpc: '2.0',
                 method: 'eth_getTransactionCount',
-                params: ['0x742d35Cc6634C0532925a3b844Bc454e4438f44e', 'latest'],
-                id: 4,
+                params: ['0xCB65445D84D15F703813a2829bD1FD836942c9B7', 'latest'],
+                id: 2,
             });
         expect(response.status).toBe(200);
         expect(response.body.result).toBe('0x0');
