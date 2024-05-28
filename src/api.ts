@@ -2266,7 +2266,14 @@ export const methods = {
           const txBlockNumber = result.blockNumber
           const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
           if (blockResp) {
-            const txIndex = blockResp.transactions.findIndex((tx) => tx === txHash)
+            const transactions = blockResp.transactions
+            const txIndex = transactions.findIndex((tx) => {
+              if (typeof tx === 'string') {
+                return false
+              }
+              return tx.hash.toString() === txHash
+            })
+            // console.log("txIndex", txIndex)
             if (txIndex !== -1) {
               result.transactionIndex = '0x' + txIndex.toString(16)
             }
@@ -2282,6 +2289,7 @@ export const methods = {
           return
         }
       }
+      console.log('result', result)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
       countSuccessResponse(api_name, 'success', 'collector')
@@ -2542,7 +2550,14 @@ export const methods = {
             const txBlockNumber = result.blockNumber
             const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
             if (blockResp) {
-              const txIndex = blockResp.transactions.findIndex((tx) => tx === txHash)
+              const transactions = blockResp.transactions
+              const txIndex = transactions.findIndex((tx) => {
+                if (typeof tx === 'string') {
+                  return false
+                }
+                return tx.hash.toString() === txHash
+              })
+              // console.log("txIndex", txIndex)
               if (txIndex !== -1) {
                 result.transactionIndex = '0x' + txIndex.toString(16)
               }
