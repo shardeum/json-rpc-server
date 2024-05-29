@@ -174,19 +174,9 @@ app.use('/log', logRoute);
 app.use('/authenticate', authenticate);
 app.use(server.middleware());
 
-// export const startServer = () => {
-//   extendedServer.listen(port, function () {
-//     console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`);
-//     setupDatabase();
-//     setupLogEvents();
-//     setupSubscriptionEventHandlers();
-//     setupEvmLogProviderConnectionStream();
-//   });
-// };
-
 export const startServer = () => {
   if (process.env.NODE_ENV !== "test") {
-    extendedServer.listen(8081, function () {
+    extendedServer.listen(port, function () {
       console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`);
       setupDatabase();
       setupLogEvents();
