@@ -1,5 +1,3 @@
-
-
 import request from 'supertest';
 import { extendedServer } from '../../server';
 
@@ -40,4 +38,3 @@ describe('JSON-RPC Methods', () => {
         // });
     });
 });
-

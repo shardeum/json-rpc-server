@@ -1,14 +1,14 @@
 import request from 'supertest';
 import { extendedServer } from '../../server';
 
-describe('POST / eth_getTransactionCount', () => {
-    it('should return the transaction count for a given address at the latest block', async () => {
+describe('POST / eth_blockNumber', () => {
+    it('should return the latest block number', async () => {
         const response = await request(extendedServer)
             .post('/')
             .send({
                 jsonrpc: '2.0',
-                method: 'eth_getTransactionCount',
-                params: ['0xf1a66ee4db3bfec6a4233bd10e587dacdae985a6', 'latest'],
+                method: 'eth_blockNumber',
+                params: [],
                 id: 1,
             });
         expect(response.status).toBe(200);
@@ -16,16 +16,17 @@ describe('POST / eth_getTransactionCount', () => {
         expect(response.body.result).toMatch(/0x[0-9a-fA-F]+/);
     });
 
-    it('should return zero if the address has no transactions', async () => {
+    it('should return a valid block number', async () => {
         const response = await request(extendedServer)
             .post('/')
             .send({
                 jsonrpc: '2.0',
-                method: 'eth_getTransactionCount',
-                params: ['0xCB65445D84D15F703813a2829bD1FD836942c9B7', 'latest'],
+                method: 'eth_blockNumber',
+                params: [],
                 id: 2,
             });
         expect(response.status).toBe(200);
-        expect(response.body.result).toBe('0x0');
+        const blockNumber = parseInt(response.body.result, 16);
+        expect(blockNumber).toBeGreaterThan(0);
     });
 });
