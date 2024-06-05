@@ -209,4 +209,4 @@ setupArchiverDiscovery({
   });
 });
 
-export { extendedServer, app };
+export { extendedServer, app, server };
