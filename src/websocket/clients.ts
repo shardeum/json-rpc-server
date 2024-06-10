@@ -4,7 +4,7 @@ export type SubscriptionDetails = {
   address: string | string[]
   topics: string[]
 }
-class ClientList {
+class LogSubscriptionList {
   private list: Map<string, { socket: WebSocket.WebSocket; subscription_data: SubscriptionDetails }>
   public requestIdBySubscriptionId: Map<string, number>
   private indexedBySocket: Map<WebSocket.WebSocket, Set<string>>
@@ -81,4 +81,8 @@ class ClientList {
   }
 }
 
-export const logSubscriptionList = new ClientList()
+
+export const logSubscriptionList = new LogSubscriptionList()
+
+
+export const blockSubscriptionList = new Map<string, {socket: WebSocket.WebSocket, rpc_request_id: number}>()
