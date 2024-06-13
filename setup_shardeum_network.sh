@@ -1,11 +1,16 @@
 #!/bin/bash
 
-# Clone the Shardeum repository
-git clone https://github.com/shardeum/shardeum.git
-cd shardeum
 
-# Checkout the dev branch
-git checkout dev
+# # Define your repository URL
+REPO_URL="https://github.com/shardeum/shardeum.git"
+REPO_NAME="shardeum"
+
+# Clone the Shardeum repository
+git clone $REPO_URL
+cd $REPO_NAME
+
+# # Checkout the dev branch
+git checkout local
 
 # Install Node.js (specific version)
 if ! node --version | grep -q "v18.16.1"; then
@@ -56,12 +61,26 @@ npm run prepare
 sudo apt-get update
 sudo apt-get install -y build-essential
 
+
+npm install -g shardus
+npm update @shardus/archiver
+echo "Installed shardus dependencies"
+
 # Apply the debug-10-nodes.patch
 git apply debug-10-nodes.patch
+echo "Applied instances setup patch"
+
 shardus start 10
+echo "started 10 nodes with shardus"
 
-# Reset the data using the dataRestore.ts script
-sudo npm install -g ts-node
+shardus stop
+echo "stopped the network"
 
-echo "Resetting data using dataRestore.ts..."
-ts-node -e 'import { createTargetDB } from "./scripts/dataRestore"; createTargetDB("./instances").then(() => console.log("Data reset complete."));'
+npm run prepare
+
+echo "compilation completed, about migrating DB"
+node dist/scripts/writeDataToDBs.js
+
+echo "migration successful"
+
+shardus start 10

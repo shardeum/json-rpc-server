@@ -42,6 +42,7 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+
   async getAccount(address: string, blockNumberHex?: string): Promise<any> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
     if (verbose) console.log(`ServiceValidator: getAccount call for address: ${address}`)
