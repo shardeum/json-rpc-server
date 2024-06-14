@@ -199,27 +199,25 @@ Important configuration files and parameters:
 
 ## Notable Modules and Functions
 
-### `api.ts`
+## `api.ts`
 
 - **Core RPC Methods**: Handles various JSON-RPC methods such as `eth_call`, `eth_sendTransaction`, and more.
 - **Utilities**: Includes utility functions for validating addresses, handling transactions, and interacting with the Ethereum ecosystem.
-- **Error Handling**:
+- **Error Handling**: Uses `serializeError` to format and return errors in a standardized way.
 
- Uses `serializeError` to format and return errors in a standardized way.
-
-### `clients.ts`
+## `clients.ts`
 
 - **ClientList Class**: Manages active WebSocket clients and their subscription details.
 - **Subscription Management**: Provides methods to add, remove, and manage client subscriptions.
 - **Mapping**: Maps subscription IDs to request IDs and vice versa for efficient lookup and management.
 
-### `index.ts`
+## `index.ts`
 
 - **WebSocket Server Setup**: Initializes and manages WebSocket server connections.
 - **Event Handling**: Manages events for incoming connections, message handling, and disconnections.
 - **Subscription Integration**: Uses `ClientList` to manage subscriptions and emit data to clients.
 
-### `log_server.ts`
+## `log_server.ts`
 
 - **Log Server Connection**: Sets up and maintains WebSocket connection to the log server.
 - **Event Handling**: Manages events for log-related messages.
