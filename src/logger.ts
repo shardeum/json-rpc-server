@@ -61,7 +61,6 @@ export async function saveInterfaceStat(): Promise<void> {
   }
 
   apiPerfLogData = []
-  apiPerfLogTicket = {}
 }
 
 export function setupLogEvents(): void {
