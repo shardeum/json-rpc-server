@@ -1,16 +1,17 @@
 #!/bin/bash
 
+# Define your local repository path and the link path
+REPO_URL="/Users/soniasingla/Desktop/shardeum"
+REPO_NAME="../json-rpc-server"
 
-# # Define your repository URL
-REPO_URL="https://github.com/shardeum/shardeum.git"
-REPO_NAME="shardeum"
+# Create a symbolic link to the local repository
+ln -s $REPO_URL $REPO_NAME
 
-# Clone the Shardeum repository
-git clone $REPO_URL
-cd $REPO_NAME
+# Navigate to the linked repository
+cd $REPO_URL
 
 # # Checkout the dev branch
-git checkout local
+ git checkout local
 
 # Install Node.js (specific version)
 if ! node --version | grep -q "v18.16.1"; then
