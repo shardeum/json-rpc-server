@@ -53,6 +53,7 @@ type Config = {
     softReject: boolean
   }
   statLog: boolean
+  statLogIntervalSec: number
   passphrase: string
   secret_key: string
 
@@ -161,6 +162,7 @@ export const CONFIG: Config = {
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
   statLog: false,
+  statLogIntervalSec: 10,
   passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes
   secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P', // this is the private key that rpc server will used to sign jwt token
   adaptiveRejection: true,
