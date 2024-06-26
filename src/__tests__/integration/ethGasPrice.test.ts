@@ -16,7 +16,7 @@ describe('JSON-RPC Methods', () => {
             expect(response.statusCode).toBe(200);
             expect(response.body).toBeDefined();
             expect(response.body.result).toBeDefined();
-            expect(response.body.result).toMatch(/^0x[0-9a-fA-F]+$/); // Matches any hex string
+            expect(response.body.result).toMatch(/^0x[0-9a-fA-F]+$/);
         });
     });
 });
