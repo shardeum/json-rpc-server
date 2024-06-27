@@ -4,7 +4,7 @@ import { db } from './storage/sqliteStorage'
 import { getReasonEnumCode, getTransactionObj } from './utils'
 
 import EventEmitter from 'events'
-import { CONFIG as config } from './config'
+import { CONFIG, CONFIG as config } from './config'
 
 type ApiPerfLogData = {
   tfinal: number
@@ -37,6 +37,8 @@ export const debug_info = {
   txDB_cleanTime: 0,
   interfaceDB_cleanTime: 0,
 }
+
+let dbWriteTimeout: NodeJS.Timeout|null = null
 
 export async function saveInterfaceStat(): Promise<void> {
   console.log(apiPerfLogData)
@@ -99,9 +101,11 @@ export function setupLogEvents(): void {
           hash: data?.hash,
         })
         delete apiPerfLogTicket[ticket]
-        if (apiPerfLogData.length >= 10000) saveInterfaceStat()
       }
     )
+    
+    // Start writing stats to the DB on a time based interval
+    scheduleDbWrite()
   }
 
   logEventEmitter.on('tx_insert_db', async (_txs: TxStatus[]) => {
@@ -205,4 +209,24 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]): Promise<void> {
   //     continue
   //   }
   // }
+}
+
+// This function kicks off writing stats to the DB on a time based interval
+export function scheduleDbWrite() {
+  // If there is data to be written and a DB write is not currently scheduled...
+  if (apiPerfLogData.length > 0 && dbWriteTimeout === null) {
+    // Schedule a DB write within the configured interval time
+    const executeDbWrite = function () {
+      // After the DB write is complete...
+      saveInterfaceStat().then(() => {
+        // Set timeout to null to indicate completion
+        dbWriteTimeout = null
+        // If CONFIG.statLog is true, schedule another DB write
+        if (CONFIG.statLog === true) {
+          scheduleDbWrite()
+        }
+      }) 
+    }
+    dbWriteTimeout = setTimeout(executeDbWrite, CONFIG.statLogIntervalSec * 1000)
+  }
 }

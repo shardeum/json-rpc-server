@@ -355,7 +355,7 @@ router.route('/stopTxCapture').get(async function (req: Request, res: Response) 
 
 router.route('/startRPCCapture').get(async function (req: Request, res: Response) {
   if (CONFIG.statLog) {
-    return res.json({ message: 'Interface stats are recording recording already' }).status(304)
+    return res.json({ message: 'Interface stats are recording already' }).status(304)
   }
   debug_info.interfaceRecordingStartTime = Date.now()
   debug_info.interfaceRecordingEndTime = 0
