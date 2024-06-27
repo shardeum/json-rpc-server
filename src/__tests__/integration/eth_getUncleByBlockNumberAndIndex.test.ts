@@ -8,8 +8,9 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getUncleByBlockNumberAndIndex",
+                    // Add your own parameters here
                     params: [
-                        "0x19f488",  // Block number in hexadecimal
+                        "0xe5",  // Block number in hexadecimal
                         "0x0"        // Uncle index in hexadecimal
                     ],
                     id: 1,

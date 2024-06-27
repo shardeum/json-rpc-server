@@ -8,6 +8,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getBlockByNumber",
+                    // Add your own parameters here
                     params: [
                         "0xe5",  // Block number in hexadecimal
                         false       // Do not include full transaction objects in the block

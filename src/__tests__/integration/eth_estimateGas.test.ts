@@ -9,6 +9,7 @@ describe('JSON-RPC Methods', () => {
                 .send(
                     {
                         method: "eth_estimateGas",
+                        // Add your own parameters here
                         params: [
                             {
                                 to: "0x8469448199bdc8d5956a61643baadbf3e6930fec"

@@ -8,6 +8,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getTransactionReceipt",
+                    // Add your own parameters here
                     params: [
                         "0x72d61b256153ce31246cdebc53a68735503f743a16e60bf00c71a2f5967ecb0c"
                     ],

@@ -8,6 +8,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getBlockByHash",
+                    // Add your own parameters here
                     params: [
                         "0x482e4546491d38883abfdbfaa29a6bfefb9269d8be90214933a8f639166b582f",
                         false  // Do not include full transaction objects in the block

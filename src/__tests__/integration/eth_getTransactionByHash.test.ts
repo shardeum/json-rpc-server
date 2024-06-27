@@ -8,6 +8,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getTransactionByHash",
+                    // Add your own parameters here
                     params: [
                         "0xf862e2b73ea9c7721fdf22307c2328300690d0e68e40212340360490ab5a0d39"
                     ],
