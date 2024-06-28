@@ -4,28 +4,49 @@ import { extendedServer } from '../../server';
 describe('JSON-RPC Methods', () => {
     describe('eth_getBlockByHash', () => {
         it('should return the block details by hash with transaction details set to false', async () => {
-            const response = await request(extendedServer)
+            // Step 1: Get the latest block to retrieve its hash
+            const latestBlockResponse = await request(extendedServer)
                 .post('/')
                 .send({
-                    method: "eth_getBlockByHash",
-                    // Add your own parameters here
+                    method: "eth_getBlockByNumber",
                     params: [
-                        "0x482e4546491d38883abfdbfaa29a6bfefb9269d8be90214933a8f639166b582f",
-                        false  // Do not include full transaction objects in the block
+                        "latest",  // Block number in hexadecimal
+                        false       // Do not include full transaction objects in the block
                     ],
                     id: 1,
                     jsonrpc: "2.0"
                 });
 
-            expect(response.status).toBe(200);
-            expect(response.body.result).toBeDefined();
-            // You can add more specific checks based on the structure of a block
-            expect(response.body.result).toHaveProperty('hash', "0x482e4546491d38883abfdbfaa29a6bfefb9269d8be90214933a8f639166b582f");
-            expect(response.body.result).toHaveProperty('number'); // Check that the block number is present
-            expect(response.body.result).toHaveProperty('transactions'); // Check that the transactions array is present
+            expect(latestBlockResponse.status).toBe(200);
+            expect(latestBlockResponse.body.result).toBeDefined();
+            const latestBlockHash = latestBlockResponse.body.result.hash;
+
+            expect(latestBlockHash).toMatch(/^0x[0-9a-fA-F]+$/);
+
+            // Step 2: Get block details by hash using the retrieved hash
+            const blockByHashResponse = await request(extendedServer)
+                .post('/')
+                .send({
+                    method: "eth_getBlockByHash",
+                    params: [
+                        latestBlockHash,  // Block hash in hexadecimal
+                        false             // Do not include full transaction objects in the block
+                    ],
+                    id: 2,
+                    jsonrpc: "2.0"
+                });
+
+            expect(blockByHashResponse.status).toBe(200);
+            expect(blockByHashResponse.body.result).toBeDefined();
+
+            // Check that the block hash matches the one we used
+            expect(blockByHashResponse.body.result).toHaveProperty('hash', latestBlockHash);
+
+            // Check that the transactions array is present
+            expect(blockByHashResponse.body.result).toHaveProperty('transactions');
             // When transaction_detail_flag is false, transactions should be an array of transaction hashes
-            if (response.body.result.transactions.length > 0) {
-                expect(response.body.result.transactions[0]).toMatch(/^0x[0-9a-fA-F]+$/); // Check if it is a transaction hash
+            if (blockByHashResponse.body.result.transactions.length > 0) {
+                expect(blockByHashResponse.body.result.transactions[0]).toMatch(/^0x[0-9a-fA-F]+$/); // Check if it is a transaction hash
             }
         });
     });

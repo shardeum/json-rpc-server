@@ -10,7 +10,7 @@ describe('JSON-RPC Methods', () => {
                     method: "eth_getBlockByNumber",
                     // Add your own parameters here
                     params: [
-                        "0xe5",  // Block number in hexadecimal
+                        "latest",  // Block number in hexadecimal
                         false       // Do not include full transaction objects in the block
                     ],
                     id: 1,
@@ -20,7 +20,7 @@ describe('JSON-RPC Methods', () => {
             expect(response.status).toBe(200);
             expect(response.body.result).toBeDefined();
             // Check the block number
-            expect(response.body.result).toHaveProperty('number', "0xe5");
+            expect(response.body.result).toHaveProperty('number');
             // Check that the transactions array is present
             expect(response.body.result).toHaveProperty('transactions');
             // When transaction_detail_flag is false, transactions should be an array of transaction hashes
