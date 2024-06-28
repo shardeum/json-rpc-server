@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { extendedServer } from '../../server';
 const { Transaction } = require('ethereumjs-tx');
-
+require('dotenv').config();
 // Helper function to make JSON-RPC calls
 async function jsonRpcRequest(method: any, params: any) {
     try {
@@ -39,9 +39,14 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
                 chainId: 8082,
             };
 
+            // Ensure the private key is defined
+            if (!process.env.TEST_PRIVATE_KEY) {
+                throw new Error('TEST_PRIVATE_KEY environment variable is not set');
+            }
+
             // Step 3: Create a new transaction and sign it
             const tx = new Transaction(txParams);
-            const senderPrivateKey = Buffer.from('TEST_WITH_YOUR_PRIVATE_KEY', 'hex');
+            const senderPrivateKey = Buffer.from(process.env.TEST_PRIVATE_KEY, 'hex');
             tx.sign(senderPrivateKey);
 
             // Step 4: Serialize the transaction
@@ -62,6 +67,13 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('result');
             console.log('Transaction hash:', response.body.result);
+
+            // Step 6: Verify the balance of the receiving account
+            const balanceResponse = await jsonRpcRequest('eth_getBalance', ['0xC5223533feB845fD28717A7813a72af4df5F2751', 'latest']);
+            const balance = balanceResponse.result;
+            console.log('Receiver balance:', balance);
+
+            expect(parseInt(balance, 16)).toBeGreaterThanOrEqual(parseInt('0x2386f26fc10000', 16));
         });
 
         it('should return an error if jsonrpc property is missing', async () => {
