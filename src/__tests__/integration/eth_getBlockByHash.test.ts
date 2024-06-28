@@ -11,7 +11,6 @@ describe('JSON-RPC Methods', () => {
                     method: "eth_getBlockByNumber",
                     params: [
                         "latest",  // Block number in hexadecimal
-                        false       // Do not include full transaction objects in the block
                     ],
                     id: 1,
                     jsonrpc: "2.0"
@@ -30,7 +29,7 @@ describe('JSON-RPC Methods', () => {
                     method: "eth_getBlockByHash",
                     params: [
                         latestBlockHash,  // Block hash in hexadecimal
-                        false             // Do not include full transaction objects in the block
+                        false             
                     ],
                     id: 2,
                     jsonrpc: "2.0"
