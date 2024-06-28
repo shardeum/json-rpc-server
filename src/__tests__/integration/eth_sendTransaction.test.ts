@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { extendedServer } from '../../server';
+import { time } from 'console';
 const { Transaction } = require('ethereumjs-tx');
 require('dotenv').config();
 // Helper function to make JSON-RPC calls
@@ -29,6 +30,7 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
             console.log(`Nonce: ${nonce}`);
 
             // Step 2: Create the transaction object
+            const now = Math.floor(Date.now() / 1000);
             const txParams = {
                 nonce: nonce,
                 gasPrice: '0x09184e72a000', // 20 Gwei
@@ -37,16 +39,12 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
                 value: '0x2386f26fc10000', // 0.01 Ether in hex
                 data: '0x', // Empty data field
                 chainId: 8082,
+                timestamp: now
             };
-
-            // Ensure the private key is defined
-            if (!process.env.TEST_PRIVATE_KEY) {
-                throw new Error('TEST_PRIVATE_KEY environment variable is not set');
-            }
 
             // Step 3: Create a new transaction and sign it
             const tx = new Transaction(txParams);
-            const senderPrivateKey = Buffer.from(process.env.TEST_PRIVATE_KEY, 'hex');
+            const senderPrivateKey = Buffer.from('226dfdb1f49f8d4dcc6b8bdc533d3ea0fbb56f37cd7e9e1ddc986ae77b36abc0', 'hex');
             tx.sign(senderPrivateKey);
 
             // Step 4: Serialize the transaction

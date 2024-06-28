@@ -39,14 +39,9 @@ describe('JSON-RPC Methods - eth_sendRawTransaction', () => {
                 chainId: 8082,
             };
 
-            // Ensure the private key is defined
-            if (!process.env.TEST_PRIVATE_KEY) {
-                throw new Error('TEST_PRIVATE_KEY environment variable is not set');
-            }
-
             // Step 3: Create a new transaction and sign it
             const tx = new Transaction(txParams);
-            const senderPrivateKey = Buffer.from(process.env.TEST_PRIVATE_KEY, 'hex');
+            const senderPrivateKey = Buffer.from('226dfdb1f49f8d4dcc6b8bdc533d3ea0fbb56f37cd7e9e1ddc986ae77b36abc0', 'hex');
             tx.sign(senderPrivateKey);
 
             // Step 4: Serialize the transaction
