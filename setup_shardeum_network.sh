@@ -8,7 +8,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 # Define your local repository path and the link path
 if [ -z "$1" ]; then
     # Default value if $1 is not provided
-    REPO_URL="/Users/ekene/Desktop/oss-shardeum/shardeum"
+    REPO_URL="/path/to/your/local/shardeum"
 else
     # Use the value of $1 if provided
     REPO_URL="$1"
@@ -23,7 +23,7 @@ else
     echo "Error: Repository path does not exist or is not a directory: $REPO_URL"
     # Create a new path relative to the current directory
     NEW_PATH="./os/shardeum-global"
-    
+
     # Create the directory if it does not exist
     if mkdir -p "$NEW_PATH"; then
         echo "Created new path: $NEW_PATH"
@@ -140,7 +140,7 @@ shardus start 10
 echo "Started 10 nodes with shardus"
 
 # Wait for 90 seconds
-echo "Waiting for 90 seconds before starting the json rpc server"
+echo "Waiting for 60 seconds before starting the json rpc server"
 sleep 90
 
 
@@ -149,7 +149,7 @@ cd $REPO_NAME
 npm run start
 
 # Wait for 90 seconds
-echo "Waiting for 90 seconds before running the test suite..."
+echo "Waiting for 60 seconds before running the test suite..."
 sleep 90
 
 npm run test

@@ -29,15 +29,15 @@ docker compose logs -f
 docker compose down
 ```
 
-# Developer Environment Setup
+## Developer Environment Setup
 
 For end users, such as exchanges and large decentralized applications (dApps), seeking to deploy their own RPC server, it is recommended to run the Shardeum JSON-RPC server using Docker. It ensures all dependencies are installed and the server is running in a consistent environment. For developers who want to contribute to this project, running the server from source is recommended. You can use `npm` for installing the server locally.
 
-## Requirements
+### Requirements
 
 If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you must have the [Docker](https://docs.docker.com/get-docker/) daemon installed.
 
-## Installing project source code
+### Installing project source code
 
 Let’s install the project source code, switch to `dev` branch and follow the below instructions:
 
@@ -88,6 +88,30 @@ The RPC URL for using Metamask with Remix IDE and for running scripts is <http:/
 
 If you are contributing to this project, use Shardeum server to create the network from within the [validator repo](https://gitlab.com/shardus/archive/archive-server). You can find more details [here](https://github.com/shardeum/shardeum)
 
+## Running Tests
+
+To set up the Shardeum network locally for testing purposes, follow these steps:
+
+1. **Modify the Script**
+
+Before running the `setup_shardeum_network.sh` script, you need to update the `REPO_URL` on line 11 to point to the correct repository URL. Open the script in a text editor and modify the following line:
+
+```bash
+REPO_URL="/path/to/your/local/shardeum"
+```
+
+2. **Run the Script**
+
+```bash
+./setup_shardeum_network.sh
+```
+
+This script automates the setup and initialization of the Shardeum network for local testing. It ensures Node Version Manager (nvm) and Node.js are properly configured, sets up the necessary repository paths, and creates symbolic links. The script then installs project dependencies, including Node.js and Rust, and builds the project. It applies necessary patches, starts the Shardus network with 10 nodes, and waits for the network to initialize. Finally, it starts the JSON-RPC server and runs the test suite, ensuring the environment is ready for development and testing purposes.
+
+### Additional Information
+
+For detailed information about the tests, check the test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC server.
+
 ## Cleanup
 
 If you are using `Docker`, you can stop the server by running:
@@ -104,7 +128,7 @@ make clean
 
 This will remove all docker images created by the server during the build process.
 
-# DEBUG Endpoints
+## DEBUG Endpoints
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
 
@@ -127,6 +151,6 @@ GET `/cleanStatTable` this endpoint trigger purging of table that store interfac
 
 GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging
 
-# Contributing
+## Contributing
 
 Contributions are very welcome! Everyone interacting in our codebases, issue trackers, and any other form of communication, including chat rooms and mailing lists, is expected to follow our [code of conduct](CODE_OF_CONDUCT.md) so we can all enjoy the effort we put into this project.

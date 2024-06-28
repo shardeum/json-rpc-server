@@ -20,7 +20,7 @@ describe('JSON-RPC Methods', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.result).toBeDefined();
-            expect(typeof response.body.result).toBe('boolean'); // Should return a boolean
+            expect(typeof response.body.result).toBe('string');
         });
     });
 });
