@@ -90,27 +90,34 @@ If you are contributing to this project, use Shardeum server to create the netwo
 
 ## Running Tests
 
-To set up the Shardeum network locally for testing purposes, follow these steps:
+There are two ways to set up the testing environment for the JSON RPC Server: Manual setup and using a Bash script.
 
-1. **Modify the Script**
+### Setting Up the Test Environment Manually
 
-Before running the `setup_shardeum_network.sh` script, you need to update the `REPO_URL` on line 11 to point to the correct repository URL. Open the script in a text editor and modify the following line:
+Follow these steps to set up your local environment for testing:
 
-```bash
-REPO_URL="/path/to/your/local/shardeum"
-```
+1. Run the Shardeum network locally (find instructions in the [Shardeum Readme.md](https://github.com/shardeum/shardeum/blob/dev/README.md) file).
+2. Once your network is running, visit `localhost:4000/cycleinfo/1` to see your network's details.
+3. Wait until the network enters processing mode, which happens when all 10 nodes are active (usually around cycle counter 12-14).
+4. Once the network is processing, start the JSON RPC server with `npm run start`.
+5. Open a new terminal tab and run the tests with `npm run test` to see the test results.
 
-2. **Run the Script**
+### Using the Bash Script
 
-```bash
-./setup_shardeum_network.sh
-```
+The Bash script sets up the test environment for you. This approach is recommended if you haven't already set up the Shardeum network and the JSON RPC server locally. The script will handle both setups and execute the tests.
 
-This script automates the setup and initialization of the Shardeum network for local testing. It ensures Node Version Manager (nvm) and Node.js are properly configured, sets up the necessary repository paths, and creates symbolic links. The script then installs project dependencies, including Node.js and Rust, and builds the project. It applies necessary patches, starts the Shardus network with 10 nodes, and waits for the network to initialize. Finally, it starts the JSON-RPC server and runs the test suite, ensuring the environment is ready for development and testing purposes.
+To run the script:
 
-### Additional Information
+1. Clone the JSON RPC Server repository.
+2. Navigate to the root of the project: `cd json-rpc-server`.
+3. Execute the script: `./setup_shardeum_network ~/Desktop/path-to-your-shardeum-project`.
+    - If you already have a local Shardeum setup, provide the path to it, and the script will use your existing Shardeum project.
+    - If no path is provided, the script will clone the Shardeum repository and set it up for you.
+4. The script will then start a network of 10 nodes, start the JSON RPC server, and finally run the test script.
 
-For detailed information about the tests, check the test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC server.
+A test account with a hardcoded private key is provided in the tests, ensuring that your tests should pass without any extra configuration.
+
+> For detailed information about the tests, check the test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC methods.
 
 ## Cleanup
 
