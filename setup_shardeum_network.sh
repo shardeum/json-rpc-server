@@ -131,16 +131,15 @@ npm install -g shardus
 npm install -g @shardus/archiver
 echo "Installed shardus dependencies"
 
-
 # Start the shardus network
 shardus start 10
 echo "Started 10 nodes with shardus"
 
-# Wait for 5 minutes, this allows the network to initialize healthy archivers for the json rpc server to connect to.
+# Wait for 3 minutes, this allows the network to set up healthy archivers for the json rpc server to connect to.
 # The json rpc server will not be able to connect to the network if the archivers are not healthy.
 
-echo "Waiting for 5 minutes before starting the json rpc server"
-sleep 300 
+echo "Waiting for 3 minutes before starting the json rpc server"
+sleep 180 
 
 # Change directory back to json-rpc-server and run the test suite
 cd ..
@@ -154,11 +153,13 @@ echo "now installing deps..."
 npm ci
 
 echo "Finished installing jrpc dependencies, now starting the server..."
-npm run start
+npm run start & # Start the json rpc server in the background so the test suite can run
 
 # Wait for 90 seconds
 echo "Waiting for 90 seconds before running the test suite..."
 sleep 90
 
 npm run test
+# Transactions sent to the network will only pass when there;s atleast 5 active nodes in the network
+
 echo "Test suite completed."
