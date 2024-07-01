@@ -8,13 +8,14 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 # Define your local repository path and the link path
 if [ -z "$1" ]; then
     # Default value if $1 is not provided
-    REPO_URL="/path/to/your/local/shardeum"
+    # Example: REPO_URL="/Users/username/Documents/shardeum/repo"
+    REPO_URL="/path/to/your/local/shrdeum/repo"
 else
     # Use the value of $1 if provided
     REPO_URL="$1"
 fi
 
-REPO_NAME="../json-rpc-server"
+REPO_NAME="json-rpc-server"
 
 # Check if the directory exists
 if [ -d "$REPO_URL" ]; then
@@ -22,8 +23,8 @@ if [ -d "$REPO_URL" ]; then
 else
     echo "Error: Repository path does not exist or is not a directory: $REPO_URL"
     # Create a new path relative to the current directory
-    NEW_PATH="./os/shardeum-global"
-
+    NEW_PATH="./os/test"
+    
     # Create the directory if it does not exist
     if mkdir -p "$NEW_PATH"; then
         echo "Created new path: $NEW_PATH"
@@ -34,32 +35,27 @@ else
         git clone https://github.com/shardeum/json-rpc-server.git
         echo "Cloned json-rpc repository successfully"
 
-        git clone https://github.com/shardeum/shardeum.git 
+        git clone https://github.com/shardeum/shardeum.git
         echo "Cloned shardeum repository successfully"
-        REPO_URL="$NEW_PATH/shardeum"
+        REPO_URL="$NEW_PATH"
     else
         echo "Failed to create new path: $NEW_PATH"
         exit 1  # Exit the script with an error code
     fi
 fi
 
-
-# Create a symbolic link to the local repository if it doesn't already exist
-if [ ! -L $REPO_NAME ]; then
-    ln -s $REPO_URL $REPO_NAME
-else
-    echo "Symbolic link already exists."
-fi
-
 # Navigate to the linked repository
-cd $REPO_URL
+cd shardeum
 
 # # Checkout the dev branch
  git checkout dev
 
 # Install Node.js (specific version), installing or setting to v18.16.1 also sets npm to 9.5.1
+nvm use 18
+
 if node --version | grep -q "v18"; then
     echo "Node.js v18 found, setting to v18.16.1..."
+    node --version
     nvm install 18.16.1
     nvm use 18.16.1
 else
@@ -95,61 +91,73 @@ fi
 # Verify Rust version
 rustc --version
 
+install_linux() {
+    sudo apt-get update
+    sudo apt-get install build-essential
+}
+
+install_macos() {
+    brew update
+    if ! command -v gcc &> /dev/null; then
+        echo "gcc not found, installing..."
+        brew install gcc
+    else
+        echo "gcc already installed, skipping..."
+    fi
+}
+
+# Detect the operating system
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "Detected Linux OS"
+    install_linux
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Detected macOS"
+    install_macos
+else
+    echo "Unsupported OS: $OSTYPE"
+    exit 1
+fi
 
 # Install project dependencies
 npm ci
 
+# Apply the debug-10-nodes.patch 
+git apply debug-10-nodes.patch
+
 # Build the project
 npm run prepare
-
-# Install build dependencies for Rust (on Debian/Ubuntu systems)
-sudo apt-get update
-sudo apt-get install -y build-essential
-
 
 npm install -g shardus
-npm update @shardus/archiver
+npm install -g @shardus/archiver
 echo "Installed shardus dependencies"
 
-# Apply the debug-10-nodes.patch if it hasn't been applied
-if ! git apply --check debug-10-nodes.patch; then
-    echo "Applying debug-10-nodes.patch"
-    git apply debug-10-nodes.patch
-    echo "Applied instances setup patch"
-else
-    echo "Patch already applied"
-fi
-
-# Build the project
-npm run prepare
-
-# Check if shardus and @shardus/archiver exist
-echo "Checking for shardus and @shardus/archiver..."
-if ! command -v shardus &> /dev/null; then
-    echo "shardus not found, installing..."
-    npm install -g shardus
-fi
-
-if ! npm list -g | grep -q "@shardus/archiver"; then
-    echo "@shardus/archiver not found, updating..."
-    npm update @shardus/archiver
-fi
 
 # Start the shardus network
 shardus start 10
 echo "Started 10 nodes with shardus"
 
-# Wait for 90 seconds
-echo "Waiting for 60 seconds before starting the json rpc server"
-sleep 90
+# Wait for 5 minutes, this allows the network to initialize healthy archivers for the json rpc server to connect to.
+# The json rpc server will not be able to connect to the network if the archivers are not healthy.
 
+echo "Waiting for 5 minutes before starting the json rpc server"
+sleep 300 
 
 # Change directory back to json-rpc-server and run the test suite
+cd ..
+echo "leaving shardeum directory"
 cd $REPO_NAME
+
+echo "Switching to localtest branch"
+git switch localtest
+
+echo "now installing deps..."
+npm ci
+
+echo "Finished installing jrpc dependencies, now starting the server..."
 npm run start
 
 # Wait for 90 seconds
-echo "Waiting for 60 seconds before running the test suite..."
+echo "Waiting for 90 seconds before running the test suite..."
 sleep 90
 
 npm run test
