@@ -113,7 +113,10 @@ To run the script:
 3. Execute the script: `./setup_shardeum_network ~/Desktop/path-to-your-shardeum-project`.
     - If you already have a local Shardeum setup, provide the path to it, and the script will use your existing Shardeum project.
     - If no path is provided, the script will clone the Shardeum repository and set it up for you.
+    - The script will creat a test env in a new `/os/test` path and set up the shardeum and json rpc servers there.
 4. The script will then start a network of 10 nodes, start the JSON RPC server, and finally run the test script.
+5. The tests that require executing transactions on the network will not pass until your local network has atleast 5 active nodes 
+    - To get around this, simply increase the wait time in the script to >10 minutes, this will allow enough time for the network to get into processing mode with 5+ active nodes.
 
 A test account with a hardcoded private key is provided in the tests, ensuring that your tests should pass without any extra configuration.
 
