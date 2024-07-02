@@ -2,7 +2,7 @@ import { db } from '../storage/sqliteStorage'
 import express, { Request, Response } from 'express'
 export const router = express.Router()
 import { CONFIG } from '../config'
-import { debug_info } from '../logger'
+import { debug_info, getInterfaceStatCounts } from '../logger'
 
 const timeInputProcessor = (timestamp: string): number => {
   const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
@@ -370,6 +370,12 @@ router.route('/stopRPCCapture').get(async function (req: Request, res: Response)
   debug_info.interfaceRecordingEndTime = Date.now()
   CONFIG.statLog = false
   res.json({ message: 'RPC interface recording disabled' }).status(200)
+})
+router.route('/countRPCCapture').get(async function (req: Request, res: Response) {
+  if (!CONFIG.statLog) {
+    return res.json({ message: 'Interface stats recording disabled' }).status(304)
+  }
+  res.json(getInterfaceStatCounts()).status(200)
 })
 
 router.route('/status').get(async function (req: Request, res: Response) {
