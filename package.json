@@ -13,8 +13,7 @@
     "lint-windows": "eslint ./src/**/*.ts",
     "update-docker-dev": "docker build -t registry.gitlab.com/shardeum/json-rpc-server:dev . --push",
     "format-check": "prettier --check './src/**/*.ts'",
-    "setup:localtest": "./setup_local_test.sh",
-    "test:local": "npm run setup:localtest && jest src/__tests__/integration/eth_blockNumber.test.ts"
+    "local:test": "bash setup_test.sh"
   },
   "author": "thantsintoe",
   "license": "ISC",
