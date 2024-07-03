@@ -111,11 +111,13 @@ To run the script:
 1. Clone and set up the JSON RPC Server locally.
 2. Navigate to the root of the project: `cd json-rpc-server`.
 3. Execute the script: 
-    - Run `./setup_shardeum_network ~/root/path/to/your/shardeum/project` - If you already have a Shardeum network running locally.
-    - Run `./setup_shardeum_network` - If you'd prefer the script to set one up for you.
-    - The script will creat a test environment path `/os/test` and set up the Shardeum and JSON-RPC servers there.
+    - Run `npm local:test ~/root/path/to/your/shardeum/project` - If you already have a the Shardeum repo installed locally.
+    - Run `npm local:test` - If you'd prefer the script to set one up for you.
+    - The script will creat a test environment path `/.test` and set up the Shardeum network there.
 4. It will then start a network of 10 nodes along with the JSON RPC server, and finally run the test suite.
-5. Tests involving transactions on the network will fail if your local network has fewer than 5 active nodes. To address this, increase the wait time in the script to more than 10 minutes. This will give the network sufficient time to reach processing mode with at least 5 active nodes.
+5. Tests involving transactions on the network will fail if your local network has fewer than 5 active nodes. 
+To address this, you can increase the wait time in the script to more than 10 minutes. 
+This will give the network sufficient time to reach processing mode with at least 5 active nodes.
 
 A test account with a hardcoded private key is provided in the tests, ensuring that your tests should pass without any extra configuration.
 
