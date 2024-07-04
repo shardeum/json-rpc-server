@@ -11,13 +11,13 @@ fi
 source "$NVM_DIR/nvm.sh"
 
 # Define your local repository path
-REPO_URL="${1:-/path/to/your/local/shardeum/repo}"
+REPO_PATH="${1:-/path/to/your/local/shardeum/repo}"
 REPO_NAME="shardeum"
 
 # Check if the directory exists
-if [ -d "$REPO_URL" ]; then
-    echo "Repository path exists: $REPO_URL"
-    pushd "$REPO_URL"
+if [ -d "$REPO_PATH" ]; then
+    echo "Repository path exists: $REPO_PATH"
+    pushd "$REPO_PATH"
 else
     echo "No existing Shardeum installation found, cloning the repository..."
     pushd "./.test" || mkdir -p "./.test" && pushd "./.test"
