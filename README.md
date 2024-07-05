@@ -29,7 +29,7 @@ docker compose logs -f
 docker compose down
 ```
 
-# Developer Environment Setup
+## Developer Environment Setup
 
 For end users, such as exchanges and large decentralized applications (dApps), seeking to deploy their own RPC server, it is recommended to run the Shardeum JSON-RPC server using Docker. It ensures all dependencies are installed and the server is running in a consistent environment. For developers who want to contribute to this project, running the server from source is recommended. You can use `npm` for installing the server locally.
 
@@ -86,7 +86,7 @@ port: 8080
 
 The RPC URL for using Metamask with Remix IDE and for running scripts is <http://localhost:port> (default: <http://localhost:8080>)
 
-If you are contributing to this project, use Shardeum server to create the network from within the [validator repo](https://gitlab.com/shardus/archive/archive-server). You can find more details [here](https://github.com/shardeum/shardeum)
+If you are contributing to this project, use Shardeum server to create the network. You can find more details [here](https://github.com/shardeum/shardeum)
 
 ## Cleanup
 
@@ -104,7 +104,7 @@ make clean
 
 This will remove all docker images created by the server during the build process.
 
-# DEBUG Endpoints
+## DEBUG Endpoints
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
 
@@ -127,6 +127,10 @@ GET `/cleanStatTable` this endpoint trigger purging of table that store interfac
 
 GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging
 
-# Contributing
+## Contributing
 
 Contributions are very welcome! Everyone interacting in our codebases, issue trackers, and any other form of communication, including chat rooms and mailing lists, is expected to follow our [code of conduct](CODE_OF_CONDUCT.md) so we can all enjoy the effort we put into this project.
+
+## Community
+
+For chatting with others using Shardeum: [Join the Shardeum Discord Server](https://discord.com/invite/shardeum)
