@@ -31,9 +31,7 @@ describe('JSON-RPC Methods', () => {
                     .post('/')
                     .send({
                         method: "eth_getTransactionByHash",
-                        params: [
-                            transactionHash  // Transaction hash in hexadecimal
-                        ],
+                        params: [transactionHash],
                         id: 2,
                         jsonrpc: "2.0"
                     });

@@ -11,7 +11,6 @@ describe('JSON-RPC Methods - Missing/Invalid Properties', () => {
                     method: 'eth_gasPrice',
                     params: []
                 });
-
             expect(response.statusCode).toBe(200);
             expect(response.body).toBeDefined();
             expect(response.body.jsonrpc).toBe('2.0');
@@ -29,7 +28,6 @@ describe('JSON-RPC Methods - Missing/Invalid Properties', () => {
                     method: 'eth_gasPrice',
                     params: []
                 });
-
             expect(response.statusCode).toBe(204);
         });
 

@@ -64,7 +64,9 @@ case "$OSTYPE" in
 esac
 
 # Install project dependencies and apply debug patch
+echo "Installing Shardeum project dependencies..."
 npm ci
+
 git apply debug-10-nodes.patch || { echo "Failed to apply patch"; exit 1; }
 
 # Build the project

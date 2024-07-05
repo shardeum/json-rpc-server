@@ -26,7 +26,6 @@ describe('JSON-RPC Methods - eth_sendRawTransaction', () => {
             // Step 1: Get the nonce
             const nonceResult = await jsonRpcRequest('eth_getTransactionCount', ['0x1923A1Eb8e4dA49604aFfd34De1B478580cf8698', 'latest']);
             const nonce = nonceResult.result;
-            console.log(`Nonce: ${nonce}`);
 
             // Step 2: Create the transaction object
             const txParams = {
@@ -61,7 +60,6 @@ describe('JSON-RPC Methods - eth_sendRawTransaction', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('result');
-            console.log('Transaction hash:', response.body.result);
         });
     });
 

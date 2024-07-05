@@ -9,9 +9,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getBlockByNumber",
-                    params: [
-                        "latest",  // Block number in hexadecimal
-                    ],
+                    params: ["latest"],
                     id: 1,
                     jsonrpc: "2.0"
                 });
@@ -19,7 +17,6 @@ describe('JSON-RPC Methods', () => {
             expect(latestBlockResponse.status).toBe(200);
             expect(latestBlockResponse.body.result).toBeDefined();
             const latestBlockHash = latestBlockResponse.body.result.hash;
-
             expect(latestBlockHash).toMatch(/^0x[0-9a-fA-F]+$/);
 
             // Step 2: Get block details by hash using the retrieved hash
@@ -27,10 +24,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getBlockByHash",
-                    params: [
-                        latestBlockHash,  // Block hash in hexadecimal
-                        false             
-                    ],
+                    params: [latestBlockHash, false],
                     id: 2,
                     jsonrpc: "2.0"
                 });

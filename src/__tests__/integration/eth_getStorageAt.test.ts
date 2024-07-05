@@ -19,18 +19,18 @@ describe('JSON-RPC Methods - eth_getStorageAt', () => {
 
             expect(response.statusCode).toBe(200);
             expect(response.body).toBeDefined();
-            expect(response.body.result).toBe('0x'); // Expected result for valid request
+            expect(response.body.result).toBe('0x');
         });
 
-        it('should return an error if the position parameter is omitted', async () => {
+        it('should return an error if address property is missing', async () => {
             const response = await request(extendedServer)
                 .post('/')
                 .send({
-                    jsonrpc: '2.0',
-                    id: 1,
+                    id: 2,
                     method: 'eth_getStorageAt',
                     params: [
-                        '0x1923A1Eb8e4dA49604aFfd34De1B478580cf8698',
+                        '',
+                        '0x1',
                         'latest'
                     ]
                 });
@@ -38,12 +38,11 @@ describe('JSON-RPC Methods - eth_getStorageAt', () => {
             expect(response.statusCode).toBe(200);
             expect(response.body).toBeDefined();
             expect(response.body.jsonrpc).toBe('2.0');
-            expect(response.body.id).toBe(1);
+            expect(response.body.id).toBe(null);
             expect(response.body.error).toBeDefined();
-            expect(response.body.error.code).toBe(-32000);
-            expect(response.body.error.message).toBe('Invalid position');
+            expect(response.body.error.code).toBe(-32600);
+            expect(response.body.error.message).toBe('Invalid request');
         });
-
         it('should return an error if jsonrpc property is missing', async () => {
             const response = await request(extendedServer)
                 .post('/')

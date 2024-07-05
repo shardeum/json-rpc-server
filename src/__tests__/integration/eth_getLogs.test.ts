@@ -8,7 +8,6 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getLogs",
-                    // Add your own parameters here
                     params: [{
                         fromBlock: "0x1",
                         toBlock: "latest",

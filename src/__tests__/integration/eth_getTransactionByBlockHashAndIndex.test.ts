@@ -9,10 +9,7 @@ describe('JSON-RPC Methods', () => {
                 .post('/')
                 .send({
                     method: "eth_getBlockByNumber",
-                    params: [
-                        "latest",  // Block number in hexadecimal
-                        false       
-                    ],
+                    params: ["latest", false],
                     id: 1,
                     jsonrpc: "2.0"
                 });

@@ -70,7 +70,6 @@ describe('JSON-RPC Methods - eth_getTransactionReceipt', () => {
             expect(receiptResponse).toHaveProperty('result');
             const receipt = receiptResponse.result;
             expect(receipt).toBeDefined();
-            console.log('Transaction receipt:', receipt);
 
         });
 

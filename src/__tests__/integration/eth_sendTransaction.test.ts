@@ -27,7 +27,6 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
             // Step 1: Get the nonce
             const nonceResult = await jsonRpcRequest('eth_getTransactionCount', ['0x1923A1Eb8e4dA49604aFfd34De1B478580cf8698', 'latest']);
             const nonce = nonceResult.result;
-            console.log(`Nonce: ${nonce}`);
 
             // Step 2: Create the transaction object
             const now = Math.floor(Date.now() / 1000);
@@ -50,7 +49,6 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
             // Step 4: Serialize the transaction
             const serializedTx = tx.serialize();
             const rawTx = '0x' + serializedTx.toString('hex');
-            console.log(`Raw Transaction: ${rawTx}`);
 
             // Step 5: Send the signed transaction
             const response = await request(extendedServer)
@@ -64,13 +62,10 @@ describe('JSON-RPC Methods - eth_sendTransaction', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('result');
-            console.log('Transaction hash:', response.body.result);
 
             // Step 6: Verify the balance of the receiving account
             const balanceResponse = await jsonRpcRequest('eth_getBalance', ['0xC5223533feB845fD28717A7813a72af4df5F2751', 'latest']);
             const balance = balanceResponse.result;
-            console.log('Receiver balance:', balance);
-
             expect(parseInt(balance, 16)).toBeGreaterThanOrEqual(parseInt('0x2386f26fc10000', 16));
         });
 
