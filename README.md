@@ -86,7 +86,7 @@ port: 8080
 
 The RPC URL for using Metamask with Remix IDE and for running scripts is <http://localhost:port> (default: <http://localhost:8080>)
 
-If you are contributing to this project, use Shardeum server to create the network from within the [validator repo](https://gitlab.com/shardus/archive/archive-server). You can find more details [here](https://github.com/shardeum/shardeum)
+If you are contributing to this project, use Shardeum server to create the network. You can find more details [here](https://github.com/shardeum/shardeum)
 
 ## Running Tests
 
@@ -165,3 +165,7 @@ GET `/cleanTxTable` this endpoint trigger purging of table that store transactio
 ## Contributing
 
 Contributions are very welcome! Everyone interacting in our codebases, issue trackers, and any other form of communication, including chat rooms and mailing lists, is expected to follow our [code of conduct](CODE_OF_CONDUCT.md) so we can all enjoy the effort we put into this project.
+
+## Community
+
+For chatting with others using Shardeum: [Join the Shardeum Discord Server](https://discord.com/invite/shardeum)
