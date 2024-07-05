@@ -225,28 +225,32 @@ async function getFromBlockInput(fromBlock: string) {
   if (fromBlock == null || fromBlock === '' || fromBlock === 'earliest') {
     return '0x0'
   }
-  const { blockNumber } = await getCurrentBlockInfo()
   if (fromBlock === 'latest') {
-    return blockNumber
+    if (CONFIG.collectorSourcing.enabled) {
+      const block = await collectorAPI.getBlock('latest', 'tag')
+      return block?.number
+    } else {
+      const block = await getCurrentBlockInfo()
+      return block?.blockNumber
+    }
   }
-  if (!isHex(fromBlock)) {
+  if (!isHex(fromBlock) || !parseInt(fromBlock, 16)) {
     return null
-  }
-  if (parseInt(fromBlock, 16) > parseInt(blockNumber, 16)) {
-    return blockNumber
   }
   return fromBlock
 }
 async function getToBlockInput(toBlock: string) {
-  const { blockNumber } = await getCurrentBlockInfo()
   if (toBlock == null || toBlock === '' || toBlock === 'latest') {
-    return blockNumber
+    if (CONFIG.collectorSourcing.enabled) {
+      const block = await collectorAPI.getBlock('latest', 'tag')
+      return block?.number
+    } else {
+      const block = await getCurrentBlockInfo()
+      return block?.blockNumber
+    }
   }
-  if (!isHex(toBlock)) {
+  if (!isHex(toBlock) || !parseInt(toBlock, 16)) {
     return null
-  }
-  if (parseInt(toBlock, 16) > parseInt(blockNumber, 16)) {
-    return blockNumber
   }
   return toBlock
 }
@@ -747,18 +751,16 @@ function trimInjectRejection(message: string): string {
   } else return message
 }
 async function validateBlockNumberInput(blockNumberInput: string) {
-  const { blockNumber } = await getCurrentBlockInfo()
+  // If the block number is 'latest', return undefined, so that it will get latest balance
   if (blockNumberInput === 'latest') {
-    return blockNumber
+    return undefined
   }
   if (blockNumberInput === 'earliest') {
     return '0x0'
   }
-  if (!isHex(blockNumberInput)) {
+  // If the block number is not a valid hex string, return undefined
+  if (!isHex(blockNumberInput) || !parseInt(blockNumberInput, 16)) {
     return undefined
-  }
-  if (parseInt(blockNumberInput, 16) > parseInt(blockNumber, 16)) {
-    return blockNumber
   }
   return blockNumberInput
 }
@@ -2259,6 +2261,37 @@ export const methods = {
       // result found, skipping querying from archiver, validator and explorer.
       success = true
       retry = 100
+      // start to query getBlock to get transactionIndex
+      if (result) {
+        try {
+          // getBlock
+          const txBlockNumber = result.blockNumber
+          const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
+          if (blockResp) {
+            const transactions = blockResp.transactions
+            const txIndex = transactions.findIndex((tx) => {
+              if (typeof tx === 'string') {
+                return false
+              }
+              return tx.hash.toString() === txHash
+            })
+            // console.log("txIndex", txIndex)
+            if (txIndex !== -1) {
+              result.transactionIndex = '0x' + txIndex.toString(16)
+            }
+          }
+        } catch (e) {
+          if (verbose)
+            console.log(
+              'try to get transactionIndex using collector but fail. Return default transactionIndex'
+            )
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+          callback(null, result)
+          countSuccessResponse(api_name, 'success', 'collector')
+          return
+        }
+      }
+      console.log('result', result)
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, result)
       countSuccessResponse(api_name, 'success', 'collector')
@@ -2512,6 +2545,36 @@ export const methods = {
       } else if (!isErr(result)) {
         // result found, skipping querying from archiver, validator and explorer.
         result = extractTransactionReceiptObject(result)
+        // start to query getBlock to get transactionIndex
+        if (result) {
+          try {
+            // getBlock
+            const txBlockNumber = result.blockNumber
+            const blockResp = await collectorAPI.getBlock(txBlockNumber, 'hex_num', true)
+            if (blockResp) {
+              const transactions = blockResp.transactions
+              const txIndex = transactions.findIndex((tx) => {
+                if (typeof tx === 'string') {
+                  return false
+                }
+                return tx.hash.toString() === txHash
+              })
+              // console.log("txIndex", txIndex)
+              if (txIndex !== -1) {
+                result.transactionIndex = '0x' + txIndex.toString(16)
+              }
+            }
+          } catch (e) {
+            if (verbose)
+              console.log(
+                'try to get transactionIndex using collector but fail. Return default transactionIndex'
+              )
+            logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+            callback(null, result)
+            countSuccessResponse(api_name, 'success', 'collector')
+            return
+          }
+        }
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')

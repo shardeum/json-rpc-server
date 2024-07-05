@@ -40,28 +40,27 @@ export const debug_info = {
 
 export async function saveInterfaceStat(): Promise<void> {
   console.log(apiPerfLogData)
-  try {
+  // eslint-disable-next-line prefer-const
+  let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[0]
+  // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
+  let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
+  let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
+  for (let i = 1; i < apiPerfLogData.length; i++) {
     // eslint-disable-next-line prefer-const
-    let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[0]
+    let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
+
     // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-    let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-    let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
-    for (let i = 1; i < apiPerfLogData.length; i++) {
-      // eslint-disable-next-line prefer-const
-      let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
+    placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
+    sql = sql + `, (${placeholders})`
+  }
 
-      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-      placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-      sql = sql + `, (${placeholders})`
-    }
+  apiPerfLogData = []
 
+  try {
     await db.exec(sql)
   } catch (e) {
     console.log(e)
   }
-
-  apiPerfLogData = []
-  apiPerfLogTicket = {}
 }
 
 export function setupLogEvents(): void {

@@ -15,7 +15,9 @@ import { Err, NewErr, NewInternalErr } from './Err'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { BlockCacheManager } from '../cache/BlockCacheManager'
 import { sleep } from '../utils'
-
+import { BaseTrie } from 'merkle-patricia-tree'
+import * as RLP from 'rlp'
+import { BigNumber } from '@ethersproject/bignumber'
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
 
@@ -226,6 +228,9 @@ class Collector extends BaseExternal {
     blockSearchType: 'hex_num' | 'hash' | 'tag',
     details = false
   ): Promise<readableBlock | null> {
+    if (!CONFIG.collectorSourcing.enabled) return null
+    // Change blockSearchType to 'tag' if blockSearchValue is 'latest' or 'earliest' to prevent requestkey duplication
+    if (blockSearchValue === 'earliest' || blockSearchValue === 'latest') blockSearchType = 'tag'
     const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
     // pendingRequests
     if (this.pendingRequests.has(request_key)) {
@@ -245,6 +250,19 @@ class Collector extends BaseExternal {
     return await this.inner_getBlock(blockSearchValue, blockSearchType, details)
   }
 
+  async calculateTransactionRoot(txns: string[]): Promise<string> {
+    const trie = new BaseTrie()
+    for (let i = 0; i < txns.length; i++) {
+      // i now is also the transactionIndex of transaction in the block
+      // eslint-disable-next-line security/detect-object-injection
+      const currTxnHash = txns[i]
+      const path = Buffer.from(RLP.encode(i))
+      await trie.put(path, Buffer.from(currTxnHash))
+    }
+    const evaluatedTxnRoot = '0x' + trie.root.toString('hex')
+    return evaluatedTxnRoot
+  }
+
   async inner_getBlock(
     blockSearchValue: string,
     blockSearchType: 'hex_num' | 'hash' | 'tag',
@@ -261,7 +279,7 @@ class Collector extends BaseExternal {
       //instead of look up by key we need to give the inp type and block
       const cachedBlock = this.blockCacheManager.get(blockSearchValue, blockSearchType)
 
-      //should we retry for tranactions if there are not any??
+      //should we retry for transactions if there are not any??
       if (cachedBlock) {
         //if we dont need details we must adjust the return value that we got from cache
         if (details === false) {
@@ -305,15 +323,27 @@ class Collector extends BaseExternal {
       }
 
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
-
+      let blockGasUsed = '0x0'
+      // This parameter is used to determine the total gas used of transactions in the block
+      // It is used to calculate the block gas used
       resultBlock.transactions = await axios
         .get(txQuery)
         .then((response) => {
           if (!response.data.success) return []
           return response.data.transactions.map((tx: any) => {
-            //need to review the safety of this for caching and support that this could change!
+            const decodedTx = this.decodeTransaction(tx)
+            let gasUsedByThisTx = decodedTx.gas
+            if (
+              tx.wrappedEVMAccount &&
+              tx.wrappedEVMAccount.readableReceipt &&
+              tx.wrappedEVMAccount.readableReceipt.gasUsed
+            ) {
+              gasUsedByThisTx = tx.wrappedEVMAccount.readableReceipt.gasUsed
+            }
+            blockGasUsed = BigNumber.from(blockGasUsed).add(gasUsedByThisTx).toHexString()
+            // need to review the safety of this for caching and support that this could change!
             // UPDATE: We're now handling the response as per the "details" flag by mutating the "transactions" field. The default cache storage contains the full transaction details.
-            return this.decodeTransaction(tx)
+            return decodedTx
           })
         })
         .catch((e) => {
@@ -321,6 +351,12 @@ class Collector extends BaseExternal {
           console.error('collector.getBlock could not get txs for the block', e)
           return []
         })
+      // Now we have the block gas used then return it to the RPC method
+      resultBlock.gasUsed = blockGasUsed
+      // Start to calculate the transaction root fot this block
+      resultBlock.transactionsRoot = await this.calculateTransactionRoot(
+        resultBlock.transactions.map((tx: any) => tx.hash)
+      )
 
       if (CONFIG.enableBlockCache)
         this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
@@ -451,7 +487,6 @@ class Collector extends BaseExternal {
     nestedCountersInstance.countEvent('collector', 'decodeTransaction')
     let result: any = null
     let txObj = null
-
     try {
       const raw = tx.originalTxData.tx.raw as string
       txObj = TransactionFactory.fromSerializedData(toBuffer(raw))
