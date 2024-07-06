@@ -1,6 +1,6 @@
 # Overview
 
-The Shardeum JSON-RPC Server enables developers to interact with the Shardeum blockchain network. It allows dapps to post request, retrieve information, and other related operations, using JSON-RPC over HTTP. Additionally, the Shardeum JSON-RPC Server comes with an added REST API for debugging and monitoring purposes.
+The [Shardeum JSON-RPC Server](https://docs.shardeum.org/docs/node/run/rpc) enables developers to interact with the Shardeum blockchain network. It allows dapps to post request, retrieve information, and other related operations, using JSON-RPC over HTTP. Additionally, the Shardeum JSON-RPC Server comes with an added REST API for debugging and monitoring purposes.
 
 For running existing dapps on Shardeum, refer to EVM [JSON-RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/)
 
@@ -106,26 +106,26 @@ This will remove all docker images created by the server during the build proces
 
 ## DEBUG Endpoints
 
-These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
+These APIs are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
 
-GET `/log/api-stats` this endpint emit the rpc interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy). Not setting any timestamp parameter will returns paginated json of all the entry in db.
+GET `/log/api-stats` this endpoint emits the RPC interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy). Not setting any timestamp parameter will return paginated JSON of all the entry in the database.
 
-GET `/log/txs` this endpoint return the txs it has been made through rpc server. This endpoint support dynmaic pagination. i.e `/log/txs?max=30&page=9`.
+GET `/log/txs` this endpoint returns the transactions it has been made through the RPC server. This endpoint support dynmaic pagination. i.e `/log/txs?max=30&page=9`.
 Default values are `1000` for `max` and `0` for page.
 
-GET `/log/status` this endpint return status of logging such as date of recording start and whether or not recording is enabled.
+GET `/log/status` This endpoint returns the status of logging such as date of recording start and whether or not recording is enabled.
 
-GET `/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database.
+GET `/log/startTxCapture` This endpoint sets the config value to true which control whether to capture incoming txs and store in database.
 
-GET `/log/stopRPCCapture` this endpoint set the config value to false which control whether to capture incoming rpc interface call stat and store in database
+GET `/log/stopRPCCapture` This endpoint sets the config value to false which control whether to capture incoming RPC interface call stat and store in database
 
-GET `/log/startRPCCapture` this endpoint set the config value to true which control whether to capture rpc interface call stat and store in database.
+GET `/log/startRPCCapture` This endpoint sets the config value to true which control whether to capture RPC interface call stat and store in database.
 
-GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database
+GET `/log/stopTxCapture` This endpoint sets the config value to false which control whether to capture incoming txs and store in database.
 
-GET `/cleanStatTable` this endpoint trigger purging of table that store interface stats
+GET `/cleanStatTable` This endpoint triggers purging of the table that stores interface stats.
 
-GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging
+GET `/cleanTxTable` This endpoint triggers purging of the table that stores transaction logging.
 
 ## Contributing
 
