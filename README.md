@@ -33,11 +33,11 @@ docker compose down
 
 For end users, such as exchanges and large decentralized applications (dApps), seeking to deploy their own RPC server, it is recommended to run the Shardeum JSON-RPC server using Docker. It ensures all dependencies are installed and the server is running in a consistent environment. For developers who want to contribute to this project, running the server from source is recommended. You can use `npm` for installing the server locally.
 
-## Requirements
+### Requirements
 
 If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you must have the [Docker](https://docs.docker.com/get-docker/) daemon installed.
 
-## Installing project source code
+### Installing project source code
 
 Let’s install the project source code, switch to `dev` branch and follow the below instructions:
 
@@ -87,6 +87,41 @@ port: 8080
 The RPC URL for using Metamask with Remix IDE and for running scripts is <http://localhost:port> (default: <http://localhost:8080>)
 
 If you are contributing to this project, use Shardeum server to create the network. You can find more details [here](https://github.com/shardeum/shardeum)
+
+## Running Tests
+
+There are two ways to set up the testing environment for the JSON RPC Server: Manual setup and using a Bash script.
+
+### Setting Up the Test Environment Manually
+
+Follow these steps to set up your local environment for testing:
+
+1. Run the Shardeum network locally (find instructions in the [Shardeum Readme.md](https://github.com/shardeum/shardeum/blob/dev/README.md) file).
+2. Once your network is running, visit `localhost:4000/cycleinfo/1` to see your network's details.
+3. Wait until the network enters processing mode, which happens when the active nodes in the network equals the minimum amount of nodes required (usually around cycle counter 12-14).
+4. Once the network is in processing mode, start the JSON RPC server with `npm run start`.
+5. Open a new terminal tab and run the tests with `npm run test` to see the test results.
+
+### Using the Bash Script
+
+The Bash script simplifies the process of setting up the test environment. It's particularly useful if you haven't already configured the Shardeum network and the JSON RPC server locally, though it can also be used if you have. The script will manage both situations and execute the tests for you.
+
+To run the script:
+
+1. Clone and set up the JSON RPC Server locally.
+2. Navigate to the root of the project: `cd json-rpc-server`.
+3. Execute the script: 
+    - Run `npm local:test ~/root/path/to/your/shardeum/project` - If you already have a the Shardeum repo installed locally.
+    - Run `npm local:test` - If you'd prefer the script to set one up for you.
+    - The script will creat a test environment path `/.test` and set up the Shardeum network there.
+4. It will then start a network of 10 nodes along with the JSON RPC server, and finally run the test suite.
+5. Tests involving transactions on the network will fail if your local network has fewer than 5 active nodes. 
+To address this, you can increase the wait time in the script to more than 10 minutes. 
+This will give the network sufficient time to reach processing mode with at least 5 active nodes.
+
+A test account with a hardcoded private key is provided in the tests, ensuring that your tests should pass without any extra configuration.
+
+> For detailed information about the tests, check the test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC methods.
 
 ## Cleanup
 
