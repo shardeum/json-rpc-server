@@ -20,7 +20,13 @@ if [ -d "$REPO_PATH" ]; then
     pushd "$REPO_PATH"
 else
     echo "No existing Shardeum installation found, cloning the repository..."
-    pushd "./.test" || mkdir -p "./.test" && pushd "./.test"
+    if [ ! -d .test ]; then
+        mkdir .test
+    fi
+    pushd .test
+    if [ -d $REPO_NAME ]; then
+        rm -rf $REPO_NAME
+    fi
     git clone https://github.com/shardeum/shardeum.git || { echo "Failed to clone shardeum repository"; exit 1; }
     pushd "$REPO_NAME"
 fi
@@ -84,12 +90,14 @@ echo "Waiting for 3 minutes before starting the JSON RPC server"
 sleep 180
 
 # Return to the original directory using popd
-popd || { echo "Failed to return to /root directory"; exit 1; }
+popd || { echo "Failed to return to parent directory"; exit 1; }
 
-git switch localtest || { echo "Failed to switch to localtest branch"; exit 1; }
+# git switch localtest || { echo "Failed to switch to localtest branch"; exit 1; }
 
 echo "Installing json rpc project dependencies..."
-npm ci
+if [ ! -d node_modules ]; then
+    npm i    
+fi
 
 echo "Starting the JSON RPC server..."
 npm run start & # Start the JSON RPC server in the background
@@ -99,3 +107,8 @@ sleep 90
 
 npm run test || { echo "Test suite failed"; exit 1; }
 echo "Test suite completed."
+
+##FIXME the shutdown needs to be imporved, the json-rpc process thats been backgrounded is never terminated for example, should record the pid and kill it
+
+shardus stop && shardus clean && rm -rf instances
+echo "Stopped shardus network."
