@@ -228,6 +228,9 @@ class Collector extends BaseExternal {
     blockSearchType: 'hex_num' | 'hash' | 'tag',
     details = false
   ): Promise<readableBlock | null> {
+    if (!CONFIG.collectorSourcing.enabled) return null
+    // Change blockSearchType to 'tag' if blockSearchValue is 'latest' or 'earliest' to prevent requestkey duplication
+    if (blockSearchValue === 'earliest' || blockSearchValue === 'latest') blockSearchType = 'tag'
     const request_key = `${blockSearchValue} ${blockSearchType}` //this should be enough?
     // pendingRequests
     if (this.pendingRequests.has(request_key)) {
