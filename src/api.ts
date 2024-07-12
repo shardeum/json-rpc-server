@@ -515,35 +515,34 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
   let result: TransactionInjectionOutcome
   let retryCount = 0
   let exceptionCount = 0
-    while (retryCount < retries) {
-      try {
-        result = await injectAndRecordTx(txHash, tx, args)
-        if (result.success) {
-          return result
-        } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
-          console.log('Node is close to rotation edges. Rotating node...')
-          if (result.nodeUrl) {
-            const urlParts = result.nodeUrl.split(':')
-            removeFromNodeList(urlParts[0], urlParts[1])
-          }
-          retryCount++
-        } else if (result.reason === 'Node not active. Rejecting inject.') {
-          console.log('Injected to an inactive node. Retrying...')
-          retryCount++
-    } else if (result.reason === 'Node not found. Rejecting inject') {
-      console.log('Injected to an unknown node. Retrying...')
-      retryCount++
-        } else if (result.reason === 'No validators found to forward the transaction') {
-          console.log('No validators found to forward the transaction. Retrying...')
-          retryCount++
-        } else {
-          return result
+  while (retryCount < retries) {
+    try {
+      result = await injectAndRecordTx(txHash, tx, args)
+      if (result.success) {
+        return result
+      } else if (result.reason === 'Node is too close to rotation edges. Inject to another node') {
+        console.log('Node is close to rotation edges. Rotating node...')
+        if (result.nodeUrl) {
+          const urlParts = result.nodeUrl.split(':')
+          removeFromNodeList(urlParts[0], urlParts[1])
         }
-
-      } catch (error) {
-        exceptionCount++
+        retryCount++
+      } else if (result.reason === 'Node not active. Rejecting inject.') {
+        console.log('Injected to an inactive node. Retrying...')
+        retryCount++
+      } else if (result.reason === 'Node not found. Rejecting inject') {
+        console.log('Injected to an unknown node. Retrying...')
+        retryCount++
+      } else if (result.reason === 'No validators found to forward the transaction') {
+        console.log('No validators found to forward the transaction. Retrying...')
+        retryCount++
+      } else {
+        return result
       }
+    } catch (error) {
+      exceptionCount++
     }
+  }
   return {
     nodeUrl: '',
     success: false,
