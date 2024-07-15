@@ -14,13 +14,33 @@ source "$NVM_DIR/nvm.sh"
 REPO_PATH="${1:-/path/to/your/local/shardeum/repo}"
 REPO_NAME="shardeum"
 
+# Clean up and stop services
+cleanup() {
+    echo "Cleaning up..."
+    if [[ -n "$RPC_SERVER_PID" ]]; then
+        kill $RPC_SERVER_PID
+        echo "Stopped JSON RPC server."
+    fi
+    shardus stop && shardus clean && rm -rf instances
+    echo "Stopped shardus network."
+}
+
+# Trap exit signal for cleanup
+trap cleanup EXIT
+
 # Check if the directory exists
 if [ -d "$REPO_PATH" ]; then
     echo "Repository path exists: $REPO_PATH"
     pushd "$REPO_PATH"
 else
     echo "No existing Shardeum installation found, cloning the repository..."
-    pushd "./.test" || mkdir -p "./.test" && pushd "./.test"
+    if [ ! -d .test ]; then
+        mkdir .test
+    fi
+    pushd .test
+    if [ -d $REPO_NAME ]; then
+        rm -rf $REPO_NAME
+    fi
     git clone https://github.com/shardeum/shardeum.git || { echo "Failed to clone shardeum repository"; exit 1; }
     pushd "$REPO_NAME"
 fi
@@ -84,18 +104,22 @@ echo "Waiting for 3 minutes before starting the JSON RPC server"
 sleep 180
 
 # Return to the original directory using popd
-popd || { echo "Failed to return to /root directory"; exit 1; }
+popd || { echo "Failed to return to parent directory"; exit 1; }
 
-git switch localtest || { echo "Failed to switch to localtest branch"; exit 1; }
+# git switch localtest || { echo "Failed to switch to localtest branch"; exit 1; }
 
-echo "Installing json rpc project dependencies..."
-npm ci
+echo "Installing JSON RPC project dependencies..."
+if [ ! -d node_modules ]; then
+    npm i    
+fi
 
 echo "Starting the JSON RPC server..."
-npm run start & # Start the JSON RPC server in the background
+npm run start & RPC_SERVER_PID=$! # Start the JSON RPC server in the background and store its PID
 
 echo "Waiting for 90 seconds before running the test suite..."
 sleep 90
 
 npm run test || { echo "Test suite failed"; exit 1; }
 echo "Test suite completed."
+
+cleanup
