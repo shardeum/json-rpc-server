@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { extendedServer } from '../../server';
 const { Transaction } = require('ethereumjs-tx');
-require('dotenv').config();
+
 // Helper function to make JSON-RPC calls
 async function jsonRpcRequest(method: any, params: any) {
     try {
