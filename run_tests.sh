@@ -14,20 +14,6 @@ source "$NVM_DIR/nvm.sh"
 REPO_PATH="${1:-/path/to/your/local/shardeum/repo}"
 REPO_NAME="shardeum"
 
-# Clean up and stop services
-cleanup() {
-    echo "Cleaning up..."
-    if [[ -n "$RPC_SERVER_PID" ]]; then
-        kill $RPC_SERVER_PID
-        echo "Stopped JSON RPC server."
-    fi
-    shardus stop && shardus clean && rm -rf instances
-    echo "Stopped shardus network."
-}
-
-# Trap exit signal for cleanup
-trap cleanup EXIT
-
 # Check if the directory exists
 if [ -d "$REPO_PATH" ]; then
     echo "Repository path exists: $REPO_PATH"
@@ -99,27 +85,16 @@ command -v shardus &> /dev/null || npm install -g shardus @shardus/archiver
 shardus start 10 || { echo "Failed to start shardus network"; exit 1; }
 echo "Started 10 nodes with shardus"
 
-# Wait before starting the JSON RPC server
-echo "Waiting for 3 minutes before starting the JSON RPC server"
-sleep 180
+# Wait for archivers in the network to initialize
+echo "Waiting for 4 minutes to allow the network to stabilize..."
+sleep 240
 
 # Return to the original directory using popd
 popd || { echo "Failed to return to parent directory"; exit 1; }
 
-# git switch localtest || { echo "Failed to switch to localtest branch"; exit 1; }
-
-echo "Installing JSON RPC project dependencies..."
-if [ ! -d node_modules ]; then
-    npm i    
-fi
-
-echo "Starting the JSON RPC server..."
-npm run start & RPC_SERVER_PID=$! # Start the JSON RPC server in the background and store its PID
-
-echo "Waiting for 90 seconds before running the test suite..."
-sleep 90
 
 npm run test || { echo "Test suite failed"; exit 1; }
 echo "Test suite completed."
 
-cleanup
+# Stop the shardus network
+shardus stop & shardus clean & rm -rf .test || { echo "Failed to stop shardus network"; exit 1; }
