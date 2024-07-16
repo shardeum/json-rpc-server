@@ -1,3 +1,11 @@
+<p align="center">
+    <img src="https://github.com/shardeum/.github/raw/dev/shardeum-white-bg.png" alt="Shardeum Logo" width="70%">
+</p>
+
+<p align="center">
+    <h2 align="center">Shardeum is an EVM based autoscaling blockchain</h2>
+</p>
+
 # Overview
 
 The Shardeum JSON-RPC Server enables developers to interact with the Shardeum blockchain network. It allows dapps to post request, retrieve information, and other related operations, using JSON-RPC over HTTP. Additionally, the Shardeum JSON-RPC Server comes with an added REST API for debugging and monitoring purposes.
@@ -110,18 +118,18 @@ To run the script:
 
 1. Clone and set up the JSON RPC Server locally.
 2. Navigate to the root of the project: `cd json-rpc-server`.
-3. Execute the script: 
-    - Run `npm local:test ~/root/path/to/your/shardeum/project` - If you already have a the Shardeum repo installed locally.
-    - Run `npm local:test` - If you'd prefer the script to set one up for you.
-    - The script will creat a test environment path `/.test` and set up the Shardeum network there.
+3. Execute the script:
+   - Run `npm local:test ~/root/path/to/your/shardeum/project` - If you already have the Shardeum repo installed locally.
+   - Run `npm local:test` - If you'd prefer the script to set one up for you.
+   - The script will creat a test environment path `/.test` and set up the Shardeum network there.
 4. It will then start a network of 10 nodes along with the JSON RPC server, and finally run the test suite.
-5. Tests involving transactions on the network will fail if your local network has fewer than 5 active nodes. 
-To address this, you can increase the wait time in the script to more than 10 minutes. 
-This will give the network sufficient time to reach processing mode with at least 5 active nodes.
+5. Tests involving transactions on the network will fail if your local network has fewer than 5 active nodes.
+   To address this, you can increase the wait time in the script to more than 10 minutes.
+   This will give the network sufficient time to reach processing mode with at least 5 active nodes.
 
 A test account with a hardcoded private key is provided in the tests, ensuring that your tests should pass without any extra configuration.
 
-> For detailed information about the tests, check the test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC methods.
+> For detailed information about the tests, check the test document in the `src/__tests__/integration/TEST.md` file and the individual test files located in `src/__tests__`. Each test file contains specific tests for different parts of the JSON-RPC methods.
 
 ## Cleanup
 
