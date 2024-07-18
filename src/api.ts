@@ -98,11 +98,11 @@ export type DetailedTxStatus = {
   from: string
   injected: boolean
   accepted:
-  | TxStatusCode.BAD_TX
-  | TxStatusCode.SUCCESS
-  | TxStatusCode.BUSY
-  | TxStatusCode.OTHER_FAILURE
-  | boolean
+    | TxStatusCode.BAD_TX
+    | TxStatusCode.SUCCESS
+    | TxStatusCode.BUSY
+    | TxStatusCode.OTHER_FAILURE
+    | boolean
   reason: string
   timestamp: string
   nodeUrl?: string
@@ -176,16 +176,16 @@ type Tx = readableTransaction & {
 
 type TxParam =
   | {
-    readableReceipt: Tx
-    txHash?: string
-    transactionType?: string | number
-  }
-  | {
-    wrappedEVMAccount: {
       readableReceipt: Tx
-      txHash: string
+      txHash?: string
+      transactionType?: string | number
     }
-  }
+  | {
+      wrappedEVMAccount: {
+        readableReceipt: Tx
+        txHash: string
+      }
+    }
 
 function extractTransactionObject(
   bigTransaction: TxParam,
