@@ -4,6 +4,7 @@
   "description": "JSON RPC server for Shardeum",
   "main": "src/server.js",
   "scripts": {
+    "test": "bash run_tests.sh",
     "start": "npm run compile && node dist/src/server.js",
     "dev": "nodemon",
     "compile": "tsc -p .",
@@ -12,7 +13,6 @@
     "lint-windows": "eslint ./src/**/*.ts",
     "update-docker-dev": "docker build -t registry.gitlab.com/shardeum/json-rpc-server:dev . --push",
     "format-check": "prettier --check './src/**/*.ts'",
-    "local:test": "bash run_tests.sh",
     "coverage": "jest --coverage --detectOpenHandles --forceExit --silent"
   },
   "author": "thantsintoe",
