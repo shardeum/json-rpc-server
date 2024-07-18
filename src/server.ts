@@ -199,6 +199,22 @@ app.use(injectIP)
 app.use(rejectSubscription)
 app.use(server.middleware())
 
+export const startServer = () => {
+  if (process.env.NODE_ENV !== 'test') {
+    extendedServer.listen(port, function () {
+      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+      setupDatabase()
+      setupLogEvents()
+      setupSubscriptionEventHandlers()
+      setupEvmLogProviderConnectionStream()
+    })
+  }
+}
+
+export const stopServer = (callback?: () => void) => {
+  extendedServer.close(callback)
+}
+
 setupArchiverDiscovery({
   customConfigPath: 'archiverConfig.json',
 }).then(() => {
@@ -214,12 +230,8 @@ setupArchiverDiscovery({
     setInterval(checkArchiverHealth, 60000)
     setInterval(cleanBadNodes, 60000)
     setInterval(updateEdgeNodeConfig, 60000 * 5)
-    extendedServer.listen(port, function () {
-      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
-      setupDatabase()
-      setupLogEvents()
-      setupSubscriptionEventHandlers()
-      setupEvmLogProviderConnectionStream()
-    })
+    startServer()
   })
 })
+
+export { extendedServer, app, server }

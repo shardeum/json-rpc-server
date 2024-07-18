@@ -13,3 +13,4 @@ config.js
 dist/
 .idea/
 .DS_Store
+.test/
