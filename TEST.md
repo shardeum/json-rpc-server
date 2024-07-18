@@ -42,6 +42,10 @@ Once the environment is set up, the tests are executed using Jest. These tests p
 
 Each RPC call has its own test file in the `src/__tests__` directory. Each file contains multiple test cases covering different aspects and edge cases for each RPC method.
 
+### Test Accounts
+
+The script uses an account in the Shardeum genesis file that starts off with a balance of `200,000,000 Ether` to send 0.01 Ether to the receiving address each time the transaction test executes. The test sends this transaction and then verifies that the receiving account's balance has increased by at least this amount.
+
 ### Run Tests
 
 The tests typically run automatically through the test script, however, you can run the tests manually by executing the `npm test` command in the JSON RPC Server project. [More on how to run tests here ](https://github.com/shardeum/json-rpc-server/blob/localtest/README.md#running-tests).
