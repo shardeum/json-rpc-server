@@ -125,6 +125,28 @@ class ServiceValidator extends BaseExternal {
     }
   }
 
+  async debugTraceTransaction(txObj: any): Promise<null> {
+    if (!CONFIG.serviceValidatorSourcing.enabled) return null
+    const requestConfig: AxiosRequestConfig = {
+      method: 'post',
+      url: `${this.baseUrl}/contract/debugTraceTransaction`,
+      headers: this.defaultHeaders,
+      data: txObj,
+    }
+    /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: debugTraceTransaction requestConfig: ${JSON.stringify(requestConfig)}`)
+    try {
+      nestedCountersInstance.countEvent('service-validator', 'debugTraceTransaction')
+      const res = await axiosWithRetry<{ estimateGas: string }>(requestConfig)
+      /* prettier-ignore */ if (verbose) console.log(`ServiceValidator: debugTraceTransaction res: ${JSON.stringify(res.data)}`)
+      console.log(`HERE ${res.data}`)
+      return null
+    } catch (e) {
+      nestedCountersInstance.countEvent('service-validator', 'debugTraceTransaction-error')
+      console.error(`ServiceValidator: Error estimating gas`, e)
+      return null
+    }
+  }
+
   async estimateGas(callObj: any): Promise<string | null> {
     if (!CONFIG.serviceValidatorSourcing.enabled) return null
 

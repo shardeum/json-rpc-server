@@ -3228,9 +3228,18 @@ export const methods = {
       return
     }
 
+    const txHash = args[0]
+    if (!txHash) {
+      callback({ code: errorCode, message: 'Invalid transaction hash' })
+      countFailedResponse(api_name, 'invalid transaction hash')
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
+    }
+
     try {
-      const result = await replayTransaction(args[0], '-s')
-      callback(null, { structLogs: result })
+      const txData = await collectorAPI.getOriginalTransactionByHash(txHash)
+      const result = await serviceValidator.debugTraceTransaction(txData)
+      callback(null, result)
       countSuccessResponse(api_name, 'success', 'replayer')
     } catch (e) {
       console.log(`Error while making an eth call`, e)

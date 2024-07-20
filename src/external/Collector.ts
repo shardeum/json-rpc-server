@@ -55,6 +55,35 @@ class Collector extends BaseExternal {
     }
   }
 
+  async getOriginalTransactionByHash(txHash: string): Promise<any | Err | null> {
+    if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
+    nestedCountersInstance.countEvent('collector', 'getOriginalTransactionByHash')
+    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getOriginalTransactionByHash call for txHash: ${txHash}`)
+    const requestConfig: AxiosRequestConfig = {
+      method: 'get',
+      url: `${this.baseUrl}/api/transaction?txHash=${txHash}`,
+      headers: this.defaultHeaders,
+    }
+
+    try {
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getOriginalTransactionByHash requestConfig: ${JSON.stringify(requestConfig)}`)
+      const res = await axiosWithRetry<{ success: boolean; transactions: any }>(requestConfig)
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getOriginalTransactionByHash res: ${JSON.stringify(res.data)}`)
+      if (!res.data.success) return null
+
+      const tx = res.data.transactions && res.data.transactions[0] ? res.data.transactions[0] : null
+
+      const result = tx ? this.decodeTransaction(tx) : null
+
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getOriginalTransactionByHash result: ${JSON.stringify(result)}`)
+      return { ...result, originalTxdata: tx.originalTxData.tx }
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getOriginalTransactionByHash-error')
+      console.error('Collector: Error getting transaction by hash', error)
+      return NewInternalErr('Collector: Error getting transaction by hash')
+    }
+  }
+
   async getTransactionByHash(txHash: string): Promise<readableTransaction | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
     nestedCountersInstance.countEvent('collector', 'getTransactionByHash')
