@@ -2691,8 +2691,11 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running compileSolidity', args) }
-    const result = 'test'
-    callback(null, result)
+    const error: JSONRPCError = {
+      code: -32601,
+      message: 'The method eth_compileSolidity does not exist/is not available',
+    }
+    callback(error)
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
@@ -2705,8 +2708,11 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = 'test'
-    callback(null, result)
+    const error: JSONRPCError = {
+      code: -32601,
+      message: 'The method eth_compileLLL does not exist/is not available',
+    }
+    callback(error)
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
@@ -2719,8 +2725,11 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const result = 'test'
-    callback(null, result)
+    const error: JSONRPCError = {
+      code: -32601,
+      message: 'The method eth_compileSerpent does not exist/is not available',
+    }
+    callback(error)
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
