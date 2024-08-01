@@ -22,6 +22,7 @@ import {
 } from './utils'
 import { router as logRoute } from './routes/log'
 import { router as authenticate } from './routes/authenticate'
+import { healthCheckRouter } from './routes/healthCheck'
 import { Request, Response } from 'express'
 import { CONFIG, CONFIG as config } from './config'
 import blackList from '../blacklist.json'
@@ -79,13 +80,16 @@ app.set('trust proxy', true)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
-app.use(function(req, res, next) {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Permissions-Policy', 'accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), unload=(), window-placement=(), vertical-scroll=()');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Content-Security-Policy', "default-src 'self'");
-  next();
-});
+app.use(function (req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader(
+    'Permissions-Policy',
+    'accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), unload=(), window-placement=(), vertical-scroll=()'
+  )
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('Content-Security-Policy', "default-src 'self'")
+  next()
+})
 
 if (config.dashboard.enabled && config.dashboard.dist_path) {
   const clientDirectory =
@@ -114,11 +118,6 @@ app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
     return
   }
   res.end(`Successfully changed to ${ip}:${port}`)
-})
-
-app.get('/api/health', (req: Request, res: Response) => {
-  nestedCountersInstance.countEvent('api', 'health')
-  return res.json({ healthy: true }).status(200)
 })
 
 app.get('/counts', authorize, (req: Request, res: Response) => {
@@ -194,6 +193,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 
 app.use('/log', authorize, logRoute)
 app.use('/authenticate', authenticate)
+app.use('/', healthCheckRouter)
 app.use(injectIP)
 // reject subscription methods from http
 app.use(rejectSubscription)

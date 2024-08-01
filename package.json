@@ -11,8 +11,8 @@
     "clean-log": "rm -rf ./log",
     "lint": "eslint \"./src/**/*.ts\"",
     "update-docker-dev": "docker build -t registry.gitlab.com/shardeum/json-rpc-server:dev . --push",
-    "format-check": "prettier --check './src/**/*.ts'",
-    "format-fix": "prettier --write './src/**/*.ts'"
+    "format-check": "prettier --check \"./src/**/*.ts\"",
+    "format-fix": "prettier --write \"./src/**/*.ts\""
   },
   "author": "thantsintoe",
   "license": "ISC",
