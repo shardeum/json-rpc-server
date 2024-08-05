@@ -1787,7 +1787,9 @@ export function getReasonEnumCode(reason: string): TxStatusCode {
   _REASONS.set('Dev key is not defined on the server!'.toLowerCase(), TxStatusCode.BAD_TX)
   _REASONS.set('Invalid signature'.toLowerCase(), TxStatusCode.BAD_TX)
   _REASONS.set('Transaction is not valid. Cannot get txObj.'.toLowerCase(), TxStatusCode.BAD_TX)
-  _REASONS.set('Transaction is not signed or signature is not valid.'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Not enough gas to execute transaction'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction is not signed'.toLowerCase(), TxStatusCode.BAD_TX)
+  _REASONS.set('Transaction signature is invalid'.toLowerCase(), TxStatusCode.BAD_TX)
   _REASONS.set('Cannot derive sender address from tx'.toLowerCase(), TxStatusCode.BAD_TX)
 
   _REASONS.set('Transaction queued, poll for results.'.toLowerCase(), TxStatusCode.SUCCESS)
