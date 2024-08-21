@@ -12,7 +12,7 @@
     "lint": "eslint \"./src/**/*.ts\"",
     "update-docker-dev": "docker build -t registry.gitlab.com/shardeum/json-rpc-server:dev . --push",
     "format-check": "prettier --check \"./src/**/*.ts\"",
-    "format-fix": "prettier --write \"./src/**/*.ts\""
+    "format-fix": "prettier --write \"./src/**/*.ts\"",
     "check-patches": "node -e \"const { execSync } = require('child_process'); const patches = require('fs').readdirSync('.').filter(f => f.endsWith('.patch')); if (patches.length > 0) { let allPassed = true; patches.forEach(patch => { try { execSync('git apply --verbose --check ' + patch, { stdio: 'inherit' }); console.log('✔ ' + patch + ' can be applied successfully.'); } catch { console.error('✘ ' + patch + ' failed to apply.'); allPassed = false; } }); if (!allPassed) process.exit(1); } else { console.log('No patch files found.'); }\""
   },
   "author": "thantsintoe",
