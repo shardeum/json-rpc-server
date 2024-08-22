@@ -1,6 +1,6 @@
 import { bufferToHex } from 'ethereumjs-util'
 import { DetailedTxStatus, TxStatus } from './api'
-import { db } from './storage/sqliteStorage'
+import { db, statements } from './storage/sqliteStorage'
 import { getReasonEnumCode, getTransactionObj } from './utils'
 
 import EventEmitter from 'events'
@@ -41,72 +41,63 @@ export const debug_info = {
 let dbWriteTimeout: NodeJS.Timeout|null = null
 
 export async function saveInterfaceStat(): Promise<void> {
-  console.log(apiPerfLogData)
-  // eslint-disable-next-line prefer-const
-  let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[0]
-  // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-  let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-  let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
-  for (let i = 1; i < apiPerfLogData.length; i++) {
-    // eslint-disable-next-line prefer-const
-    let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
-
-    // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-    placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-    sql = sql + `, (${placeholders})`
+  for (const data of apiPerfLogData) {
+    const { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = data
+    try {
+      statements['insertInterfaceStat'].run({
+        api_name,
+        tfinal,
+        timestamp,
+        nodeUrl,
+        success,
+        reason,
+        hash,
+      })
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   apiPerfLogData = []
-
-  try {
-    await db.exec(sql)
-  } catch (e) {
-    console.log(e)
-  }
 }
 
 export function setupLogEvents(): void {
-  /* eslint-disable security/detect-object-injection */
-  if (config.statLog) {
-    logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
+  logEventEmitter.on('fn_start', (ticket: string, api_name: string, start_timer: number) => {
+    if (config.statLog !== true) return
+    apiPerfLogTicket[ticket] = {
+      api_name: api_name,
+      start_timer: start_timer,
+    }
+  })
+
+  logEventEmitter.on(
+    'fn_end',
+    (
+      ticket: string,
+      data: { nodeUrl?: string; success: boolean; reason?: string; hash?: string },
+      end_timer: number
+    ) => {
       if (config.statLog !== true) return
-      apiPerfLogTicket[ticket] = {
+      const timestamp = Date.now()
+
+      if (!Object.prototype.hasOwnProperty.call(apiPerfLogTicket, ticket)) return
+
+      const { api_name, start_timer } = apiPerfLogTicket[ticket]
+      // tfinal is the time it took to complete an api
+      const tfinal = end_timer - start_timer
+      apiPerfLogData.push({
         api_name: api_name,
-        start_timer: start_timer,
-      }
-    })
-
-    logEventEmitter.on(
-      'fn_end',
-      (
-        ticket: string,
-        data: { nodeUrl?: string; success: boolean; reason?: string; hash?: string },
-        end_timer: number
-      ) => {
-        if (config.statLog !== true) return
-        const timestamp = Date.now()
-
-        if (!Object.prototype.hasOwnProperty.call(apiPerfLogTicket, ticket)) return
-
-        const { api_name, start_timer } = apiPerfLogTicket[ticket]
-        // tfinal is the time it took to complete an api
-        const tfinal = end_timer - start_timer
-        apiPerfLogData.push({
-          api_name: api_name,
-          tfinal: tfinal,
-          timestamp: timestamp,
-          nodeUrl: data.nodeUrl,
-          success: data.success,
-          reason: data?.reason,
-          hash: data?.hash,
-        })
-        delete apiPerfLogTicket[ticket]
-      }
-    )
-    
-    // Start writing stats to the DB on a time based interval
-    scheduleDbWrite()
-  }
+        tfinal: tfinal,
+        timestamp: timestamp,
+        nodeUrl: data.nodeUrl,
+        success: data.success,
+        reason: data?.reason,
+        hash: data?.hash,
+      })
+      scheduleDbWrite()
+      delete apiPerfLogTicket[ticket]
+    }
+  )
 
   logEventEmitter.on('tx_insert_db', async (_txs: TxStatus[]) => {
     if (config.recordTxStatus !== true) return
@@ -148,7 +139,6 @@ export function setupLogEvents(): void {
     }
     txStatusSaver(detailedList)
   })
-  /* eslint-enable security/detect-object-injection */
 }
 
 // this function save recorded transaction to sqlite with its tx type
@@ -211,22 +201,26 @@ export async function txStatusSaver(_txs: DetailedTxStatus[]): Promise<void> {
   // }
 }
 
-// This function kicks off writing stats to the DB on a time based interval
+// This function schedules a DB write if one isn't already scheduled
 export function scheduleDbWrite() {
-  // If there is data to be written and a DB write is not currently scheduled...
-  if (apiPerfLogData.length > 0 && dbWriteTimeout === null) {
-    // Schedule a DB write within the configured interval time
-    const executeDbWrite = function () {
-      // After the DB write is complete...
-      saveInterfaceStat().then(() => {
-        // Set timeout to null to indicate completion
-        dbWriteTimeout = null
-        // If CONFIG.statLog is true, schedule another DB write
-        if (CONFIG.statLog === true) {
-          scheduleDbWrite()
-        }
-      }) 
-    }
-    dbWriteTimeout = setTimeout(executeDbWrite, CONFIG.statLogIntervalSec * 1000)
+  // If a DB write is currently scheduled, return
+  if (dbWriteTimeout !== null) return
+
+  const executeDbWrite = function () {
+    // Write any data that needs to be written to the DB
+    saveInterfaceStat()
+    // Clear the timeout tracker
+    dbWriteTimeout = null
   }
+    
+  // If apiPerfLogData has too many entries, schedule a DB write immediately
+  const when = apiPerfLogData.length >= config.statLogLimit ? 1 : config.statLogIntervalSec * 1000
+  // Schedule a DB write
+  dbWriteTimeout = setTimeout(executeDbWrite, when)
+}
+
+export function getInterfaceStatCounts() {
+  const counts = statements['getInterfaceStatCounts'].all()
+  console.log(counts)
+  return counts
 }
