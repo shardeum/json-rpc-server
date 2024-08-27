@@ -22,6 +22,9 @@ interface Request {
 }
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
+
+  const eth_methods = Object.freeze(methods)
+
   socket.on('message', (message: string) => {
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
@@ -75,7 +78,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     }
 
     const method_name = request.method as string
-    if (!methods[method_name as keyof typeof methods]) {
+    if (!eth_methods[method_name as keyof typeof eth_methods]) {
       socket.send(
         JSON.stringify({
           id: request.id,
@@ -159,7 +162,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     }
 
     // call interface handler
-    methods[method_name as keyof typeof methods](request.params, callback)
+    eth_methods[method_name as keyof typeof eth_methods](request.params, callback)
   })
 
   socket.on('close', (code, reason) => {
