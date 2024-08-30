@@ -2897,9 +2897,17 @@ export const methods = {
 
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const filterId = args[0]
+    let filterId
+    try {
+      filterId = args[0].toString()
+    } catch (e) {
+      callback({ code: -32602, message: 'Invalid filterId' }, null)
+      countFailedResponse(api_name, 'Invalid filterId')
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      return
+    }
 
-    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString())
+    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId)
     let updates: string[] = []
     if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
       const logFilter = internalFilter.filter as Types.LogFilter
@@ -2980,10 +2988,18 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
-    const filterId = args[0]
+    let filterId
+    try {
+      filterId = args[0].toString()
+    } catch (e) {
+      callback({ code: -32602, message: 'Invalid filterId' }, null)
+      countFailedResponse(api_name, 'Invalid filterId')
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      return
+    }
     let logs: string[] = []
 
-    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId.toString())
+    const internalFilter: Types.InternalFilter | undefined = filtersMap.get(filterId)
     if (internalFilter && internalFilter.type === Types.FilterTypes.log) {
       const logFilter = internalFilter.filter as Types.LogFilter
       const request: Types.LogQueryRequest = {
