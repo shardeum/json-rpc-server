@@ -61,6 +61,9 @@ let lastBlockInfo = {
 //const errorHexStatus: string = '0x' //0x0 if you want an error! (handy for testing..)
 const errorCode = 500 //server internal error
 const errorBusy = { code: errorCode, message: 'Busy or error' }
+
+const appErrorCode = -32000
+
 export let txStatuses: TxStatus[] = []
 const maxTxCountToStore = 10000
 const txMemPool: {
@@ -141,6 +144,12 @@ function isHex(str: string) {
 
 function isHexOrEmptyHex(str: string) {
   return str == '0x' || isHex(str)
+}
+
+const txnHashPattern = /^0x([A-Fa-f0-9]{64})$/
+
+function isValidTxHashFormat(txHash: string): boolean {
+  return txnHashPattern.test(txHash)
 }
 
 // Utility function to ensure arguments are an array
@@ -3213,8 +3222,14 @@ export const methods = {
       return
     }
 
+    const txHash = args[0].toLowerCase()
+    if (!isValidTxHashFormat(txHash)) {
+      callback({ code: appErrorCode, message: 'Please provide valid transaction hash' })
+      return
+    }
+
     try {
-      const result = await replayTransaction(args[0], '-s')
+      const result = await replayTransaction(txHash, '-s')
       callback(null, { structLogs: result })
       countSuccessResponse(api_name, 'success', 'replayer')
     } catch (e) {
@@ -3279,6 +3294,12 @@ export const methods = {
         }
         if (!txHash) {
           continue
+        }
+
+        txHash = txHash.toLowerCase()
+        if (!isValidTxHashFormat(txHash)) {
+          callback({ code: appErrorCode, message: 'Please provide valid transaction hash' })
+          return
         }
 
         const txResult = await replayTransaction(txHash, '-s')
@@ -3355,6 +3376,12 @@ export const methods = {
         }
         if (!txHash) {
           continue
+        }
+
+        txHash = txHash.toLowerCase()
+        if (!isValidTxHashFormat(txHash)) {
+          callback({ code: appErrorCode, message: 'Please provide valid transaction hash' })
+          return
         }
 
         const txResult = await replayTransaction(txHash, '-s')

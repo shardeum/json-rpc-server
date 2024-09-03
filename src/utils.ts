@@ -147,7 +147,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
 
       const waitForAllPromise = new Deferred<void>()
       let finished = 0
-      for(let i=0; i<nodes.length; i++) {
+      for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i]
         //promises.push(checkIfNodeIsActive(node)) //not stacking up promises
         //@ts-ignore what are we using es5 for?
@@ -1569,6 +1569,7 @@ export async function replayGas(tx: { from: string; gas: string } & TxData): Pro
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function replayTransaction(txHash: string, flag: string): Promise<any> {
   /* eslint-disable security/detect-non-literal-fs-filename */
+
   const replayPath = path.join(__dirname, '../../../validator/dist/src/debug/replayTX.js')
   const transactionsFolder = path.join(__dirname, '../../transactions')
 
@@ -1805,7 +1806,6 @@ export function hexToBN(hexString: string): BN {
   }
   return new BN(hexString, 16)
 }
-
 
 class Semaphore {
   private queue: (() => void)[] = [];
