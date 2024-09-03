@@ -147,7 +147,7 @@ export const CONFIG: Config = {
   },
   aalgWarmup: false,
   aalgWarmupServiceTPS: 10,
-  recordTxStatus: false,
+  recordTxStatus: false, // not safe for production, keep this off. Known issue.
   rateLimit: false,
   rateLimitOption: {
     softReject: true,
@@ -161,7 +161,9 @@ export const CONFIG: Config = {
     releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
-  statLog: false,
+  statLog: false, // not safe for production, keep this off
+  passphrase: process.env.PASSPHRASE || 'sha4d3um', // this is to protect debug routes
+  secret_key: process.env.SECRET_KEY || 'YsDGSMYHkSBMGD6B4EmD?mFTWG2Wka-Z9b!Jc/CLkrM8eLsBe5abBaTSGeq?6g?P', // this is the private key that rpc server will used to sign jwt token
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
