@@ -54,6 +54,13 @@ let port = config.port //8080
 const chainId = config.chainId //8080
 
 const extendedServer = http.createServer(app)
+extendedServer.on('connection', (socket) => {
+  socket.setKeepAlive(true, 60000) // keep the connection to avoid unnecessary handshakes every time
+  socket.setTimeout(20000) // close connection after 20s of inactivity
+  socket.on('timeout', () => {
+    socket.end()
+  })
+})
 
 const wss = new WebSocket.Server({ server: extendedServer })
 
