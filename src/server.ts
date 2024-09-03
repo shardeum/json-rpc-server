@@ -34,6 +34,7 @@ import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
+import { methodWhitelist } from './middlewares/methodWhitelist'
 setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
@@ -195,6 +196,8 @@ app.use('/log', authorize, logRoute)
 app.use('/authenticate', authenticate)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
+// Method Whitelisting Middleware
+app.use(methodWhitelist)
 // reject subscription methods from http
 app.use(rejectSubscription)
 app.use(server.middleware())
