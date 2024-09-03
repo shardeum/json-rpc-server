@@ -25,7 +25,6 @@ type Config = {
   rotationInterval: number
   faucetServerUrl: string
   queryFromValidator: boolean
-  queryFromArchiver: boolean
   explorerUrl: string
   queryFromExplorer: boolean
   generateTxTimestamp: boolean
@@ -128,7 +127,6 @@ export const CONFIG: Config = {
   rotationInterval: 60,
   faucetServerUrl: process.env.FAUCET_URL || 'https://faucet.liberty10.shardeum.org',
   queryFromValidator: true,
-  queryFromArchiver: false,
   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
   queryFromExplorer: false,
   generateTxTimestamp: true,

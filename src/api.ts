@@ -2322,11 +2322,6 @@ export const methods = {
         // set node url to null in this block, because querying from node fail
         // and now trying to get it from other sources
         nodeUrl = null
-        if (!result && config.queryFromArchiver) {
-          if (verbose) console.log('querying eth_getTransactionByHash from archiver ', txHash)
-          res = await axios.get(`${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`)
-          result = res.data.transactions?.data
-        }
         if (!result && config.queryFromExplorer) {
           if (verbose) console.log('querying eth_getTransactionByHash from explorer', txHash)
           const explorerUrl = config.explorerUrl
@@ -2599,17 +2594,7 @@ export const methods = {
         nodeUrl = res.data?.nodeUrl
         result = res.data?.account
       }
-      if (!result && config.queryFromArchiver) {
-        if (verbose) console.log('querying eth_getTransactionReceipt from archiver')
-
-        res = await axios.get(`${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`)
-        if (verbose) {
-          console.log('url', `${getArchiverUrl().url}/transaction?accountId=${txHash.substring(2)}`)
-          console.log('res', JSON.stringify(res.data))
-        }
-
-        result = res.data.transactions ? res.data.transactions.data : null
-      } else if (!result && config.queryFromExplorer) {
+      if (!result && config.queryFromExplorer) {
         if (verbose) {
           console.log('querying eth_getTransactionReceipt from explorer', txHash)
         }
