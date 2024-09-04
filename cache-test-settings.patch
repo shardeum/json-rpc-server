@@ -1,8 +1,8 @@
 diff --git a/src/config.ts b/src/config.ts
-index db6061c..3862259 100644
+index b1ac6d7..c828dd7 100644
 --- a/src/config.ts
 +++ b/src/config.ts
-@@ -183,11 +183,11 @@ export const CONFIG: Config = {
+@@ -188,11 +188,11 @@ export const CONFIG: Config = {
    isRemoteLocalNetwork: false,
    nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
    collectorSourcing: {
@@ -16,11 +16,12 @@ index db6061c..3862259 100644
      serviceValidatorUrl: 'http://0.0.0.0:9001',
    },
  
-@@ -196,6 +196,6 @@ export const CONFIG: Config = {
+@@ -201,7 +201,7 @@ export const CONFIG: Config = {
    ServicePoints: {
      ['aalg-warmup']: 20,
    },
 -  enableBlockCache: false,
 +  enableBlockCache: true,
    useRoundRobinConsensorSelection: true,
+   devPublicKeys: {}
  }
