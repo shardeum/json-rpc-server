@@ -10,7 +10,7 @@ const timeInputProcessor = (timestamp: string): number => {
 }
 
 function sanitizeSqlPayload(input: string): string {
-  return input.replace(/'/g, "''");
+  return input.replace(/'/g, "''")
 }
 
 type SQLFiltersParam = {
