@@ -103,7 +103,7 @@ type Config = {
   debugEndpointRateLimiting: {
     window: number // time window
     limit: number // max requests per IP within time window
-  
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
