@@ -52,8 +52,6 @@ type Config = {
     softReject: boolean
   }
   statLog: boolean
-  statLogIntervalSec: number
-  statLogLimit: number
 
   blockCacheSettings: {
     lastNBlocksSize: number
@@ -160,8 +158,6 @@ export const CONFIG: Config = {
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
   statLog: false,
-  statLogIntervalSec: 10,
-  statLogLimit: 10000,
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,

@@ -2,7 +2,7 @@ import { db } from '../storage/sqliteStorage'
 import express, { Request, Response } from 'express'
 export const router = express.Router()
 import { CONFIG } from '../config'
-import { debug_info, getInterfaceStatCounts } from '../logger'
+import { debug_info } from '../logger'
 
 const timeInputProcessor = (timestamp: string): number => {
   const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
@@ -10,7 +10,7 @@ const timeInputProcessor = (timestamp: string): number => {
 }
 
 function sanitizeSqlPayload(input: string): string {
-  return input.replace(/'/g, "''")
+  return input.replace(/'/g, "''");
 }
 
 type SQLFiltersParam = {
@@ -339,7 +339,7 @@ router.route('/cleanTxTable').get(async function (req: Request, res: Response) {
 })
 
 router.route('/startTxCapture').get(async function (req: Request, res: Response) {
-  if (CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already enabled' }).status(204)
+  if (CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already enabled' }).status(304)
   debug_info.txRecordingStartTime = Date.now()
   debug_info.txRecordingEndTime = 0
   CONFIG.recordTxStatus = true
@@ -347,7 +347,7 @@ router.route('/startTxCapture').get(async function (req: Request, res: Response)
   res.json({ message: 'Transaction status recording enabled' }).status(200)
 })
 router.route('/stopTxCapture').get(async function (req: Request, res: Response) {
-  if (!CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already stopped' }).status(204)
+  if (!CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already stopped' }).status(304)
   debug_info.txRecordingEndTime = Date.now()
   CONFIG.recordTxStatus = false
   res.send({ message: 'Transaction status recording disabled' }).status(200)
@@ -355,7 +355,7 @@ router.route('/stopTxCapture').get(async function (req: Request, res: Response) 
 
 router.route('/startRPCCapture').get(async function (req: Request, res: Response) {
   if (CONFIG.statLog) {
-    return res.json({ message: 'Interface stats are recording already' }).status(204)
+    return res.json({ message: 'Interface stats are recording already' }).status(304)
   }
   debug_info.interfaceRecordingStartTime = Date.now()
   debug_info.interfaceRecordingEndTime = 0
@@ -365,17 +365,11 @@ router.route('/startRPCCapture').get(async function (req: Request, res: Response
 })
 router.route('/stopRPCCapture').get(async function (req: Request, res: Response) {
   if (!CONFIG.statLog) {
-    return res.json({ message: 'Interface stats recording already stopped' }).status(204)
+    return res.json({ message: 'Interface stats recording already stopped' }).status(304)
   }
   debug_info.interfaceRecordingEndTime = Date.now()
   CONFIG.statLog = false
   res.json({ message: 'RPC interface recording disabled' }).status(200)
-})
-router.route('/countRPCCapture').get(async function (req: Request, res: Response) {
-  if (!CONFIG.statLog) {
-    return res.json({ message: 'Interface stats recording disabled' }).status(204)
-  }
-  res.json(getInterfaceStatCounts()).status(200)
 })
 
 router.route('/status').get(async function (req: Request, res: Response) {
