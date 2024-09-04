@@ -108,7 +108,7 @@ This will remove all docker images created by the server during the build proces
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
 
-GET `/log/api-stats` this endpint emit the rpc interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy). Not setting any timestamp parameter will returns paginated json of all the entry in db.
+GET `/log/api-stats` this endpoint emits the rpc interface call counts and avg tps along with a few a other information. This endpoint support query by time range. i.e `/log/api-stats?start={x}&end={x}`. The parameter value can be either `yyyy-mm-dd` or unix epoch in millisecond. (NOTE standard unix epoch is in seconds which does not work, it has to be in millisecond accuracy). Not setting any timestamp parameter will returns paginated json of all the entry in db.
 
 GET `/log/txs` this endpoint return the txs it has been made through rpc server. This endpoint support dynmaic pagination. i.e `/log/txs?max=30&page=9`.
 Default values are `1000` for `max` and `0` for page.
@@ -117,15 +117,21 @@ GET `/log/status` this endpint return status of logging such as date of recordin
 
 GET `/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database.
 
-GET `/log/stopRPCCapture` this endpoint set the config value to false which control whether to capture incoming rpc interface call stat and store in database
+GET `/log/stopRPCCapture` this endpoint set the config value to false which control whether to capture incoming rpc interface call stat and store in database.
 
 GET `/log/startRPCCapture` this endpoint set the config value to true which control whether to capture rpc interface call stat and store in database.
 
-GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database
+GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database.
 
-GET `/cleanStatTable` this endpoint trigger purging of table that store interface stats
+GET `/log/cleanStatTable` this endpoint trigger purging of table that store interface stats.
 
-GET `/cleanTxTable` this endpoint trigger purging of table that store transaction logging
+GET `/log/cleanTxTable` this endpoint trigger purging of table that store transaction logging.
+
+GET `/counts` this endpoint emits the nestedCounters report as an array.
+
+GET `/counts-reset` this endpoint resets the internal nestedCounters object.
+
+GET `/api/subsribe` this endpoint changes the subscribed validator node to the ip and port specified in the `ip` and `port` query parameters.
 
 # Health Check
 

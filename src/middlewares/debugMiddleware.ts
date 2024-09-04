@@ -65,18 +65,7 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any)
                 message: 'FORBIDDEN!',
               })
             }
-          } else {
-            // /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
           }
-        } else {
-          //   if (logFlags.verbose) {
-          //     const parsedCounter = parseInt(sigObj.count)
-          //     if (Number.isNaN(parsedCounter)) {
-          //       console.log('Counter is not a number')
-          //     } else {
-          //       console.log('Counter is not larger than last counter', parsedCounter, lastCounter)
-          //     }
-          //   }
         }
       }
     }

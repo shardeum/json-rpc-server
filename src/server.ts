@@ -6,7 +6,6 @@ import * as WebSocket from 'ws'
 import cookieParser from 'cookie-parser'
 import { methods, saveTxStatus } from './api'
 import { debug_info, setupLogEvents } from './logger'
-import authorize from './middlewares/authorize'
 import injectIP from './middlewares/injectIP'
 import { setupDatabase } from './storage/sqliteStorage'
 import {
@@ -21,7 +20,6 @@ import {
   updateEdgeNodeConfig,
 } from './utils'
 import { router as logRoute } from './routes/log'
-import { router as authenticate } from './routes/authenticate'
 import { healthCheckRouter } from './routes/healthCheck'
 import { Request, Response } from 'express'
 import { CONFIG, CONFIG as config } from './config'
@@ -112,24 +110,20 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   // app.set('views', clientDirectory);
 }
 
-app.get('/api/subscribe', authorize, (req: Request, res: Response) => {
+app.get('/api/subscribe', handleDebugAuth, (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
-  if (!query || !req.ip || !query.port) {
+  if (!query || !query.ip || !query.port) {
     console.log('Invalid ip or port')
     return res.end('Invalid ip or port')
   }
-  const ip = req.ip || '127.0.0.1'
-  const port = req.connection.localPort || 9001
-  const success = changeNode(ip, port, true)
-  if (!success) {
-    res.end(`Ip not in the nodelist ${ip}:${port}, node subscription rejected`)
-    return
-  }
+  const ip = query.ip.toString() || '127.0.0.1'
+  const port = parseInt(query.port.toString()) || 9001
+  changeNode(ip, port)
   res.end(`Successfully changed to ${ip}:${port}`)
 })
 
-app.get('/counts', authorize, (req: Request, res: Response) => {
+app.get('/counts', handleDebugAuth, (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'counts')
   const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
   if (req.headers.accept === 'application/json') {
@@ -147,7 +141,7 @@ app.get('/counts', authorize, (req: Request, res: Response) => {
   }
 })
 
-app.get('/counts-reset', authorize, (req: Request, res: Response) => {
+app.get('/counts-reset', handleDebugAuth, (req: Request, res: Response) => {
   nestedCountersInstance.eventCounters = new Map()
   res.write(`counts reset ${Date.now()}`)
   res.end()
@@ -201,7 +195,6 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 })
 
 app.use('/log', handleDebugAuth, logRoute)
-app.use('/authenticate', authenticate)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
 // Method Whitelisting Middleware
