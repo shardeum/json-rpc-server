@@ -35,6 +35,7 @@ import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
+import { handleDebugAuth } from './middlewares/debugMiddleware'
 setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
@@ -199,7 +200,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
-app.use('/log', authorize, logRoute)
+app.use('/log', handleDebugAuth, logRoute)
 app.use('/authenticate', authenticate)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
