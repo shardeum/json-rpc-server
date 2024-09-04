@@ -1,8 +1,8 @@
 diff --git a/src/config.ts b/src/config.ts
-index b1ac6d7..c828dd7 100644
+index e66e445..08898f5 100644
 --- a/src/config.ts
 +++ b/src/config.ts
-@@ -188,11 +188,11 @@ export const CONFIG: Config = {
+@@ -180,11 +180,11 @@ export const CONFIG: Config = {
    isRemoteLocalNetwork: false,
    nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
    collectorSourcing: {
@@ -16,12 +16,12 @@ index b1ac6d7..c828dd7 100644
      serviceValidatorUrl: 'http://0.0.0.0:9001',
    },
  
-@@ -201,7 +201,7 @@ export const CONFIG: Config = {
+@@ -193,7 +193,7 @@ export const CONFIG: Config = {
    ServicePoints: {
      ['aalg-warmup']: 20,
    },
 -  enableBlockCache: false,
 +  enableBlockCache: true,
    useRoundRobinConsensorSelection: true,
-   devPublicKeys: {}
- }
+   devPublicKeys: {
+     // '': DevSecurityLevel.Unauthorized,
