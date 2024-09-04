@@ -1,7 +1,9 @@
 import { CONFIG } from '../config'
 import * as crypto from '@shardus/crypto-utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import {rateLimit} from 'express-rate-limit'
+import { rateLimit } from 'express-rate-limit'
+import { DevSecurityLevel } from '../types'
+import { RequestHandler } from 'express'
 
 const MAX_COUNTER_BUFFER_MILLISECONDS = 10000
 let lastCounter = 0
@@ -9,37 +11,36 @@ let multiSigLstCounter = 0
 
 const limiter = rateLimit({
   windowMs: CONFIG.debugEndpointRateLimiting.window,
-  limit: CONFIG.debugEndpointRateLimiting.limit
+  limit: CONFIG.debugEndpointRateLimiting.limit,
 })
 
 /** Helper Functions */
 
 function verify(obj: crypto.SignedObject, expectedPk?: string): boolean {
-    try {
-      if (expectedPk) {
-        if (obj.sign.owner !== expectedPk) return false
-      }
-      return crypto.verifyObj(obj)
-    } catch (e) {
-      console.error(`Error in verifying object ${JSON.stringify(obj)}`, e)
-      return false
+  try {
+    if (expectedPk) {
+      if (obj.sign.owner !== expectedPk) return false
     }
+    return crypto.verifyObj(obj)
+  } catch (e) {
+    console.error(`Error in verifying object ${JSON.stringify(obj)}`, e)
+    return false
+  }
 }
 
 export function ensureKeySecurity(pubKey: string, level: number): boolean {
-    const devPublicKeys = getDevPublicKeys()
-    // eslint-disable-next-line security/detect-object-injection
-    const pkClearance = devPublicKeys[pubKey]
-    return pkClearance !== undefined && pkClearance >= level
+  const devPublicKeys = getDevPublicKeys()
+  // eslint-disable-next-line security/detect-object-injection
+  const pkClearance = devPublicKeys[pubKey]
+  return pkClearance !== undefined && pkClearance >= level
 }
 
-export function getDevPublicKeys(): {[pubkey:string]: number}  {
-    return CONFIG.devPublicKeys || {};
+export function getDevPublicKeys(): { [pubkey: string]: number } {
+  return CONFIG.devPublicKeys || {}
 }
 
 // This function is used to check if the request is authorized to access the debug endpoint
-export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any) 
- {
+export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any) {
   try {
     //auth with a signature
     if (_req.query.sig != null && _req.query.sig_counter != null) {
@@ -84,6 +85,21 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any)
   })
 }
 
-export function rateLimitedDebugAuth() {
-  return [limiter, handleDebugAuth]
+// Middleware for low security level
+export const isDebugModeMiddlewareLow = (_req: any, res: any, next: any) => {
+  handleDebugAuth(_req, res, next, DevSecurityLevel.Low)
+}
+
+// Middleware for medium security level
+export const isDebugModeMiddlewareMedium = (_req: any, res: any, next: any) => {
+  handleDebugAuth(_req, res, next, DevSecurityLevel.Medium)
+}
+
+// Middleware for high security level
+export const isDebugModeMiddlewareHigh = (_req: any, res: any, next: any) => {
+  handleDebugAuth(_req, res, next, DevSecurityLevel.High)
+}
+
+export function rateLimitedDebugAuth(middleware: RequestHandler) {
+  return [limiter, middleware]
 }

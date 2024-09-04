@@ -33,7 +33,7 @@ import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
-import { rateLimitedDebugAuth } from './middlewares/debugMiddleware'
+import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 
 setDefaultResultOrder('ipv4first')
 
@@ -111,7 +111,7 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   // app.set('views', clientDirectory);
 }
 
-app.get('/api/subscribe', rateLimitedDebugAuth(), (req: Request, res: Response) => {
+app.get('/api/subscribe', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
   if (!query || !query.ip || !query.port) {
@@ -127,7 +127,8 @@ app.get('/api/subscribe', rateLimitedDebugAuth(), (req: Request, res: Response) 
   }
 })
 
-app.get('/counts', rateLimitedDebugAuth(), (req: Request, res: Response) => {
+app.get('/counts', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
+  console.log("HIT COUNTS")
   nestedCountersInstance.countEvent('api', 'counts')
   const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
   if (req.headers.accept === 'application/json') {
@@ -145,7 +146,7 @@ app.get('/counts', rateLimitedDebugAuth(), (req: Request, res: Response) => {
   }
 })
 
-app.get('/counts-reset', rateLimitedDebugAuth(), (req: Request, res: Response) => {
+app.get('/counts-reset', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
   nestedCountersInstance.eventCounters = new Map()
   res.write(`counts reset ${Date.now()}`)
   res.end()
@@ -198,7 +199,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
-app.use('/log', rateLimitedDebugAuth(), logRoute)
+app.use('/log', rateLimitedDebugAuth(isDebugModeMiddlewareLow), logRoute)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
 // Method Whitelisting Middleware
