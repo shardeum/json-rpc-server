@@ -99,7 +99,7 @@ type Config = {
 
   enableBlockCache: boolean
   useRoundRobinConsensorSelection: boolean
-  devPublicKeys: {[pubkey: string]: number}
+  devPublicKeys: { [pubkey: string]: DevSecurityLevel }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -236,5 +236,5 @@ export const CONFIG: Config = {
     /* prettier-ignore */ '5988415bc8675f94e0059099ddf1c414ca737562f33e6f1091e8fee307d3352c': DevSecurityLevel.High,
     /* prettier-ignore */ '3daff5f118da18f7133fc8b8f74da7fa4c73b3569f9d4cc8ac48a73aeb886b3a': DevSecurityLevel.High,
     /* prettier-ignore */ 'b2865c37fc9234921b10fe8e27cd782807adb09e1490489765ed7f18a4c2fa13': DevSecurityLevel.High,
-  }
+  },
 }

@@ -385,9 +385,9 @@ export type RequestTimeout = {
 }
 
 // Copied from shardus-core src/shardus/shardus-types.ts
-export declare enum DevSecurityLevel {
+export enum DevSecurityLevel {
   Unauthorized = 0,
   Low = 1,
   Medium = 2,
-  High = 3
+  High = 3,
 }
