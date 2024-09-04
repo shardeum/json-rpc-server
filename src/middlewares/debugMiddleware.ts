@@ -1,10 +1,16 @@
 import { CONFIG } from '../config'
 import * as crypto from '@shardus/crypto-utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
+import {rateLimit} from 'express-rate-limit'
 
 const MAX_COUNTER_BUFFER_MILLISECONDS = 10000
 let lastCounter = 0
 let multiSigLstCounter = 0
+
+const limiter = rateLimit({
+  windowMs: CONFIG.debugEndpointRateLimiting.window,
+  limit: CONFIG.debugEndpointRateLimiting.limit
+})
 
 /** Helper Functions */
 
@@ -76,4 +82,8 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any)
     status: 401,
     message: 'Unauthorized!',
   })
+}
+
+export function rateLimitedDebugAuth() {
+  return [limiter, handleDebugAuth]
 }

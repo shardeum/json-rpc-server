@@ -33,7 +33,8 @@ import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
-import { handleDebugAuth } from './middlewares/debugMiddleware'
+import { rateLimitedDebugAuth } from './middlewares/debugMiddleware'
+
 setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
@@ -83,7 +84,7 @@ process.on('unhandledRejection', (err) => {
   console.log('unhandledRejection:' + err)
 })
 
-app.set('trust proxy', true)
+app.set('trust proxy', false)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
@@ -110,7 +111,7 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   // app.set('views', clientDirectory);
 }
 
-app.get('/api/subscribe', handleDebugAuth, (req: Request, res: Response) => {
+app.get('/api/subscribe', rateLimitedDebugAuth(), (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
   if (!query || !query.ip || !query.port) {
@@ -119,11 +120,14 @@ app.get('/api/subscribe', handleDebugAuth, (req: Request, res: Response) => {
   }
   const ip = query.ip.toString() || '127.0.0.1'
   const port = parseInt(query.port.toString()) || 9001
-  changeNode(ip, port)
-  res.end(`Successfully changed to ${ip}:${port}`)
+  if (changeNode(ip, port)) {
+    return res.end(`Successfully changed to ${ip}:${port}`)
+  } else {
+    return res.end('Invalid ip or port')
+  }
 })
 
-app.get('/counts', handleDebugAuth, (req: Request, res: Response) => {
+app.get('/counts', rateLimitedDebugAuth(), (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'counts')
   const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
   if (req.headers.accept === 'application/json') {
@@ -141,7 +145,7 @@ app.get('/counts', handleDebugAuth, (req: Request, res: Response) => {
   }
 })
 
-app.get('/counts-reset', handleDebugAuth, (req: Request, res: Response) => {
+app.get('/counts-reset', rateLimitedDebugAuth(), (req: Request, res: Response) => {
   nestedCountersInstance.eventCounters = new Map()
   res.write(`counts reset ${Date.now()}`)
   res.end()
@@ -194,7 +198,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
-app.use('/log', handleDebugAuth, logRoute)
+app.use('/log', rateLimitedDebugAuth(), logRoute)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
 // Method Whitelisting Middleware

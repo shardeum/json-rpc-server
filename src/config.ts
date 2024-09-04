@@ -99,7 +99,11 @@ type Config = {
 
   enableBlockCache: boolean
   useRoundRobinConsensorSelection: boolean
-  devPublicKeys: { [pubkey: string]: DevSecurityLevel }
+  devPublicKeys: { [pubkey: string]: DevSecurityLevel },
+  debugEndpointRateLimiting: {
+    window: number // time window
+    limit: number // max requests per IP within time window
+  
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -237,4 +241,8 @@ export const CONFIG: Config = {
     /* prettier-ignore */ '3daff5f118da18f7133fc8b8f74da7fa4c73b3569f9d4cc8ac48a73aeb886b3a': DevSecurityLevel.High,
     /* prettier-ignore */ 'b2865c37fc9234921b10fe8e27cd782807adb09e1490489765ed7f18a4c2fa13': DevSecurityLevel.High,
   },
+  debugEndpointRateLimiting: {
+    window: 15 * 60 * 1000, // 15 minutes
+    limit: 100 // 100 requests per IP
+  }
 }
