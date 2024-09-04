@@ -117,11 +117,11 @@ GET `/log/status` this endpint return status of logging such as date of recordin
 
 GET `/log/startTxCapture` this endpoint set the config value to true which control whether to capture incoming txs and store in database.
 
+GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database.
+
 GET `/log/stopRPCCapture` this endpoint set the config value to false which control whether to capture incoming rpc interface call stat and store in database.
 
 GET `/log/startRPCCapture` this endpoint set the config value to true which control whether to capture rpc interface call stat and store in database.
-
-GET `/log/stopTxCapture` this endpoint set the config value to false which control whether to capture incoming txs and store in database.
 
 GET `/log/cleanStatTable` this endpoint trigger purging of table that store interface stats.
 
@@ -131,7 +131,7 @@ GET `/counts` this endpoint emits the nestedCounters report as an array.
 
 GET `/counts-reset` this endpoint resets the internal nestedCounters object.
 
-GET `/api/subsribe` this endpoint changes the subscribed validator node to the ip and port specified in the `ip` and `port` query parameters.
+GET `/api/subscribe` this endpoint changes the subscribed validator node to the ip and port specified in the `ip` and `port` query parameters.
 
 # Health Check
 
