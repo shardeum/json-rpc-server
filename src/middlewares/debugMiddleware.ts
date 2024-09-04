@@ -58,7 +58,6 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any)
               next()
               return
             } else {
-              //   /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level', authLevel)
               /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: ', authLevel )
               return res.status(403).json({
                 status: 403,
@@ -70,7 +69,6 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any)
       }
     }
   } catch (error) {
-    // /* prettier-ignore */ if (logFlags.verbose) console.log('Error in handleDebugAuth:', error)
     nestedCountersInstance.countEvent('security', 'debug unauthorized failure - exception caught')
   }
 
