@@ -1,13 +1,12 @@
 diff --git a/src/config.ts b/src/config.ts
-index b1ac6d7..27d70ea 100644
+index 9ec82e5f..227de9b3 100644
 --- a/src/config.ts
 +++ b/src/config.ts
-@@ -203,5 +203,7 @@ export const CONFIG: Config = {
-   },
+@@ -196,6 +196,7 @@ export const CONFIG: Config = {
    enableBlockCache: false,
    useRoundRobinConsensorSelection: true,
--  devPublicKeys: {}
-+  devPublicKeys: {
-+    '774491f80f47fedb119bb861601490f42bc3ea3b57fc63906c0d08e6d777a592': 3,
-+  }
- }
+   devPublicKeys: {
++    '774491f80f47fedb119bb861601490f42bc3ea3b57fc63906c0d08e6d777a592': DevSecurityLevel.High,
+     // '': DevSecurityLevel.Unauthorized,
+     // These are production keys.  Use 'git apply use_test_key.patch' for unsafe local test keys
+     // Never merge a commit with changes to these lines without approval.
