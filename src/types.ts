@@ -383,3 +383,11 @@ export type RequestTimeout = {
   account: number
   full_nodelist: number
 }
+
+// Copied from shardus-core src/shardus/shardus-types.ts
+export declare enum DevSecurityLevel {
+  Unauthorized = 0,
+  Low = 1,
+  Medium = 2,
+  High = 3
+}
