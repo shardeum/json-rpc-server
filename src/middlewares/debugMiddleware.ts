@@ -4,6 +4,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { rateLimit } from 'express-rate-limit'
 import { DevSecurityLevel } from '../types'
 import { RequestHandler } from 'express'
+import { Utils } from '@shardus/types'
 
 const MAX_COUNTER_BUFFER_MILLISECONDS = 10000
 let lastCounter = 0
@@ -48,9 +49,14 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any) 
       const requestSig = _req.query.sig
       // Check if signature is valid for any of the public keys
       for (const ownerPk in devPublicKeys) {
-        let sigObj = {
+        const message = {
           route: _req.route.path,
           count: String(_req.query.sig_counter),
+        }
+        const sigObj = {
+          route: _req.route.path,
+          count: String(_req.query.sig_counter),
+          requestHash: crypto.hash(Utils.safeStringify(message)),
           sign: { owner: ownerPk, sig: requestSig },
         }
         //reguire a larger counter than before. This prevents replay attacks
@@ -88,16 +94,19 @@ export function handleDebugAuth(_req: any, res: any, next: any, authLevel: any) 
 // Middleware for low security level
 export const isDebugModeMiddlewareLow = (_req: any, res: any, next: any) => {
   handleDebugAuth(_req, res, next, DevSecurityLevel.Low)
+  return
 }
 
 // Middleware for medium security level
 export const isDebugModeMiddlewareMedium = (_req: any, res: any, next: any) => {
   handleDebugAuth(_req, res, next, DevSecurityLevel.Medium)
+  return
 }
 
 // Middleware for high security level
 export const isDebugModeMiddlewareHigh = (_req: any, res: any, next: any) => {
   handleDebugAuth(_req, res, next, DevSecurityLevel.High)
+  return
 }
 
 export function rateLimitedDebugAuth(middleware: RequestHandler) {

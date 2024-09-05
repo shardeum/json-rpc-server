@@ -116,40 +116,35 @@ app.get('/api/subscribe', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: 
   const query = req.query
   if (!query || !query.ip || !query.port) {
     console.log('Invalid ip or port')
-    return res.end('Invalid ip or port')
+    return res.send('Invalid ip or port')
   }
   const ip = query.ip.toString() || '127.0.0.1'
   const port = parseInt(query.port.toString()) || 9001
   if (changeNode(ip, port)) {
-    return res.end(`Successfully changed to ${ip}:${port}`)
+    return res.send(`Successfully changed to ${ip}:${port}`)
   } else {
-    return res.end('Invalid ip or port')
+    return res.send('Invalid ip or port')
   }
 })
 
-app.get('/counts', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
-  console.log("HIT COUNTS")
+app.get('/counts', isDebugModeMiddlewareLow, (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'counts')
   const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
   if (req.headers.accept === 'application/json') {
-    res.setHeader('Content-Type', 'application/json')
-    res.json({
+    return res.json({
       timestamp: Date.now(),
       report: arrayReport,
     })
-    res.end()
   } else {
     // This returns the counts to the caller
     nestedCountersInstance.printArrayReport(arrayReport, res, 0)
-    res.write(`Counts at time: ${Date.now()}\n`)
-    res.end()
+    return res.send(`Counts at time: ${Date.now()}\n`)
   }
 })
 
 app.get('/counts-reset', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
   nestedCountersInstance.eventCounters = new Map()
-  res.write(`counts reset ${Date.now()}`)
-  res.end()
+  res.send(`counts reset ${Date.now()}`)
 })
 
 const requestersList = new RequestersList(blackList, spammerList)
