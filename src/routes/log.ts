@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express'
 export const router = express.Router()
 import { CONFIG } from '../config'
 import { debug_info } from '../logger'
+import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from '../middlewares/debugMiddleware'
 
 const timeInputProcessor = (timestamp: string): number => {
   const t = timestamp.includes('-') ? timestamp : parseInt(timestamp)
@@ -119,7 +120,7 @@ const prepareSQLFilters = ({
   }
   return sql
 }
-router.route('/api-stats').get(async (req: CustomRequest, res: Response) => {
+router.route('/log/api-stats').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async (req: CustomRequest, res: Response) => {
   try {
     const page = req.query.page || 0
     const max = req.query.max || 5000
@@ -234,7 +235,7 @@ router.route('/api-stats').get(async (req: CustomRequest, res: Response) => {
   }
 })
 
-router.route('/cleanStatTable').get(async (req: Request, res: Response) => {
+router.route('/log/cleanStatTable').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async (req: Request, res: Response) => {
   try {
     await db.exec('DELETE FROM interface_stats')
     debug_info.interfaceDB_cleanTime = Date.now()
@@ -244,7 +245,7 @@ router.route('/cleanStatTable').get(async (req: Request, res: Response) => {
   }
 })
 
-router.route('/txs').get(async function (req: Request, res: Response) {
+router.route('/log/txs').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   try {
     // this is a very bad security practice !
     // Not enough input sanitization :(
@@ -324,7 +325,7 @@ router.route('/txs').get(async function (req: Request, res: Response) {
   }
 })
 
-router.route('/cleanTxTable').get(async function (req: Request, res: Response) {
+router.route('/log/cleanTxTable').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   try {
     await db.exec('DELETE FROM transactions')
     debug_info.txDB_cleanTime = Date.now()
@@ -338,7 +339,7 @@ router.route('/cleanTxTable').get(async function (req: Request, res: Response) {
   }
 })
 
-router.route('/startTxCapture').get(async function (req: Request, res: Response) {
+router.route('/log/startTxCapture').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   if (CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already enabled' }).status(304)
   debug_info.txRecordingStartTime = Date.now()
   debug_info.txRecordingEndTime = 0
@@ -346,14 +347,14 @@ router.route('/startTxCapture').get(async function (req: Request, res: Response)
 
   res.json({ message: 'Transaction status recording enabled' }).status(200)
 })
-router.route('/stopTxCapture').get(async function (req: Request, res: Response) {
+router.route('/log/stopTxCapture').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   if (!CONFIG.recordTxStatus) return res.json({ message: 'Tx recording already stopped' }).status(304)
   debug_info.txRecordingEndTime = Date.now()
   CONFIG.recordTxStatus = false
   res.send({ message: 'Transaction status recording disabled' }).status(200)
 })
 
-router.route('/startRPCCapture').get(async function (req: Request, res: Response) {
+router.route('/log/startRPCCapture').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   if (CONFIG.statLog) {
     return res.json({ message: 'Interface stats are recording already' }).status(304)
   }
@@ -363,7 +364,7 @@ router.route('/startRPCCapture').get(async function (req: Request, res: Response
 
   res.json({ message: 'RPC interface recording enabled' }).status(200)
 })
-router.route('/stopRPCCapture').get(async function (req: Request, res: Response) {
+router.route('/log/stopRPCCapture').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   if (!CONFIG.statLog) {
     return res.json({ message: 'Interface stats recording already stopped' }).status(304)
   }
@@ -372,7 +373,7 @@ router.route('/stopRPCCapture').get(async function (req: Request, res: Response)
   res.json({ message: 'RPC interface recording disabled' }).status(200)
 })
 
-router.route('/status').get(async function (req: Request, res: Response) {
+router.route('/log/status').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async function (req: Request, res: Response) {
   debug_info.isRecordingTx = CONFIG.recordTxStatus
   debug_info.isRecordingInterface = CONFIG.statLog
   res.json(debug_info).status(200)

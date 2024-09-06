@@ -138,7 +138,8 @@ app.get('/counts', isDebugModeMiddlewareLow, (req: Request, res: Response) => {
   } else {
     // This returns the counts to the caller
     nestedCountersInstance.printArrayReport(arrayReport, res, 0)
-    return res.send(`Counts at time: ${Date.now()}\n`)
+    res.write(`Counts at time: ${Date.now()}\n`)
+    return res.end()
   }
 })
 
@@ -194,7 +195,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
-app.use('/log', rateLimitedDebugAuth(isDebugModeMiddlewareLow), logRoute)
+app.use('/', logRoute)
 app.use('/', healthCheckRouter)
 app.use(injectIP)
 // Method Whitelisting Middleware
