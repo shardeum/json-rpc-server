@@ -43,7 +43,7 @@ export async function saveInterfaceStat(): Promise<void> {
   try {
     const stmt = db.prepare(`
       INSERT INTO interface_stats 
-      (api_name, tfinal, timestamp, nodeUrl, success, reason, hash) 
+      ("api_name", "tfinal", "timestamp", "nodeUrl", "success", "reason", "hash") 
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
 
@@ -161,7 +161,7 @@ export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
   try {
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO transactions 
-      (hash, type, to, from, injected, accepted, reason, ip, timestamp, nodeUrl) 
+      ("hash", "type", "to", "from", "injected", "accepted", "reason", "ip", "timestamp", "nodeUrl") 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
