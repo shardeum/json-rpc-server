@@ -63,7 +63,7 @@ export async function saveInterfaceStat(): Promise<void> {
 
     insertMany(apiPerfLogData)
   } catch (e) {
-    console.log('Error saving interface stats:', e)
+    console.error('Error saving interface stats:', e)
   }
 
   apiPerfLogData = []
