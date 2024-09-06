@@ -122,8 +122,8 @@ const prepareSQLFilters = ({
 }
 router.route('/log/api-stats').get(rateLimitedDebugAuth(isDebugModeMiddlewareLow), async (req: CustomRequest, res: Response) => {
   try {
-    const page = req.query.page || 0
-    const max = req.query.max || 5000
+    const page = Number(req.query.page) || 0
+    const max = Number(req.query.max) || 5000
     const cursor: number = page * max
 
     const start = req.query.start ? timeInputProcessor(req.query.start as string) : null
