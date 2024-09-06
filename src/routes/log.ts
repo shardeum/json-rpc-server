@@ -317,9 +317,9 @@ router.route('/txs').get(async function (req: Request, res: Response) {
   } catch (e: unknown) {
     console.log(e)
     if (e instanceof Error) {
-      res.send(e.message).status(500)
+      res.json({ error: e.message }).status(500)
     } else {
-      res.send('An error occurred').status(500)
+      res.json({ error: 'An error occurred' }).status(500)
     }
   }
 })
