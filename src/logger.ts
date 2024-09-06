@@ -1,7 +1,7 @@
 import { bufferToHex } from 'ethereumjs-util'
 import { DetailedTxStatus, TxStatus } from './api'
 import { db } from './storage/sqliteStorage'
-import { getReasonEnumCode, getTransactionObj } from './utils'
+import { getReasonEnumCode, getTransactionObj, TxStatusCode } from './utils'
 
 import EventEmitter from 'events'
 import { CONFIG as config } from './config'
@@ -41,23 +41,29 @@ export const debug_info = {
 export async function saveInterfaceStat(): Promise<void> {
   console.log(apiPerfLogData)
   try {
-    // eslint-disable-next-line prefer-const
-    let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[0]
-    // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-    let placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-    let sql = 'INSERT INTO interface_stats VALUES (' + placeholders + ')'
-    for (let i = 1; i < apiPerfLogData.length; i++) {
-      // eslint-disable-next-line prefer-const
-      let { api_name, tfinal, timestamp, nodeUrl, success, reason, hash } = apiPerfLogData[i] // eslint-disable-line security/detect-object-injection
+    const stmt = db.prepare(`
+      INSERT INTO interface_stats 
+      (api_name, tfinal, timestamp, nodeUrl, success, reason, hash) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
 
-      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-      placeholders = `NULL, '${api_name}', '${tfinal}','${timestamp}', '${nodeUrl}', '${success}', '${reason}', '${hash}'`
-      sql = sql + `, (${placeholders})`
-    }
+    const insertMany = db.transaction((items) => {
+      for (const item of items) {
+        stmt.run(
+          item.api_name,
+          item.tfinal,
+          item.timestamp,
+          item.nodeUrl,
+          item.success ? 1 : 0,
+          item.reason || null,
+          item.hash || null
+        )
+      }
+    })
 
-    await db.exec(sql)
+    insertMany(apiPerfLogData)
   } catch (e) {
-    console.log(e)
+    console.log('Error saving interface stats:', e)
   }
 
   apiPerfLogData = []
@@ -149,36 +155,40 @@ export function setupLogEvents(): void {
 }
 
 // this function save recorded transaction to sqlite with its tx type
-export async function txStatusSaver(_txs: DetailedTxStatus[]): Promise<void> {
-  const txs = _txs
+export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
+  if (txs.length === 0) return
 
-  const bulkInsertTxs = true
-  if (bulkInsertTxs) {
-    if (txs.length === 0) return
-    const prepareBulkInsertSQL = (txs: DetailedTxStatus[]): string => {
-      // items order {txHash, injected, accepted, reason, type, to, from, ip, timestamp}
-      // eslint-disable-next-line prefer-const
-      let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[0]
-      // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
+  try {
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO transactions 
+      (hash, type, to, from, injected, accepted, reason, ip, timestamp, nodeUrl) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
 
-      let placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}', '${nodeUrl}'`
-      let sql = 'INSERT OR REPLACE INTO transactions VALUES (' + placeholders + ')'
-
-      for (let i = 1; i < txs.length; i++) {
-        // eslint-disable-next-line prefer-const
-        let { txHash, injected, accepted, reason, type, to, from, ip, timestamp, nodeUrl } = txs[i] // eslint-disable-line security/detect-object-injection
-        // nodeUrl = nodeUrl ? nodeUrl : new URL(nodeUrl as string).hostname
-        placeholders = `NULL, '${txHash}', '${type}', '${to}', '${from}', '${injected}', '${accepted}', '${reason}', '${ip}', '${timestamp}', '${nodeUrl}'`
-        sql = sql + `, (${placeholders})`
+    const insertMany = db.transaction((items) => {
+      for (const item of items) {
+        stmt.run(
+          item.txHash,
+          item.type,
+          item.to,
+          item.from,
+          item.injected ? 1 : 0,
+          // if accepted is a boolean, convert it to the corresponding TxStatusCode
+          // otherwise, use the value as is
+          typeof item.accepted === 'boolean' 
+            ? (item.accepted ? TxStatusCode.SUCCESS : TxStatusCode.BAD_TX) 
+            : item.accepted,
+          item.reason || null,
+          item.ip || null,
+          item.timestamp,
+          item.nodeUrl || null
+        )
       }
-      return sql
-    }
-    try {
-      await db.exec(prepareBulkInsertSQL(txs))
-    } catch (e) {
-      console.log(e)
-    }
-    return
+    })
+
+    insertMany(txs)
+  } catch (e) {
+    console.error('Error inserting transactions:', e)
   }
 
   // construct string to be a valid sql string, NOTE> insert value needs to be in order
