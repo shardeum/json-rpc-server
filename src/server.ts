@@ -127,7 +127,7 @@ app.get('/api/subscribe', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: 
   }
 })
 
-app.get('/counts', isDebugModeMiddlewareLow, (req: Request, res: Response) => {
+app.get('/counts', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: Request, res: Response) => {
   nestedCountersInstance.countEvent('api', 'counts')
   const arrayReport = nestedCountersInstance.arrayitizeAndSort(nestedCountersInstance.eventCounters)
   if (req.headers.accept === 'application/json') {
