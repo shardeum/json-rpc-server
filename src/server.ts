@@ -34,6 +34,7 @@ import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
+import { isIP, isIPv4 } from 'net'; 
 
 setDefaultResultOrder('ipv4first')
 
@@ -52,6 +53,7 @@ const app = express()
 const server = new jayson.Server(methods)
 let port = config.port //8080
 const chainId = config.chainId //8080
+const verbose = config.verbose
 
 const extendedServer = http.createServer(app)
 extendedServer.on('connection', (socket) => {
@@ -115,11 +117,22 @@ app.get('/api/subscribe', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: 
   nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
   if (!query || !query.ip || !query.port) {
-    console.log('Invalid ip or port')
-    return res.send('Invalid ip or port')
+    if (verbose) console.log('IP or port not provided')
+    return res.status(400).send('IP or port not provided')
   }
-  const ip = query.ip.toString() || '127.0.0.1'
-  const port = parseInt(query.port.toString()) || 9001
+  const ip = query.ip.toString().trim()
+  const port = parseInt(query.port.toString().trim())
+
+  if (!isIPv4(ip)) {
+    if (verbose) console.log('Invalid IP address')
+    return res.status(400).send('Invalid IP address')
+  }
+
+  if (isNaN(port) || port <= 0 || port > 65535) {
+    if (verbose) console.log('Invalid port')
+    return res.status(400).send('Invalid port')
+  }
+
   if (changeNode(ip, port)) {
     return res.send(`Successfully changed to ${ip}:${port}`)
   } else {
