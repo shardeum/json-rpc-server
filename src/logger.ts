@@ -5,7 +5,7 @@ import { getReasonEnumCode, getTransactionObj, TxStatusCode } from './utils'
 
 import EventEmitter from 'events'
 import { CONFIG as config } from './config'
-import { Database } from 'better-sqlite3'
+
 type ApiPerfLogData = {
   tfinal: number
   timestamp: number
@@ -47,13 +47,12 @@ export const debug_info = {
  * @param mapConfig - An object describing how to map raw items to database fields.
  */
 function batchInsert<T>(
-  db: Database, 
   sql: string, 
   rawItems: T[], 
   mapConfig: { [key: string]: (item: T) => any }
 ) {
   const stmt = db.prepare(sql)
-  const erroredItems: T[] = []
+  const failedItems: T[] = []
   const fields = Object.keys(mapConfig)
   
   // Create a db tx that groups multiple db operations into a single transaction
@@ -65,29 +64,21 @@ function batchInsert<T>(
         const mappedItem = fields.map(field => mapConfig[field](rawItem))
         stmt.run(...mappedItem)
       } catch (error) {
-        console.error(`Error inserting item ${i + 1}/${rawItems.length}:`, error)
-        console.error('Problematic item:', JSON.stringify(rawItem))
-        erroredItems.push(rawItem)
+        failedItems.push(rawItem)
         // Don't throw here to allow the transaction to continue with other items
       }
-    }
-    
-    if (erroredItems.length > 0) {
-      throw new Error(`Failed to insert ${erroredItems.length} items`)
     }
   })
 
   try {
     transaction()
   } catch (error) {
-    console.error('Batch insert transaction failed:', error)
-    if (erroredItems.length > 0) {
-      const hashField = 'hash' in mapConfig ? 'hash' : 'txHash' in mapConfig ? 'txHash' : null
-      if (hashField) {
-        console.error('Errored hashes:', erroredItems.map(item => mapConfig[hashField](item)))
-      } else {
-        console.error('No hash field found for errored items. Count:', erroredItems.length)
-      }
+    console.error('Batch insert failed:', error)
+    const hashField = 'hash' in mapConfig ? 'hash' : 'txHash' in mapConfig ? 'txHash' : null
+    if (hashField && failedItems.length > 0) {
+      console.error('Failed item hashes:', failedItems.map(item => mapConfig[hashField](item)))
+    } else {
+      console.error('Number of failed items:', failedItems.length)
     }
     throw error // Re-throw to allow custom handling in the calling function
   }
@@ -107,7 +98,6 @@ export async function saveInterfaceStat(): Promise<void> {
 
   try {
     batchInsert(
-      db,
       sqlQueryString,
       rawItems,
       {
@@ -122,8 +112,6 @@ export async function saveInterfaceStat(): Promise<void> {
     )
   } catch (e) {
     console.error('Error saving interface stats:', e)
-    console.error('Number of items attempted to be inserted:', apiPerfLogData.length)
-    console.error('Error details:', e)
   }
 
   apiPerfLogData = []
@@ -228,7 +216,6 @@ export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
 
   try {
     batchInsert(
-      db,
       sqlQueryString,
       rawItems,
       {
@@ -247,9 +234,7 @@ export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
       }
     )
   } catch (e) {
-    console.error('Error inserting transactions:')
-    console.error('Number of transactions attempted:', txs.length)
-    console.error('Error details:', e)
+    console.error('Failed to save transaction statuses:', e)
   }
 
   // construct string to be a valid sql string, NOTE> insert value needs to be in order
