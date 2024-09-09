@@ -34,7 +34,7 @@ import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
-import { isIP, isIPv4 } from 'net'; 
+import { isIPv4 } from 'net'; 
 
 setDefaultResultOrder('ipv4first')
 
