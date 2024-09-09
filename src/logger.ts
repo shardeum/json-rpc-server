@@ -5,7 +5,7 @@ import { getReasonEnumCode, getTransactionObj, TxStatusCode } from './utils'
 
 import EventEmitter from 'events'
 import { CONFIG as config } from './config'
-
+import { Database } from 'better-sqlite3'
 type ApiPerfLogData = {
   tfinal: number
   timestamp: number
@@ -38,38 +38,95 @@ export const debug_info = {
   interfaceDB_cleanTime: 0,
 }
 
+/**
+ * Performs a batch insert operation into a database table.
+ * 
+ * @param db - The database instance to use for the operation.
+ * @param sql - The SQL query string for the insert operation.
+ * @param rawItems - An array of raw items to be mapped and inserted.
+ * @param mapConfig - An object describing how to map raw items to database fields.
+ */
+function batchInsert<T>(
+  db: Database, 
+  sql: string, 
+  rawItems: T[], 
+  mapConfig: { [key: string]: (item: T) => any }
+) {
+  const stmt = db.prepare(sql)
+  const erroredItems: T[] = []
+  const fields = Object.keys(mapConfig)
+  
+  const transaction = db.transaction(() => {
+    for (let i = 0; i < rawItems.length; i++) {
+      const rawItem = rawItems[i]
+      try {
+        const mappedItem = fields.map(field => mapConfig[field](rawItem))
+        stmt.run(...mappedItem)
+      } catch (error) {
+        console.error(`Error inserting item ${i + 1}/${rawItems.length}:`, error)
+        console.error('Problematic item:', JSON.stringify(rawItem))
+        erroredItems.push(rawItem)
+        // Don't throw here to allow the transaction to continue with other items
+      }
+    }
+    
+    if (erroredItems.length > 0) {
+      throw new Error(`Failed to insert ${erroredItems.length} items`)
+    }
+  })
+
+  try {
+    transaction()
+  } catch (error) {
+    console.error('Batch insert transaction failed:', error)
+    if (erroredItems.length > 0) {
+      const hashField = 'hash' in mapConfig ? 'hash' : 'txHash' in mapConfig ? 'txHash' : null
+      if (hashField) {
+        console.error('Errored hashes:', erroredItems.map(item => mapConfig[hashField](item)))
+      } else {
+        console.error('No hash field found for errored items. Count:', erroredItems.length)
+      }
+    }
+    throw error // Re-throw to allow custom handling in the calling function
+  }
+}
+
 export async function saveInterfaceStat(): Promise<void> {
   console.log(apiPerfLogData)
+
+  const sqlQueryString = `
+  INSERT INTO interface_stats (
+    "api_name", "tfinal", "timestamp", "nodeUrl", 
+    "success", "reason", "hash"
+  ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `
+
+  const rawItems = apiPerfLogData
+
   try {
-    const stmt = db.prepare(`
-      INSERT INTO interface_stats 
-      ("api_name", "tfinal", "timestamp", "nodeUrl", "success", "reason", "hash") 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `)
-
-    const insertMany = db.transaction((items) => {
-      for (const item of items) {
-        stmt.run(
-          item.api_name,
-          item.tfinal,
-          item.timestamp,
-          item.nodeUrl,
-          item.success ? 1 : 0,
-          item.reason || null,
-          item.hash || null
-        )
+    batchInsert(
+      db,
+      sqlQueryString,
+      rawItems,
+      {
+        api_name: item => item.api_name,
+        tfinal: item => item.tfinal,
+        timestamp: item => item.timestamp,
+        nodeUrl: item => item.nodeUrl,
+        success: item => item.success ? 1 : 0,
+        reason: item => item.reason || null,
+        hash: item => item.hash || null
       }
-    })
-
-    insertMany(apiPerfLogData)
+    )
   } catch (e) {
     console.error('Error saving interface stats:', e)
+    console.error('Number of items attempted to be inserted:', apiPerfLogData.length)
+    console.error('Error details:', e)
   }
 
   apiPerfLogData = []
   apiPerfLogTicket = {}
 }
-
 export function setupLogEvents(): void {
   /* eslint-disable security/detect-object-injection */
   if (config.statLog) {
@@ -158,37 +215,39 @@ export function setupLogEvents(): void {
 export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
   if (txs.length === 0) return
 
+  const sqlQueryString = `
+  INSERT OR REPLACE INTO transactions 
+  ("hash", "type", "to", "from", "injected", "accepted", "reason", "ip", "timestamp", "nodeUrl") 
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `
+
+  const rawItems = txs
+  
+
   try {
-    const stmt = db.prepare(`
-      INSERT OR REPLACE INTO transactions 
-      ("hash", "type", "to", "from", "injected", "accepted", "reason", "ip", "timestamp", "nodeUrl") 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
-    const insertMany = db.transaction((items) => {
-      for (const item of items) {
-        stmt.run(
-          item.txHash,
-          item.type,
-          item.to,
-          item.from,
-          item.injected ? 1 : 0,
-          // if accepted is a boolean, convert it to the corresponding TxStatusCode
-          // otherwise, use the value as is
-          typeof item.accepted === 'boolean' 
-            ? (item.accepted ? TxStatusCode.SUCCESS : TxStatusCode.BAD_TX) 
-            : item.accepted,
-          item.reason || null,
-          item.ip || null,
-          item.timestamp,
-          item.nodeUrl || null
-        )
+    batchInsert(
+      db,
+      sqlQueryString,
+      rawItems,
+      {
+        hash: item => item.txHash,
+        type: item => item.type,
+        to: item => item.to,
+        from: item => item.from,
+        injected: item => item.injected ? 1 : 0,
+        accepted: item => typeof item.accepted === 'boolean' 
+          ? (item.accepted ? TxStatusCode.SUCCESS : TxStatusCode.BAD_TX) 
+          : item.accepted,
+        reason: item => item.reason || null,
+        ip: item => item.ip || null,
+        timestamp: item => item.timestamp,
+        nodeUrl: item => item.nodeUrl || null
       }
-    })
-
-    insertMany(txs)
+    )
   } catch (e) {
-    console.error('Error inserting transactions:', e)
+    console.error('Error inserting transactions:')
+    console.error('Number of transactions attempted:', txs.length)
+    console.error('Error details:', e)
   }
 
   // construct string to be a valid sql string, NOTE> insert value needs to be in order
