@@ -56,10 +56,12 @@ function batchInsert<T>(
   const erroredItems: T[] = []
   const fields = Object.keys(mapConfig)
   
+  // Create a db tx that groups multiple db operations into a single transaction
   const transaction = db.transaction(() => {
     for (let i = 0; i < rawItems.length; i++) {
       const rawItem = rawItems[i]
       try {
+        // Map and insert one item at a time for memory efficiency and flexibility
         const mappedItem = fields.map(field => mapConfig[field](rawItem))
         stmt.run(...mappedItem)
       } catch (error) {
