@@ -85,7 +85,7 @@ function batchInsert<T>(
 }
 
 export async function saveInterfaceStat(): Promise<void> {
-  console.log(apiPerfLogData)
+  /* prettier-ignore */ if (config.verbose) console.log(`saveInterfaceStat() > apiPerfLogData: ${apiPerfLogData}`)
 
   const sqlQueryString = `
   INSERT INTO interface_stats (
