@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ## global args
+ARG NODE_VERSION=18.19.1
 ARG NODE_ENV=production
 
 FROM node:18.16.1-alpine
