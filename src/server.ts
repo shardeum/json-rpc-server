@@ -4,7 +4,7 @@ import express, { NextFunction } from 'express'
 import * as http from 'http'
 import * as WebSocket from 'ws'
 import cookieParser from 'cookie-parser'
-import { methods, saveTxStatus } from './api'
+import { saveTxStatus, wrappedMethods } from './api'
 import { debug_info, setupLogEvents } from './logger'
 import injectIP from './middlewares/injectIP'
 import { setupDatabase } from './storage/sqliteStorage'
@@ -50,7 +50,7 @@ setDefaultResultOrder('ipv4first')
 //   }
 // }
 const app = express()
-const server = new jayson.Server(methods)
+const server = new jayson.Server(wrappedMethods)
 let port = config.port //8080
 const chainId = config.chainId //8080
 const verbose = config.verbose
@@ -99,6 +99,12 @@ app.use(function (req, res, next) {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN')
   res.setHeader('Content-Security-Policy', "default-src 'self'")
   next()
+})
+app.use((err: Error, req: Request, res: Response) => {
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: config.verbose ? err.message : 'An unexpected error occurred',
+  })
 })
 
 if (config.dashboard.enabled && config.dashboard.dist_path) {

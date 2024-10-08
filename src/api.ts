@@ -781,6 +781,7 @@ async function validateBlockNumberInput(blockNumberInput: string) {
   }
   return blockNumberInput
 }
+
 export const methods = {
   web3_clientVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'web3_clientVersion'
@@ -3859,3 +3860,21 @@ export const methods = {
     }
   },
 }
+
+const wrapMethod = (method: Function) => {
+  return async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    try {
+      await method(args, callback) // Call the original method
+    } catch (error) {
+      // Handle error, log, and pass to callback
+      console.error(`Exception in ${method.name}, args ${JSON.stringify(args)}: ${error}`)
+      countFailedResponse(method.name, 'Internal server error')
+      callback({ code: -32000, message: 'Internal server error' }, null)
+    }
+  }
+}
+
+export const wrappedMethods = Object.entries(methods).reduce((acc, [methodName, methodFn]) => {
+  acc[methodName] = wrapMethod(methodFn)
+  return acc
+}, {} as Record<string, Function>)

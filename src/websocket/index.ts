@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { methods } from '../api'
+import { wrappedMethods } from '../api'
 import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
@@ -23,7 +23,7 @@ interface Request {
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
 
-  const eth_methods = Object.freeze(methods)
+  const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', (message: string) => {
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
