@@ -91,9 +91,7 @@ app.set('trust proxy', false)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
-if (config.enableRequestLogger) {
-  app.use(requestLogger)
-}
+app.use(requestLogger)
 app.use(function (req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader(
