@@ -216,6 +216,25 @@ app.use(methodWhitelist)
 // reject subscription methods from http
 app.use(rejectSubscription)
 app.use(server.middleware())
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('An error occurred during request processing:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+  })
+
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message:
+      err.message || 'An unexpected error occurred while processing your request. Please try again later.',
+  })
+})
 
 setupArchiverDiscovery({
   customConfigPath: 'archiverConfig.json',
