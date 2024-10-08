@@ -3864,7 +3864,14 @@ export const methods = {
 const wrapMethod = (method: Function) => {
   return async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     try {
-      await method(args, callback) // Call the original method
+      const wrappedCallback: JSONRPCCallbackTypePlain = (error, result) => {
+        if(error) {
+          console.error(`RequestLogger:>> RequestParams: ${args} Error:`, error)
+          console.error('Result: ', result)
+        }
+        callback(error, result); // Call the original callback
+      };
+      await method(args, wrappedCallback)
     } catch (error) {
       // Handle error, log, and pass to callback
       console.error(`Exception in ${method.name}, args ${JSON.stringify(args)}: ${error}`)
