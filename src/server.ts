@@ -100,12 +100,6 @@ app.use(function (req, res, next) {
   res.setHeader('Content-Security-Policy', "default-src 'self'")
   next()
 })
-app.use((err: Error, req: Request, res: Response) => {
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: config.verbose ? err.message : 'An unexpected error occurred',
-  })
-})
 
 if (config.dashboard.enabled && config.dashboard.dist_path) {
   const clientDirectory =
