@@ -66,6 +66,7 @@ type Config = {
   adaptiveRejection: boolean
   filterDeadNodesFromArchiver: boolean
   verbose: boolean
+  enableRequestLogger: boolean
   firstLineLogs: boolean
   verboseRequestWithRetry: boolean
   verboseAALG: boolean
@@ -165,6 +166,7 @@ export const CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
+  enableRequestLogger: true,
   verboseRequestWithRetry: false,
   verboseAALG: false,
   firstLineLogs: true, // default is true and turn off for prod for perf

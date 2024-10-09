@@ -35,6 +35,7 @@ import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 import { isIPv4 } from 'net'; 
+import requestLogger from './middlewares/requestLogger'
 
 setDefaultResultOrder('ipv4first')
 
@@ -90,6 +91,7 @@ app.set('trust proxy', false)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
+app.use(requestLogger)
 app.use(function (req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader(
