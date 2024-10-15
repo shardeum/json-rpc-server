@@ -22,7 +22,6 @@ interface Request {
 }
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
-
   const eth_methods = Object.freeze(methods)
 
   socket.on('message', (message: string) => {

@@ -99,7 +99,7 @@ type Config = {
 
   enableBlockCache: boolean
   useRoundRobinConsensorSelection: boolean
-  devPublicKeys: { [pubkey: string]: DevSecurityLevel },
+  devPublicKeys: { [pubkey: string]: DevSecurityLevel }
   debugEndpointRateLimiting: {
     window: number // time window
     limit: number // max requests per IP within time window
@@ -243,6 +243,6 @@ export const CONFIG: Config = {
   },
   debugEndpointRateLimiting: {
     window: 15 * 60 * 1000, // 15 minutes
-    limit: 100 // 100 requests per IP
-  }
+    limit: 100, // 100 requests per IP
+  },
 }

@@ -142,8 +142,8 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
       //const promises = nodes.map(checkIfNodeIsActive) //dont blast all requests at once
 
       const concurrentRequests = 50
-      const semaphore = new Semaphore(concurrentRequests);
-      const results: boolean[] = new Array(nodes.length).fill(false);
+      const semaphore = new Semaphore(concurrentRequests)
+      const results: boolean[] = new Array(nodes.length).fill(false)
 
       const waitForAllPromise = new Deferred<void>()
       let finished = 0
@@ -1808,47 +1808,47 @@ export function hexToBN(hexString: string): BN {
 }
 
 class Semaphore {
-  private queue: (() => void)[] = [];
-  private value: number;
+  private queue: (() => void)[] = []
+  private value: number
 
   constructor(maxConcurrency: number) {
-    this.value = maxConcurrency;
+    this.value = maxConcurrency
   }
 
   async wait(): Promise<void> {
     return new Promise<void>((resolve) => {
       const tryAcquire = () => {
         if (this.value > 0) {
-          this.value--;
-          resolve();
+          this.value--
+          resolve()
         } else {
-          this.queue.push(tryAcquire);
+          this.queue.push(tryAcquire)
         }
-      };
-      tryAcquire();
-    });
+      }
+      tryAcquire()
+    })
   }
 
   signal(): void {
-    this.value++;
+    this.value++
     if (this.queue.length > 0) {
-      const next = this.queue.shift();
+      const next = this.queue.shift()
       if (next) {
-        next();
+        next()
       }
     }
   }
 }
 
 class Deferred<T> {
-  public promise: Promise<T>;
-  public resolve!: (value: T | PromiseLike<T>) => void;
-  public reject!: (reason?: any) => void;
+  public promise: Promise<T>
+  public resolve!: (value: T | PromiseLike<T>) => void
+  public reject!: (reason?: any) => void
 
   constructor() {
     this.promise = new Promise<T>((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
-    });
+      this.resolve = resolve
+      this.reject = reject
+    })
   }
 }
