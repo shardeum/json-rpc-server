@@ -40,28 +40,24 @@ export const debug_info = {
 
 /**
  * Performs a batch insert operation into a database table.
- * 
+ *
  * @param db - The database instance to use for the operation.
  * @param sql - The SQL query string for the insert operation.
  * @param rawItems - An array of raw items to be mapped and inserted.
  * @param mapConfig - An object describing how to map raw items to database fields.
  */
-function batchInsert<T>(
-  sql: string, 
-  rawItems: T[], 
-  mapConfig: { [key: string]: (item: T) => any }
-) {
+function batchInsert<T>(sql: string, rawItems: T[], mapConfig: { [key: string]: (item: T) => any }) {
   const stmt = db.prepare(sql)
   const failedItems: T[] = []
   const fields = Object.keys(mapConfig)
-  
+
   // Create a db tx that groups multiple db operations into a single transaction
   const transaction = db.transaction(() => {
     for (let i = 0; i < rawItems.length; i++) {
       const rawItem = rawItems[i]
       try {
         // Map and insert one item at a time for memory efficiency and flexibility
-        const mappedItem = fields.map(field => mapConfig[field](rawItem))
+        const mappedItem = fields.map((field) => mapConfig[field](rawItem))
         stmt.run(...mappedItem)
       } catch (error) {
         failedItems.push(rawItem)
@@ -76,7 +72,10 @@ function batchInsert<T>(
     console.error('Batch insert failed:', error)
     const hashField = 'hash' in mapConfig ? 'hash' : 'txHash' in mapConfig ? 'txHash' : null
     if (hashField && failedItems.length > 0) {
-      console.error('Failed item hashes:', failedItems.map(item => mapConfig[hashField](item)))
+      console.error(
+        'Failed item hashes:',
+        failedItems.map((item) => mapConfig[hashField](item))
+      )
     } else {
       console.error('Number of failed items:', failedItems.length)
     }
@@ -97,19 +96,15 @@ export async function saveInterfaceStat(): Promise<void> {
   const rawItems = apiPerfLogData
 
   try {
-    batchInsert(
-      sqlQueryString,
-      rawItems,
-      {
-        api_name: item => item.api_name,
-        tfinal: item => item.tfinal,
-        timestamp: item => item.timestamp,
-        nodeUrl: item => item.nodeUrl,
-        success: item => item.success ? 1 : 0,
-        reason: item => item.reason || null,
-        hash: item => item.hash || null
-      }
-    )
+    batchInsert(sqlQueryString, rawItems, {
+      api_name: (item) => item.api_name,
+      tfinal: (item) => item.tfinal,
+      timestamp: (item) => item.timestamp,
+      nodeUrl: (item) => item.nodeUrl,
+      success: (item) => (item.success ? 1 : 0),
+      reason: (item) => item.reason || null,
+      hash: (item) => item.hash || null,
+    })
   } catch (e) {
     console.error('Error saving interface stats:', e)
   }
@@ -212,27 +207,25 @@ export async function txStatusSaver(txs: DetailedTxStatus[]): Promise<void> {
   `
 
   const rawItems = txs
-  
 
   try {
-    batchInsert(
-      sqlQueryString,
-      rawItems,
-      {
-        hash: item => item.txHash,
-        type: item => item.type,
-        to: item => item.to,
-        from: item => item.from,
-        injected: item => item.injected ? 1 : 0,
-        accepted: item => typeof item.accepted === 'boolean' 
-          ? (item.accepted ? TxStatusCode.SUCCESS : TxStatusCode.BAD_TX) 
+    batchInsert(sqlQueryString, rawItems, {
+      hash: (item) => item.txHash,
+      type: (item) => item.type,
+      to: (item) => item.to,
+      from: (item) => item.from,
+      injected: (item) => (item.injected ? 1 : 0),
+      accepted: (item) =>
+        typeof item.accepted === 'boolean'
+          ? item.accepted
+            ? TxStatusCode.SUCCESS
+            : TxStatusCode.BAD_TX
           : item.accepted,
-        reason: item => item.reason || null,
-        ip: item => item.ip || null,
-        timestamp: item => item.timestamp,
-        nodeUrl: item => item.nodeUrl || null
-      }
-    )
+      reason: (item) => item.reason || null,
+      ip: (item) => item.ip || null,
+      timestamp: (item) => item.timestamp,
+      nodeUrl: (item) => item.nodeUrl || null,
+    })
   } catch (e) {
     console.error('Failed to save transaction statuses:', e)
   }

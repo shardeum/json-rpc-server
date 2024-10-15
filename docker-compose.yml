@@ -11,8 +11,8 @@ services:
     # environment:
     #   - NO_OF_RPC_SERVERS=1
     # volumes:
-      # - ./entrypoint.sh:/app/entrypoint.sh
-      # - ./src/config.ts:/app/src/config.ts
+    # - ./entrypoint.sh:/app/entrypoint.sh
+    # - ./src/config.ts:/app/src/config.ts
     configs:
       - source: archiverconfig
         target: /app/archiverConfig.json
