@@ -105,6 +105,7 @@ type Config = {
     limit: number // max requests per IP within time window
   }
   axiosTimeoutInMs: number
+  enableBlacklistingIP: boolean
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -247,4 +248,5 @@ export const CONFIG: Config = {
     limit: 100, // 100 requests per IP
   },
   axiosTimeoutInMs: 3000,
+  enableBlacklistingIP: false,
 }

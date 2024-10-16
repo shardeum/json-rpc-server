@@ -46,6 +46,7 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
+import { TTLMap } from './utils/TTLMap'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -112,6 +113,13 @@ export type DetailedTxStatus = {
 }
 
 type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue }
+
+const retainTimedOutEntriesForMillis = config.axiosTimeoutInMs * 100 // 300 s = 5 minutes
+// added for expiration of blacklisted IP entries
+const blacklistedIPMapping = new TTLMap<{
+  baseUrl: string
+  blackListedAt: number
+}>()
 
 // [] ask about this with Thant
 type TransactionData = {
@@ -573,7 +581,21 @@ async function injectAndRecordTx(
   status: number
 }> {
   const { raw } = tx
-  const { baseUrl } = getBaseUrl()
+  let nodeIpPort: string, baseUrl: string
+
+  // Initialize them with some values({ nodeIpPort, baseUrl } = getBaseUrl())
+
+  if (config.enableBlacklistingIP) {
+    // Continuously reassign nodeIpPort and baseUrl until a non-blacklisted one is found
+    let entry
+
+    do {
+      ;({ nodeIpPort, baseUrl } = getBaseUrl())
+      entry = blacklistedIPMapping.get(nodeIpPort)
+      if (entry !== undefined) console.log('The ip address blacklisted is', nodeIpPort)
+    } while (entry !== undefined)
+  }
+
   totalResult += 1
   const startTime = Date.now()
 
@@ -712,7 +734,11 @@ async function injectAndRecordTx(
       })
       .catch((e: Error) => {
         if (e.message.includes('timeout')) {
-          // TODO: add to blacklist with a TTL and use this blacklist to avoid bad node selction for inject.
+          blacklistedIPMapping.set(
+            nodeIpPort,
+            { baseUrl: baseUrl, blackListedAt: Date.now() },
+            retainTimedOutEntriesForMillis
+          )
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
         }
         if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
