@@ -111,7 +111,7 @@ export type ServicePointTypes = 'aalg-warmup'
 export const CONFIG: Config = {
   websocket: {
     enabled: true,
-    serveSubscriptions: Boolean(process.env.WS_SAVE_SUBSCRIPTIONS) || false,
+    serveSubscriptions: true,// Boolean(process.env.WS_SAVE_SUBSCRIPTIONS) || false,
   },
   log_server: {
     ip: process.env.LOG_SERVER_HOST || '0.0.0.0',
