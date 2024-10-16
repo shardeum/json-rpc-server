@@ -104,6 +104,7 @@ type Config = {
     window: number // time window
     limit: number // max requests per IP within time window
   }
+  axiosTimeoutInMs: number
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -243,6 +244,7 @@ export const CONFIG: Config = {
   },
   debugEndpointRateLimiting: {
     window: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // 100 requests per IP
+    limit: 100 // 100 requests per IP
   },
+  axiosTimeoutInMs: 3000,
 }
