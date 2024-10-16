@@ -648,7 +648,7 @@ async function injectAndRecordTx(
     console.log(`injecting tx to`, `${baseUrl}/${injectEndpoint}`, injectStartTime)
     axios
       .post(`${baseUrl}/${injectEndpoint}`, injectPayload, {
-        timeout: config.axiosTimeoutInMs
+        timeout: config.axiosTimeoutInMs,
       })
       .then((response) => {
         const injectResult: InjectResponse = response.data
@@ -711,9 +711,9 @@ async function injectAndRecordTx(
         }
       })
       .catch((e: Error) => {
-        if (e.message.includes("timeout")) {
+        if (e.message.includes('timeout')) {
           // TODO: add to blacklist with a TTL and use this blacklist to avoid bad node selction for inject.
-          console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`) 
+          console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
         }
         if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
         countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))

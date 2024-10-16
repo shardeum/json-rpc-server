@@ -244,7 +244,7 @@ export const CONFIG: Config = {
   },
   debugEndpointRateLimiting: {
     window: 15 * 60 * 1000, // 15 minutes
-    limit: 100 // 100 requests per IP
+    limit: 100, // 100 requests per IP
   },
   axiosTimeoutInMs: 3000,
 }
