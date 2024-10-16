@@ -22,7 +22,7 @@ interface Request {
 }
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
-  const eth_methods = Object.freeze(methods)
+  const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', (message: string) => {
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
