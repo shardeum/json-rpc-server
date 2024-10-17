@@ -11,6 +11,11 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  display-image-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display IMAGE_NAME
+        run: echo "IMAGE_NAME is ${{ env.IMAGE_NAME }}"
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
