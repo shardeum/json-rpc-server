@@ -1,12 +1,10 @@
 name: Publish Jenkins Test Docker Image
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag for the Docker image' # Description for the input field
-        required: false # Make this input optional
-        default: 'latest' # Default tag if none is provided
+  push:
+    branches: ['dev']
+  pull_request:
+    branches: ['dev']
 
 permissions:
   contents: read
