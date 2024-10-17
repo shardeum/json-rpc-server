@@ -740,6 +740,7 @@ async function injectAndRecordTx(
             retainTimedOutEntriesForMillis
           )
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
+          nestedCountersInstance.countEvent('validatorBlacklist', nodeIpPort)
         }
         if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
         countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
