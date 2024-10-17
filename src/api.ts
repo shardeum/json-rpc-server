@@ -46,6 +46,7 @@ import { bytesToHex, toBytes } from '@ethereumjs/util'
 import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
+import { archiverAPI } from './external/Archiver'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -3783,6 +3784,100 @@ export const methods = {
       countFailedResponse(api_name, 'exception in /contract/accesslist')
     }
   },
+
+  shardeum_getNodeList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'shardeum_getNodeList'
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex')
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+  
+    try {  
+      if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'object')) {
+        callback({ code: -32602, message: 'Invalid params: Expected an object or no parameters.' }, null);
+        countFailedResponse(api_name, 'Invalid params');
+        return;
+      }
+    
+      const params = args[0] || {};
+      const page = Math.max(1, parseInt(params.page) || 1);
+      const limit = Math.min(1000, Math.max(1, parseInt(params.limit) || 100));
+      const nodeListResult = await archiverAPI.getNodeList(page, limit);
+  
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, nodeListResult);
+      countSuccessResponse(api_name, 'success', 'archiver');
+    } catch (error: any) {
+      logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+      callback(error, null);
+    }
+  },
+
+  shardeum_getNetworkAccount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'shardeum_getNetworkAccount';
+    nestedCountersInstance.countEvent('endpoint', api_name);
+  
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex');
+  
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now());
+  
+    try {
+      const networkAccountData = await archiverAPI.getNetworkAccount();
+  
+      if (networkAccountData && networkAccountData.networkAccount && networkAccountData.networkAccount.data) {
+        const current = networkAccountData.networkAccount.data.current;
+        const archiver = current.archiver || {};
+  
+        // transform the response to match the expected structure
+        const response = {
+          activeVersion: archiver.activeVersion || current.activeVersion,
+          latestVersion: archiver.latestVersion || current.latestVersion,
+          minVersion: archiver.minVersion || current.minVersion,
+          certCycleDuration: current.certCycleDuration,
+          maintenanceFee: current.maintenanceFee,
+          maintenanceInterval: current.maintenanceInterval,
+          penalty: {
+            amount: current.nodePenaltyUsd.value,
+            currency: "shm"
+          },
+          slashing: {
+            leftNetworkEarlyPenaltyPercent: 0.2,
+            nodeRefutedPenaltyPercent: 0.2,
+            syncTimeoutPenaltyPercent: 0.2
+          },
+          reward: {
+            amount: current.nodeRewardAmountUsd.value,
+            currency: "shm",
+            nodeRewardInterval: current.nodeRewardInterval,
+          },
+          requiredStake: {
+            amount: current.stakeRequiredUsd.value,
+            currency: "shm"
+          },
+          restakeCooldown: current.restakeCooldown,
+          timestamp: networkAccountData.networkAccount.timestamp
+        };
+  
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now());
+        callback(null, response);
+        countSuccessResponse(api_name, 'success', 'archiver');
+      } else {
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
+        callback({ code: -32000, message: 'Network account data not found or invalid' }, null);
+        countFailedResponse(api_name, 'Network account data not found or invalid');
+      }
+    } catch (error: any) {
+      console.error('Error fetching network account data:', error);
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
+      callback({ code: -32000, message: 'Failed to fetch network account data', data: error.message }, null);
+      countFailedResponse(api_name, 'Failed to fetch network account data');
+    }
+  },
+  
   eth_subscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_subscribe'
     nestedCountersInstance.countEvent('endpoint', api_name)

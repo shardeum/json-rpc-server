@@ -32,7 +32,7 @@ import {
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
-
+import cacheMemory from 'cache-memory'
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
 const existingArchivers: Archiver[] = []
@@ -43,6 +43,22 @@ export const node = {
   ip: '127.0.0.1',
   port: 9001,
 }
+
+const NODE_LIST_CACHE_TTL = 15 // 15 seconds
+const NODE_LIST_CACHE_KEY = 'nodeList'
+
+const NETWORK_ACCOUNT_CACHE_TTL = 5 // 5 seconds
+const NETWORK_ACCOUNT_CACHE_KEY = 'networkAccount'
+
+const nodeListCache = cacheMemory
+  .ttl(NODE_LIST_CACHE_TTL)
+  .storeUndefinedObjects(false)
+  .create({ id: 'nodeListCache' });
+
+  const networkAccountCache = cacheMemory
+  .ttl(NETWORK_ACCOUNT_CACHE_TTL)
+  .storeUndefinedObjects(false)
+  .create({ id: 'networkAccountCache' });
 
 let rotationEdgeToAvoid = 0
 
@@ -183,6 +199,32 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
+  await nodeListCache.set(NODE_LIST_CACHE_KEY, Promise.resolve([...nodeList]));
+}
+
+export async function getNodeList(page: number = 1, limit: number = 100): Promise<any> {
+  const fullNodeList = await nodeListCache.getAndSet(NODE_LIST_CACHE_KEY, () => {
+    return Promise.resolve([...nodeList]);
+  });
+
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedNodeList = fullNodeList.slice(startIndex, endIndex);
+
+  return {
+    nodes: paginatedNodeList,
+    totalNodes: fullNodeList.length,
+    page: page,
+    limit: limit,
+    totalPages: Math.ceil(fullNodeList.length / limit)
+  };
+}
+
+export async function getNetworkAccount(): Promise<any> {
+  return networkAccountCache.getAndSet(NETWORK_ACCOUNT_CACHE_KEY, async () => {
+    const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`);
+    return response.data;
+  });
 }
 
 export function removeFromNodeList(ip: string, port: string): void {

@@ -29,6 +29,7 @@
     "axios": "1.6.1",
     "better-sqlite3": "7.6.2",
     "body-parser": "1.19.0",
+    "cache-memory": "^3.0.3",
     "connect": "3.7.0",
     "cookie-parser": "1.4.6",
     "cors": "2.8.5",
