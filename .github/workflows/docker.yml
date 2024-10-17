@@ -1,54 +1,37 @@
-name: Create and publish a Docker image
+name: Publish Jenkins Test Docker Image
 
 on:
-  push:
-    branches: ['dev']
-  pull_request:
-    branches: ['dev']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the Docker image' # Description for the input field
+        required: false # Make this input optional
+        default: 'latest' # Default tag if none is provided
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  display-image-name:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Display IMAGE_NAME
-        run: echo "IMAGE_NAME is ${{ env.IMAGE_NAME }}"
-  build-and-push-image:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT_TOKEN }} # ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push Docker image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/json-rpc-server
+          IMAGE_TAG=${{ github.event.inputs.tag }}
+
+          # Build the Docker image with the 'latest' tag
+          docker build . --file Dockerfile --tag $IMAGE_ID:$IMAGE_TAG
+
+          # Push the 'latest' tagged image to the registry
+          docker push $IMAGE_ID:$IMAGE_TAG
