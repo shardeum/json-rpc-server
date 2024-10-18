@@ -3784,7 +3784,6 @@ export const methods = {
       countFailedResponse(api_name, 'exception in /contract/accesslist')
     }
   },
-
   shardeum_getNodeList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shardeum_getNodeList'
     const ticket = crypto
@@ -3875,6 +3874,62 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
       callback({ code: -32000, message: 'Failed to fetch network account data', data: error.message }, null);
       countFailedResponse(api_name, 'Failed to fetch network account data');
+    }
+  },
+  shardeum_getCycleInfo: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'shardeum_getCycleInfo';
+    nestedCountersInstance.countEvent('endpoint', api_name);
+    
+    if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)) {
+      callback({ code: -32602, message: 'Invalid params: Expected a single number or null.' }, null);
+      countFailedResponse(api_name, 'Invalid params: Expected a single number or null.');
+      return;
+    }
+    const ticket = crypto
+      .createHash('sha1')
+      .update(api_name + Math.random() + Date.now())
+      .digest('hex');
+  
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now());
+    const cycleNumber = args.length === 1 ? args[0] : null;
+    try {
+      const result = await collectorAPI.getCycleInfo(cycleNumber);
+  
+      if (result) {
+        const cycleRecord = result.cycleRecord;
+        // transform the response to match the spec structure
+        const restructuredData = {
+          cycleCounter: cycleRecord.counter,
+          startTime: cycleRecord.start * 1000, 
+          endTime: (cycleRecord.start + cycleRecord.duration) * 1000, 
+          nodes: {
+            active: cycleRecord.active,
+            standby: cycleRecord.standby,
+            syncing: cycleRecord.syncing
+          },
+          desired: cycleRecord.desired,
+          duration: cycleRecord.duration,
+          maxSyncTime: cycleRecord.maxSyncTime,
+          timestamp: cycleRecord.timestamp
+        };
+  
+        const response = {
+          cycleInfo: restructuredData,
+        };
+  
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now());
+        callback(null, response);
+        countSuccessResponse(api_name, 'success', 'collector');
+      } else {
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
+        callback({ code: -32000, message: 'Cycle info not found' }, null);
+        countFailedResponse(api_name, 'Cycle info not found');
+      }
+    } catch (error: any) {
+      console.error('Error fetching cycle info:', error);
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
+      callback({ code: -32000, message: 'Failed to fetch cycle info', data: error.message }, null);
+      countFailedResponse(api_name, 'Failed to fetch cycle info');
     }
   },
   

@@ -563,6 +563,37 @@ class Collector extends BaseExternal {
     // }
     return result as readableTransaction
   }
+  async getCycleInfo(cycleNumber?: number): Promise<any | null> {
+    if (!CONFIG.collectorSourcing.enabled) {
+      console.log('Collector sourcing is not enabled');
+      return null;
+    }
+    nestedCountersInstance.countEvent('collector', 'getCycleInfo');
+    const requestConfig: AxiosRequestConfig = {
+      method: 'get',
+      url: `${this.baseUrl}/api/cycleinfo`,
+      params: cycleNumber ? { cycleNumber: cycleNumber.toString() } : { count: '1' },
+      headers: this.defaultHeaders,
+    };
+  
+    try {
+      const res = await axiosWithRetry<{ success: boolean; cycles: any[] }>(requestConfig);
+      if (!res.data.success || !res.data.cycles || res.data.cycles.length === 0) {
+        console.log(`No cycles found in the response ${cycleNumber ? `for cycleNumber: ${cycleNumber}` : 'for latest cycle'}`);
+        return null;
+      }
+      const cycleInfo = res.data.cycles[0];
+      return cycleInfo;
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getCycleInfo-error');
+      console.error('Collector: Error getting cycle info', error);
+      if (axios.isAxiosError(error)) {
+        console.error(`Request failed with status: ${error.response?.status}`);
+        console.error(`Error response data: ${JSON.stringify(error.response?.data)}`);
+      }
+      return null;
+    }
+  }
 }
 
 interface readableReceipt {
