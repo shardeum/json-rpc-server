@@ -586,11 +586,18 @@ async function injectAndRecordTx(
 
   if (config.enableBlacklistingIP) {
     let entry
+    let retries = 0
 
     do {
       entry = blacklistedIPMapping.get(nodeIpPort)
 
       if (entry !== undefined) {
+        retries++
+        if (retries >= config.defaultRequestRetry) {
+          console.error('Failed to find a non-blacklisted IP after max retries.')
+          console.log('Injecting transaction with blacklisted node', nodeIpPort)
+          break
+        }
         console.log('The IP address blacklisted is', nodeIpPort)
         // Reassign nodeIpPort and baseUrl to find a new pair
         ;({ nodeIpPort, baseUrl } = getBaseUrl())
