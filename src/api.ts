@@ -582,17 +582,19 @@ async function injectAndRecordTx(
 }> {
   const { raw } = tx
   let nodeIpPort: string, baseUrl: string
-
-  // Initialize them with some values({ nodeIpPort, baseUrl } = getBaseUrl())
+  ;({ nodeIpPort, baseUrl } = getBaseUrl())
 
   if (config.enableBlacklistingIP) {
-    // Continuously reassign nodeIpPort and baseUrl until a non-blacklisted one is found
     let entry
 
     do {
-      ;({ nodeIpPort, baseUrl } = getBaseUrl())
       entry = blacklistedIPMapping.get(nodeIpPort)
-      if (entry !== undefined) console.log('The ip address blacklisted is', nodeIpPort)
+
+      if (entry !== undefined) {
+        console.log('The IP address blacklisted is', nodeIpPort)
+        // Reassign nodeIpPort and baseUrl to find a new pair
+        ;({ nodeIpPort, baseUrl } = getBaseUrl())
+      }
     } while (entry !== undefined)
   }
 
