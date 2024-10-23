@@ -1,5 +1,4 @@
 import { getNodeList, getNetworkAccount } from '../utils';
-import axios from 'axios';
 
 export class Archiver {
   constructor() {}

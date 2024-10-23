@@ -129,7 +129,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
 
   console.time('nodelist_update')
-  const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
+  const nRetry = tryInfinate ? -1 : 5 // infinitely retry or 5 retries if initial request fails
   if (config.askLocalHostForArchiver === true) {
     if (gotArchiver === false) {
       gotArchiver = true
@@ -202,7 +202,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
   await nodeListCache.set(NODE_LIST_CACHE_KEY, Promise.resolve([...nodeList]));
 }
 
-export async function getNodeList(page: number = 1, limit: number = 100): Promise<any> {
+export async function getNodeList(page: number, limit: number): Promise<any> {
   const fullNodeList = await nodeListCache.getAndSet(NODE_LIST_CACHE_KEY, () => {
     return Promise.resolve([...nodeList]);
   });
