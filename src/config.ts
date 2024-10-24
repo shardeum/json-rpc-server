@@ -120,7 +120,7 @@ export const CONFIG: Config = {
     port: Number(process.env.LOG_SERVER_PORT) || 4446,
   },
   ip: '0.0.0.0',
-  port: 8080,
+  port: Number(process.env.RPC_PORT) || 8080,
   chainId: 8082,
   nodeIpInfo: {
     externalIp: process.env.NODE_EXTERNAL_IP || '127.0.0.1',
@@ -131,23 +131,23 @@ export const CONFIG: Config = {
   askLocalHostForArchiver: true,
   rotationInterval: 60,
   faucetServerUrl: process.env.FAUCET_URL || 'https://faucet.liberty10.shardeum.org',
-  queryFromValidator: true,
+  queryFromValidator: Boolean(process.env.QUERY_FROM_VALIDATOR) || true,
   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
   queryFromExplorer: false,
   generateTxTimestamp: true,
-  nodelistRefreshInterval: 30000,
+  nodelistRefreshInterval: Number(process.env.NODELIST_REFRESH_INTERVAL) || 30000,
   defaultRequestRetry: 5,
-  gasEstimateMethod: 'serviceValidator', //serviceValidator or replayEngine or validator
+  gasEstimateMethod: process.env.GAS_ESTIMATE_METHOD || 'serviceValidator', //serviceValidator or replayEngine or validator
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
   gasEstimateUseCache: false,
-  staticGasEstimate: '0x5B8D80', // comment out rather than delete this line
+  staticGasEstimate: process.env.STATIC_GAS_ESTIMATE || '0x5B8D80', // comment out rather than delete this line
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
     account: 10000,
     full_nodelist: 10000,
   },
-  aalgWarmup: false,
+  aalgWarmup: Boolean(process.env.AALG_WARMUP) || true,
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false, // not safe for production, keep this off. Known issue.
   rateLimit: false,
