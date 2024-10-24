@@ -3,6 +3,12 @@ name: Create and publish a Docker image
 on:
   push:
     branches: ['dev']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the Docker image'
+        required: false
+        default: 'latest' # Default tag if none is provided
 
 env:
   REGISTRY: ghcr.io
