@@ -1,11 +1,10 @@
 # syntax=docker/dockerfile:1
 
 ## global args
-ARG NODE_VERSION=18.16.1
 ARG NODE_ENV=production
 
-FROM node:${NODE_VERSION}
-SHELL [ "/bin/bash", "-cex" ]
+FROM node:18.16.1-alpine
+SHELL [ "/bin/sh", "-cex" ]
 
 ## ENVs
 ENV NODE_ENV=${NODE_ENV}

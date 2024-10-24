@@ -3,8 +3,6 @@ name: Create and publish a Docker image
 on:
   push:
     branches: ['dev']
-  pull_request:
-    branches: ['dev']
 
 env:
   REGISTRY: ghcr.io
@@ -31,12 +29,19 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT_TOKEN }} # ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get short commit hash and determine branch name
+        id: set-env-vars
+        run: |
+          # Get short commit hash
+          echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+          # Determine branch name
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "BRANCH_NAME=${{ github.head_ref }}" >> $GITHUB_ENV  # Source branch of the PR
+          else
+            echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV  # Actual branch name for push events
+          fi
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
@@ -44,8 +49,10 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ env.SHORT_COMMIT_HASH }}
+          labels: |
+            version=${{ env.SHORT_COMMIT_HASH }}
+            branch=${{ env.BRANCH_NAME }}
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
