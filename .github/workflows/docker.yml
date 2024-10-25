@@ -7,8 +7,7 @@ on:
     inputs:
       tag:
         description: 'Tag for the Docker image'
-        required: false
-        default: 'latest' # Default tag if none is provided
+        required: true
 
 env:
   REGISTRY: ghcr.io
@@ -41,12 +40,19 @@ jobs:
         run: |
           # Get short commit hash
           echo "SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
           # Determine branch name
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "BRANCH_NAME=${{ github.head_ref }}" >> $GITHUB_ENV  # Source branch of the PR
           else
             echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV  # Actual branch name for push events
+          fi
+      - name: Set Docker image tag
+        id: set-docker-tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "DOCKER_TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "DOCKER_TAG=${{ env.BRANCH_NAME }}-${{ env.SHORT_COMMIT_HASH }}" >> $GITHUB_ENV
           fi
       - name: Build and push Docker image
         id: push
@@ -55,7 +61,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ env.SHORT_COMMIT_HASH }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}::${{ env.DOCKER_TAG }}
           labels: |
             version=${{ env.SHORT_COMMIT_HASH }}
             branch=${{ env.BRANCH_NAME }}
