@@ -61,7 +61,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}::${{ env.DOCKER_TAG }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
           labels: |
             version=${{ env.SHORT_COMMIT_HASH }}
             branch=${{ env.BRANCH_NAME }}
