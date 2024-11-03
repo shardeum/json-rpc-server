@@ -712,10 +712,11 @@ async function injectAndRecordTx(
       })
       .catch((e: Error) => {
         if (e.message.includes('timeout')) {
-          // TODO: add to blacklist with a TTL and use this blacklist to avoid bad node selction for inject.
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
         }
-        if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
+        if (config.verbose) {
+          console.log('injectAndRecordTx: Caught Exception: ' + e.message)
+        }
         countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
 
         if (config.recordTxStatus)
