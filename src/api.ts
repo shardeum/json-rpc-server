@@ -568,6 +568,11 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
   }
 }
 
+function hasIpAndPort(ipPort: string): boolean {
+  const [ip, port] = ipPort.split(':')
+  return Boolean(ip && port) // Ensures both parts exist and are not empty
+}
+
 async function injectAndRecordTx(
   txHash: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -743,11 +748,16 @@ async function injectAndRecordTx(
       })
       .catch((e: Error) => {
         if (e.message.includes('timeout')) {
-          blacklistedIPMapping.set(
-            nodeIpPort,
-            { baseUrl: baseUrl, blackListedAt: Date.now() },
-            retainTimedOutEntriesForMillis
-          )
+          if (nodeIpPort !== undefined && typeof nodeIpPort === 'string' && hasIpAndPort(nodeIpPort)) {
+            blacklistedIPMapping.set(
+              nodeIpPort,
+              { baseUrl: baseUrl, blackListedAt: Date.now() },
+              retainTimedOutEntriesForMillis
+            )
+          } else {
+            console.error(`Invalid nodeIpPort format: ${nodeIpPort}`)
+          }
+
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
           nestedCountersInstance.countEvent('validatorBlacklist', nodeIpPort)
         }
