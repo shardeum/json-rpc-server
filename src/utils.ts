@@ -32,6 +32,7 @@ import {
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
+import net from 'net'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -1805,6 +1806,36 @@ export function hexToBN(hexString: string): BN {
     hexString = hexString.slice(2) // remove the '0x' prefix
   }
   return new BN(hexString, 16)
+}
+
+function isValidIP(ip: string): boolean {
+  return net.isIP(ip) !== 0 // Returns 4 for IPv4, 6 for IPv6, or 0 for invalid
+}
+
+function isValidPort(port: number): boolean {
+  return Number.isInteger(port) && port > 0 && port <= 65535
+}
+
+export function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: string } {
+  const [ip, portStr] = ipPort.split(':')
+
+  // Check if both IP and port are provided
+  if (!ip || !portStr) {
+    return { isValid: false, error: 'IP and port must both be provided' }
+  }
+
+  // Validate IP
+  if (!isValidIP(ip)) {
+    return { isValid: false, error: 'Invalid IP address' }
+  }
+
+  // Convert port to a number and validate
+  const port = Number(portStr)
+  if (!isValidPort(port)) {
+    return { isValid: false, error: 'Invalid port number' }
+  }
+
+  return { isValid: true }
 }
 
 class Semaphore {

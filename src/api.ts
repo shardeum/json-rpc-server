@@ -26,6 +26,7 @@ import {
   calculateContractStorageAccountId,
   getSyncTime,
   removeFromNodeList,
+  sanitizeIpAndPort,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -47,7 +48,6 @@ import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
 import { TTLMap } from './utils/TTLMap'
-import net from 'net'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -567,36 +567,6 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
     reason: `Failed to inject transaction after retries.  Retries/RetryCount/ExceptionCount : ${retries}/${retryCount}/${exceptionCount}`,
     status: 500,
   }
-}
-
-function isValidIP(ip: string): boolean {
-  return net.isIP(ip) !== 0 // Returns 4 for IPv4, 6 for IPv6, or 0 for invalid
-}
-
-function isValidPort(port: number): boolean {
-  return Number.isInteger(port) && port > 0 && port <= 65535
-}
-
-function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: string } {
-  const [ip, portStr] = ipPort.split(':')
-
-  // Check if both IP and port are provided
-  if (!ip || !portStr) {
-    return { isValid: false, error: 'IP and port must both be provided' }
-  }
-
-  // Validate IP
-  if (!isValidIP(ip)) {
-    return { isValid: false, error: 'Invalid IP address' }
-  }
-
-  // Convert port to a number and validate
-  const port = Number(portStr)
-  if (!isValidPort(port)) {
-    return { isValid: false, error: 'Invalid port number' }
-  }
-
-  return { isValid: true }
 }
 
 async function injectAndRecordTx(
