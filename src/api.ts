@@ -47,6 +47,7 @@ import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
 import { TTLMap } from './utils/TTLMap'
+import net from 'net'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -568,9 +569,34 @@ async function injectWithRetries(txHash: string, tx: any, args: any, retries = c
   }
 }
 
-function hasIpAndPort(ipPort: string): boolean {
-  const [ip, port] = ipPort.split(':')
-  return Boolean(ip && port) // Ensures both parts exist and are not empty
+function isValidIP(ip: string): boolean {
+  return net.isIP(ip) !== 0 // Returns 4 for IPv4, 6 for IPv6, or 0 for invalid
+}
+
+function isValidPort(port: number): boolean {
+  return Number.isInteger(port) && port > 0 && port <= 65535
+}
+
+function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: string } {
+  const [ip, portStr] = ipPort.split(':')
+
+  // Check if both IP and port are provided
+  if (!ip || !portStr) {
+    return { isValid: false, error: 'IP and port must both be provided' }
+  }
+
+  // Validate IP
+  if (!isValidIP(ip)) {
+    return { isValid: false, error: 'Invalid IP address' }
+  }
+
+  // Convert port to a number and validate
+  const port = Number(portStr)
+  if (!isValidPort(port)) {
+    return { isValid: false, error: 'Invalid port number' }
+  }
+
+  return { isValid: true }
 }
 
 async function injectAndRecordTx(
@@ -598,13 +624,15 @@ async function injectAndRecordTx(
 
       if (entry !== undefined) {
         retries++
+        if (config.verbose) console.log('The retries are', retries)
         if (retries >= config.defaultRequestRetry) {
           console.error('Failed to find a non-blacklisted IP after max retries.')
           console.log('Injecting transaction with blacklisted node', nodeIpPort)
           break
         }
-        console.log('The IP address blacklisted is', nodeIpPort)
-        // Reassign nodeIpPort and baseUrl to find a new pair
+        if (config.verbose)
+          console.log('The IP address blacklisted is', nodeIpPort)
+          // Reassign nodeIpPort and baseUrl to find a new pair
         ;({ nodeIpPort, baseUrl } = getBaseUrl())
       }
     } while (entry !== undefined)
@@ -748,14 +776,20 @@ async function injectAndRecordTx(
       })
       .catch((e: Error) => {
         if (e.message.includes('timeout')) {
-          if (nodeIpPort !== undefined && typeof nodeIpPort === 'string' && hasIpAndPort(nodeIpPort)) {
-            blacklistedIPMapping.set(
-              nodeIpPort,
-              { baseUrl: baseUrl, blackListedAt: Date.now() },
-              retainTimedOutEntriesForMillis
-            )
+          if (nodeIpPort !== undefined && typeof nodeIpPort === 'string') {
+            const validation = sanitizeIpAndPort(nodeIpPort)
+
+            if (validation.isValid) {
+              blacklistedIPMapping.set(
+                nodeIpPort,
+                { baseUrl: baseUrl, blackListedAt: Date.now() },
+                retainTimedOutEntriesForMillis
+              )
+            } else {
+              console.error(`Invalid nodeIpPort format: ${nodeIpPort} - ${validation.error}`)
+            }
           } else {
-            console.error(`Invalid nodeIpPort format: ${nodeIpPort}`)
+            console.error(`Invalid nodeIpPort input`)
           }
 
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
