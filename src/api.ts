@@ -2799,6 +2799,10 @@ export const methods = {
       unsubscribe,
       type: Types.FilterTypes.block,
     }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      filtersMap.clear()
+      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
+    }
     filtersMap.set(filterId.toString(), internalFilter)
 
     callback(null, filterId)
@@ -2832,6 +2836,10 @@ export const methods = {
       filter: filterObj,
       unsubscribe,
       type: Types.FilterTypes.pendingTransaction,
+    }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      filtersMap.clear()
+      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 
@@ -2933,6 +2941,10 @@ export const methods = {
       filter: filterObj,
       unsubscribe,
       type: Types.FilterTypes.log,
+    }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      filtersMap.clear()
+      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 

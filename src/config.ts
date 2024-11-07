@@ -106,6 +106,7 @@ type Config = {
   }
   axiosTimeoutInMs: number
   enableBlacklistingIP: boolean
+  maxEntriesAllowed: number // maximum number of entries allowed for map to store
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -249,4 +250,5 @@ export const CONFIG: Config = {
   },
   axiosTimeoutInMs: 3000,
   enableBlacklistingIP: false,
+  maxEntriesAllowed: 10000,
 }
