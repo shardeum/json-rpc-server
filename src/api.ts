@@ -485,7 +485,7 @@ async function getExplorerPendingTransactions(): Promise<string[]> {
   let currentPage = 1
   let hasMorePages = true
 
-  while (hasMorePages) {
+  while (hasMorePages && currentPage <= 100) {
     try {
       const response = await axios.get(
         `${explorerURL}/api/originalTx?pending=true&decode=true&page=${currentPage}`
