@@ -7,6 +7,10 @@ export const methodWhitelist = (req: Request, res: Response, next: NextFunction)
   const body = req.body
 
   if (Array.isArray(body)) {
+    if (body.length === 0) {
+      return res.status(400).json({ error: 'Empty batch request' })
+    }
+
     // Handle batch requests
     const allMethodsAllowed = body.every(request => {
       const method = request?.method
