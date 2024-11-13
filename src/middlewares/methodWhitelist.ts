@@ -10,6 +10,10 @@ export const methodWhitelist = (req: Request, res: Response, next: NextFunction)
     if (body.length === 0) {
       return res.status(400).json({ error: 'Empty batch request' })
     }
+    
+    if (body.length > 100) { // remove in favor of jayson option when updated to jayson@4.x.x
+      return res.status(400).json({ error: 'Max batch size exceeded (100)' })
+    }
 
     // Handle batch requests
     const allMethodsAllowed = body.every(request => {
