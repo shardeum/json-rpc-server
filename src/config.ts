@@ -184,12 +184,12 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: false,
-    collectorApiServerUrl: 'http://0.0.0.0:6001',
+    enabled: Boolean(process.env.COLLECTOR_SOURCING_ENABLED) || false,
+    collectorApiServerUrl: process.env.COLLECTOR_API_SERVER_URL || 'http://0.0.0.0:6001',
   },
   serviceValidatorSourcing: {
-    enabled: false,
-    serviceValidatorUrl: 'http://0.0.0.0:9001',
+    enabled: Boolean(process.env.SERVICE_VALIDATOR_SOURCING_ENABLED) || false,
+    serviceValidatorUrl: process.env.SERVICE_VALIDATOR_URL || 'http://0.0.0.0:9001',
   },
 
   ServicePointsPerSecond: 200,
