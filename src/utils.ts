@@ -29,6 +29,7 @@ import {
   OriginalTxData,
   AccountTypesData,
   Account2,
+  InternalFilter
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
@@ -1836,6 +1837,24 @@ export function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: s
   }
 
   return { isValid: true }
+}
+
+export function removeOldestFilter(filtersMap: Map<string, InternalFilter>): void {
+  let oldestKey: string | undefined;
+  let oldestTimestamp = Infinity;
+
+  // Iterate through the map to find the oldest entry
+  for (const [key, value] of filtersMap) {
+    if (value.filter.lastQueriedTimestamp < oldestTimestamp) {
+      oldestTimestamp = value.filter.lastQueriedTimestamp;
+      oldestKey = key;
+    }
+  }
+
+  // Remove the oldest entry
+  if (oldestKey !== undefined) {
+    filtersMap.delete(oldestKey);
+  }
 }
 
 class Semaphore {

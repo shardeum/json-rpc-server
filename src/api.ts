@@ -27,6 +27,7 @@ import {
   getSyncTime,
   removeFromNodeList,
   sanitizeIpAndPort,
+  removeOldestFilter,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -2800,8 +2801,7 @@ export const methods = {
       type: Types.FilterTypes.block,
     }
     if (filtersMap.size >= config.maxEntriesAllowed) {
-      filtersMap.clear()
-      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
+      removeOldestFilter(filtersMap)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 
@@ -2838,8 +2838,7 @@ export const methods = {
       type: Types.FilterTypes.pendingTransaction,
     }
     if (filtersMap.size >= config.maxEntriesAllowed) {
-      filtersMap.clear()
-      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
+      removeOldestFilter(filtersMap)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 
@@ -2943,8 +2942,7 @@ export const methods = {
       type: Types.FilterTypes.log,
     }
     if (filtersMap.size >= config.maxEntriesAllowed) {
-      filtersMap.clear()
-      console.log(`filtersMap cleared after ${config.maxEntriesAllowed} entries`)
+      removeOldestFilter(filtersMap)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 
