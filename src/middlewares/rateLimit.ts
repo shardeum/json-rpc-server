@@ -28,6 +28,10 @@ async function checkRequest(ip: string, request: RpcRequest): Promise<boolean> {
 }
 
 export async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!config.rateLimit) {
+    next()
+    return
+  }
   let ip = String(req.socket.remoteAddress)
   if (ip.substring(0, 7) == '::ffff:') {
     ip = ip.substring(7)
