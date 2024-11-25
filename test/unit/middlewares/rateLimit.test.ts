@@ -29,6 +29,7 @@ jest.mock('../../../src/utils', () => {
 // Mock config with minimal required properties
 jest.mock('../../../src/config', () => ({
   CONFIG: {
+    rateLimit: true,
     rateLimitOption: {
       softReject: false,
       allowedTxCountInCheckInterval: 60
@@ -39,6 +40,31 @@ jest.mock('../../../src/config', () => ({
 describe('Rate Limiting', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Reset config to default state
+    CONFIG.rateLimit = true
+  })
+
+  it('should skip rate limiting when disabled in config', async () => {
+    CONFIG.rateLimit = false
+
+    const mockReq = {
+      socket: { remoteAddress: '127.0.0.1' },
+      body: {
+        method: 'eth_call',
+        params: []
+      }
+    } as Request
+
+    const mockRes = {
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    } as unknown as Response
+
+    const mockNext = jest.fn()
+
+    await rateLimitMiddleware(mockReq, mockRes, mockNext)
+    expect(mockNext).toHaveBeenCalled()
+    expect(requestersList.isRequestOkay).not.toHaveBeenCalled()
   })
 
   it('should allow valid single requests', async () => {
