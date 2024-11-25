@@ -35,6 +35,7 @@ import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 import { isIPv4 } from 'net'
+import { rateLimitMiddleware } from './middlewares/rateLimit'
 
 setDefaultResultOrder('ipv4first')
 
@@ -180,33 +181,8 @@ app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
   }
   next()
 })
-
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  if (!config.rateLimit) {
-    next()
-    return
-  }
-  let ip = String(req.socket.remoteAddress)
-  if (ip.substring(0, 7) == '::ffff:') {
-    ip = ip.substring(7)
-  }
-  //console.log('IP is ', ip)
-
-  const reqParams = req.body.params
-  const isRequestOkay = await requestersList.isRequestOkay(ip, req.body.method, reqParams)
-  if (!isRequestOkay) {
-    if (config.rateLimitOption.softReject) {
-      const randomSleepTime = 10 + Math.floor(Math.random() * 10)
-      await sleep(randomSleepTime * 1000)
-      res.status(503).send('Network is currently busy. Please try again later.')
-      return
-    } else {
-      res.status(503).send('Rejected by rate-limiting')
-      return
-    }
-  }
-  next()
-})
+console.log('Is this log getting eaten??')
+app.use(rateLimitMiddleware)
 
 app.use('/', logRoute)
 app.use('/', healthCheckRouter)
