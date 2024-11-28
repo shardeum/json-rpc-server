@@ -19,7 +19,7 @@ async function handleRejection(res: Response, softReject: boolean): Promise<void
     await sleep(randomSleepTime * 1000)
     res.status(503).send('Network is currently busy. Please try again later.')
   } else {
-    res.status(503).send('Rejected by rate-limiting')
+    res.status(429).send('Rejected by rate-limiting')
   }
 }
 

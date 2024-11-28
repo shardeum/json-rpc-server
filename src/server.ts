@@ -181,7 +181,7 @@ app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
   }
   next()
 })
-console.log('Is this log getting eaten??')
+
 app.use(rateLimitMiddleware)
 
 app.use('/', logRoute)
