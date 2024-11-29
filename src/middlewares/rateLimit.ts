@@ -32,7 +32,8 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
     next()
     return
   }
-  let ip = String(req.socket.remoteAddress)
+  let ip = req.ip
+
   if (ip.substring(0, 7) == '::ffff:') {
     ip = ip.substring(7)
   }

@@ -87,7 +87,7 @@ process.on('unhandledRejection', (err) => {
   console.log('unhandledRejection:' + err)
 })
 
-app.set('trust proxy', false)
+app.set('trust proxy', config.trustProxy)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
