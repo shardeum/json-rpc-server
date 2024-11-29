@@ -54,6 +54,6 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
     next()
   } catch (error) {
     console.error('Rate limiting error:', error)
-    res.status(500).send('Internal server error during rate limiting')
+    res.status(500).send('Internal server error')
   }
 } 

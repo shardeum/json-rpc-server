@@ -168,7 +168,7 @@ export const CONFIG: Config = {
   statLog: false, // not safe for production, keep this off
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
-  verbose: true,
+  verbose: false,
   verboseRequestWithRetry: false,
   verboseAALG: false,
   firstLineLogs: true, // default is true and turn off for prod for perf
