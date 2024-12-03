@@ -2892,6 +2892,16 @@ export const methods = {
       countFailedResponse(api_name, 'filter not found')
       return
     }
+    if (Array.isArray(inputFilter.address) && inputFilter.address.length > 100) {
+      callback({ code: -32000, message: 'Invalid address' }, null)
+      countFailedResponse(api_name, 'Invalid address')
+      return
+    }
+    if (inputFilter.topics.length > 200) {
+      callback({ code: -32000, message: 'Invalid topics' }, null)
+      countFailedResponse(api_name, 'Invalid topics')
+      return
+    }
     const { address, topics } = parseFilterDetails(inputFilter || {})
     // Add validate address
     if (address && address.length !== 42) {
