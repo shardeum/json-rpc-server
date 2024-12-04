@@ -66,7 +66,8 @@ export const setupEvmLogProviderConnectionStream = (): void => {
       }
       if (message.method == 'unsubscribe') {
         if (message.success) {
-          logSubscriptionList.getById(message.subscription_id)?.socket.send(
+          const socket = logSubscriptionList.getById(message.subscription_id)?.socket
+          socket?.send(
             JSON.stringify({
               jsonrpc: '2.0',
               id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
@@ -74,6 +75,11 @@ export const setupEvmLogProviderConnectionStream = (): void => {
             })
           )
           logSubscriptionList.removeById(message.subscription_id)
+
+          const socketSubscriptions = logSubscriptionList.getBySocket(socket as WebSocket.WebSocket)
+          if (socketSubscriptions === null || socketSubscriptions.size === 0) {
+            socket?.close()
+          }
         } else {
           logSubscriptionList.getById(message.subscription_id)?.socket.send(
             JSON.stringify({
