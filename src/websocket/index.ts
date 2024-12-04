@@ -21,7 +21,22 @@ interface Request {
   params: Params
 }
 
+// Add connection counter
+let activeConnections = 0
+
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
+  // Check max connections limit
+  if (activeConnections >= CONFIG.websocket.maxConnections) {
+    socket.close(1013, 'Maximum number of connections reached')
+    return
+  }
+  activeConnections++
+
+  // Set connection timeout
+  const timeoutId = setTimeout(() => {
+    socket.close(1011, 'Connection timeout reached')
+  }, CONFIG.websocket.connectionTimeoutMs)
+
   const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', (message: string) => {
@@ -95,6 +110,16 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         socket.send(JSON.stringify(constructRPCErrorRes('Subscription serving disabled', -1, request.id)))
         return
       }
+
+      // Check subscription limit per socket
+      const currentSubscriptions = logSubscriptionList.getBySocket(socket)?.size || 0
+      if (currentSubscriptions >= CONFIG.websocket.maxSubscriptionsPerSocket) {
+        socket.send(
+          JSON.stringify(constructRPCErrorRes('Maximum subscriptions per connection reached', -1, request.id))
+        )
+        return
+      }
+
       try {
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         if (
@@ -165,6 +190,12 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   })
 
   socket.on('close', (code, reason) => {
+    // Clear timeout on close
+    clearTimeout(timeoutId)
+
+    // Decrement connection counter
+    activeConnections--
+
     console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
     nestedCountersInstance.countEvent('websocket', 'close')
     if (logSubscriptionList.getBySocket(socket)) {
@@ -172,8 +203,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       })
       logSubscriptionList.removeBySocket(socket)
+      socket.close(code, reason)
     }
-    console.log(logSubscriptionList.getAll())
+    if(CONFIG.verbose) console.log(logSubscriptionList.getAll())
   })
 }
 
