@@ -112,7 +112,7 @@ describe('WebSocket Connection Tests', () => {
 
       // Try one more connection
       await onConnection(mockSocket)
-      expect(mockSocket.close).toHaveBeenCalledWith(1013, 'Maximum number of connections reached')
+      expect(mockSocket.close).toHaveBeenCalledWith(1003, 'Server busy. Please try again later.')
     })
   })
 

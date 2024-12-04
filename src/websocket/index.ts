@@ -27,7 +27,7 @@ let activeConnections = 0
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   // Check max connections limit
   if (activeConnections >= CONFIG.websocket.maxConnections) {
-    socket.close(1013, 'Maximum number of connections reached')
+    socket.close(1003, 'Server busy. Please try again later.')
     return
   }
   activeConnections++
