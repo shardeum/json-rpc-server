@@ -42,13 +42,15 @@ describe('Rate Limiting', () => {
     jest.clearAllMocks()
     // Reset config to default state
     CONFIG.rateLimit = true
+    // Mock console.error
+    jest.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   it('should skip rate limiting when disabled in config', async () => {
     CONFIG.rateLimit = false
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: {
         method: 'eth_call',
         params: []
@@ -72,7 +74,7 @@ describe('Rate Limiting', () => {
     jest.spyOn(requestersList, 'isRequestOkay').mockResolvedValueOnce(true)
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: {
         method: 'eth_call',
         params: []
@@ -97,7 +99,7 @@ describe('Rate Limiting', () => {
       .mockResolvedValueOnce(true)
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: [
         {
           method: 'eth_call',
@@ -126,7 +128,7 @@ describe('Rate Limiting', () => {
     jest.spyOn(requestersList, 'isRequestOkay').mockResolvedValue(false)
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: {
         method: 'eth_sendRawTransaction',
         params: []
@@ -141,7 +143,7 @@ describe('Rate Limiting', () => {
     const mockNext = jest.fn()
 
     await rateLimitMiddleware(mockReq, mockRes, mockNext)
-    expect(mockRes.status).toHaveBeenCalledWith(503)
+    expect(mockRes.status).toHaveBeenCalledWith(429)
     expect(mockRes.send).toHaveBeenCalledWith('Rejected by rate-limiting')
     expect(mockNext).not.toHaveBeenCalled()
   })
@@ -154,7 +156,7 @@ describe('Rate Limiting', () => {
     CONFIG.rateLimitOption.softReject = true
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: {
         method: 'eth_sendRawTransaction',
         params: []
@@ -181,7 +183,7 @@ describe('Rate Limiting', () => {
     jest.spyOn(requestersList, 'isRequestOkay').mockRejectedValueOnce(new Error('Mock error'))
 
     const mockReq = {
-      socket: { remoteAddress: '127.0.0.1' },
+      ip: '127.0.0.1',
       body: {
         method: 'eth_call',
         params: []
@@ -197,7 +199,7 @@ describe('Rate Limiting', () => {
 
     await rateLimitMiddleware(mockReq, mockRes, mockNext)
     expect(mockRes.status).toHaveBeenCalledWith(500)
-    expect(mockRes.send).toHaveBeenCalledWith('Internal server error during rate limiting')
+    expect(mockRes.send).toHaveBeenCalledWith('Internal server error')
     expect(mockNext).not.toHaveBeenCalled()
   })
 }) 
