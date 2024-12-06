@@ -169,7 +169,7 @@ export const CONFIG: Config = {
     allowFaucetAccount: true,
     allowedTxCountInCheckInterval: 10, // allow 1 txs in every 12s = (checkInterval * 60 / allowedTxCountInCheckInterval)
     spammerCheckInterval: 2, // check spammers and ban them every 2 min
-    releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
+    releaseFromBlacklistInterval: 5, // remove banned ip from blacklist after 5 mins
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
   statLog: false, // not safe for production, keep this off

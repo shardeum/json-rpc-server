@@ -590,7 +590,7 @@ export class RequestersList {
     if (config.rateLimit) {
       setInterval(() => {
         this.clearOldIps()
-      }, config.rateLimitOption.releaseFromBlacklistInterval * 3600 * 1000)
+      }, config.rateLimitOption.releaseFromBlacklistInterval * 60 * 1000)
     }
 
     if (config.rateLimit) {
