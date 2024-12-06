@@ -2892,12 +2892,14 @@ export const methods = {
       countFailedResponse(api_name, 'filter not found')
       return
     }
+    //address may or may not be an array
     if (Array.isArray(inputFilter.address) && inputFilter.address.length > 100) {
       callback({ code: -32000, message: 'Invalid address' }, null)
       countFailedResponse(api_name, 'Invalid address')
       return
     }
-    if (inputFilter.topics.length > 200) {
+    //filter topics should always be an array. If not array, or if array bigger than 200 elements, return error
+    if (!Array.isArray(inputFilter.topics) || inputFilter.topics.length > 200) {
       callback({ code: -32000, message: 'Invalid topics' }, null)
       countFailedResponse(api_name, 'Invalid topics')
       return
