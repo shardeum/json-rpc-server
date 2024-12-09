@@ -695,11 +695,10 @@ export class RequestersList {
         const verifyData = JSON.parse(fs.readFileSync('blacklist.json', 'utf8'))
         if (verifyData.length !== this.bannedIps.length) {
           if (verbose) console.log('Warning: Inconsistency detected between bannedIps and blacklist.json')
-          // Ensure bannedIps matches the file
-          this.bannedIps = verifyData.map((ip: string) => ({
-            ip,
-            timestamp: Date.now(),
-          }))
+          // Update the file to match the in-memory bannedIps
+          const currentData = this.bannedIps.map((record) => record.ip)
+          fs.writeFileSync('blacklist.json', JSON.stringify(currentData))
+          if (verbose) console.log('Updated blacklist.json to match in-memory bannedIps')
         }
       } catch (error) {
         if (verbose) console.error('Error writing to or verifying blacklist.json', error)
