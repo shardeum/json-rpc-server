@@ -601,20 +601,23 @@ export class RequestersList {
   }
 
   addToBlacklist(ip: string): void {
+    if (this.bannedIps.some((record) => record.ip === ip)) {
+      if (verbose) console.log(`IP ${ip} is already in the banned list`)
+      return
+    }
+
     this.bannedIps.push({ ip, timestamp: Date.now() })
+    if (verbose) console.log(`Attempting to add IP ${ip} to blacklist`)
+
     try {
-      fs.readFile(
-        'blacklist.json',
-        function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
-          const ipList = JSON.parse(currentDataStr.toString())
-          if (ipList.indexOf(ip) >= 0) return
-          const newIpList = [...ipList, ip]
-          console.log(`Added ip ${ip} to banned list`)
-          fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
-        }
-      )
+      const currentDataStr = fs.readFileSync('blacklist.json')
+      const ipList = JSON.parse(currentDataStr.toString())
+      if (ipList.indexOf(ip) >= 0) return
+      const newIpList = [...ipList, ip]
+      if (verbose) console.log(`Added IP ${ip} to banned list`)
+      fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
     } catch (e) {
-      console.log('Error writing to blacklist.json', e)
+      if (verbose) console.log('Error writing to blacklist.json', e)
     }
   }
 
@@ -644,9 +647,13 @@ export class RequestersList {
     /* eslint-disable security/detect-object-injection */
     const now = Date.now()
     const oneMinute = 60 * 1000
+
+    // Log heavy requests
     for (const [ip, reqHistory] of this.heavyRequests) {
       if (verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
     }
+
+    // Clear old heavy requests
     for (const [, reqHistory] of this.heavyRequests) {
       let i = 0
       for (; i < reqHistory.length; i++) {
@@ -656,6 +663,7 @@ export class RequestersList {
       //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
+    // Clear old heavy addresses
     for (const [, reqHistory] of this.heavyAddresses) {
       let i = 0
       for (; i < reqHistory.length; i++) {
@@ -665,12 +673,38 @@ export class RequestersList {
       //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
-    // unban the ip after 1 hour
-    this.bannedIps = this.bannedIps.filter((record: { ip: string; timestamp: number }) => {
-      if (now - record.timestamp >= 60 * 60 * 1000) return false
-      else return true
+    // unban the ip after 1 hour and ensure synchronization
+    const previousLength = this.bannedIps.length
+    this.bannedIps = this.bannedIps.filter((record) => {
+      if (now - record.timestamp >= 60 * 60 * 1000) {
+        if (verbose) console.log(`Removing IP ${record.ip} from banned list`)
+        return false
+      }
+      return true
     })
-    /* eslint-enable security/detect-object-injection */
+
+    // Only update the file if there were changes
+    if (previousLength !== this.bannedIps.length) {
+      if (verbose) console.log('New banned IPs', this.bannedIps)
+      try {
+        const currentData = this.bannedIps.map((record) => record.ip)
+        fs.writeFileSync('blacklist.json', JSON.stringify(currentData))
+        if (verbose) console.log('Updated blacklist.json with current banned IPs')
+
+        // Verify the bannedIps list is updated
+        const verifyData = JSON.parse(fs.readFileSync('blacklist.json', 'utf8'))
+        if (verifyData.length !== this.bannedIps.length) {
+          if (verbose) console.log('Warning: Inconsistency detected between bannedIps and blacklist.json')
+          // Ensure bannedIps matches the file
+          this.bannedIps = verifyData.map((ip: string) => ({
+            ip,
+            timestamp: Date.now(),
+          }))
+        }
+      } catch (error) {
+        if (verbose) console.error('Error writing to or verifying blacklist.json', error)
+      }
+    }
   }
 
   checkAndBanSpammers(): void {
