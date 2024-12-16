@@ -19,6 +19,7 @@ type Config = {
     connectionTimeoutMs: number // Connection timeout in milliseconds (default 1 day)
     inactivityTimeoutMs: number // 60 seconds inactivity timeout
     inactivityCheckIntervalMs: number // Check every 10 seconds
+    maxConnectionsPerIP: number // Maximum number of connections allowed per IP per socket
   }
   trustProxy: boolean // Whether to trust the X-Forwarded-For header
   log_server: {
@@ -126,6 +127,7 @@ export const CONFIG: Config = {
     connectionTimeoutMs: Number(process.env.WS_CONNECTION_TIMEOUT_MS) || 24 * 60 * 60 * 1000, // 1 day in ms
     inactivityTimeoutMs: 60000, // 60 seconds inactivity timeout
     inactivityCheckIntervalMs: 10000, // Check every 10 seconds
+    maxConnectionsPerIP: Number(process.env.WS_MAX_CONNECTIONS_PER_IP) || 50,
   },
   trustProxy: false,
   log_server: {

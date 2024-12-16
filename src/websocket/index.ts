@@ -36,18 +36,33 @@ setInterval(() => {
     }
   })
 }, CONFIG.websocket.inactivityCheckIntervalMs)
+const connectionsByIP = new Map<string, number>()
 
-export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
-  // Check max connections limit
-  if (activeConnections >= CONFIG.websocket.maxConnections) {
-    socket.close(1003, 'Server busy. Please try again later.')
+export const onConnection = async (socket: WebSocket.WebSocket, req: any): Promise<void> => {
+  const ip = req.socket.remoteAddress
+  if (!ip) {
+    socket.close(
+      1008,
+      'Connection closed: Unable to determine your IP address. Please check your network settings and try again.'
+    )
+    return
+  }
+
+  const currentIPConnections = connectionsByIP.get(ip) || 0
+
+  // Check max connections per IP limit
+  if (currentIPConnections >= CONFIG.websocket.maxConnectionsPerIP) {
+    socket.close(
+      1008,
+      `Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.`
+    )
     return
   }
   activeConnections++
 
   // Track last activity time
   socketActivityMap.set(socket, Date.now())
-
+  connectionsByIP.set(ip, currentIPConnections + 1)
   // Set connection timeout
   const timeoutId = setTimeout(() => {
     socket.close(1011, 'Connection timeout reached')
@@ -216,6 +231,13 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     // Decrement connection counter
     activeConnections--
 
+    const currentIPConnections = connectionsByIP.get(ip) || 0
+    if (currentIPConnections > 0) {
+      connectionsByIP.set(ip, currentIPConnections - 1)
+    }
+    if (currentIPConnections === 0) {
+      connectionsByIP.delete(ip)
+    }
     console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
     nestedCountersInstance.countEvent('websocket', 'close')
     if (logSubscriptionList.getBySocket(socket)) {
