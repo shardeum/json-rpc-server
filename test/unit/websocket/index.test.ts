@@ -2,6 +2,7 @@ import WebSocket from 'ws'
 import { onConnection } from '../../../src/websocket'
 import { CONFIG } from '../../../src/config'
 import { logSubscriptionList } from '../../../src/websocket/clients'
+import { IncomingMessage } from 'http'
 
 // Mock WebSocket
 jest.mock('ws')
@@ -64,7 +65,7 @@ describe('WebSocket Connection Tests', () => {
       const websocketModule = require('../../../src/websocket')
       websocketModule.activeConnections = 0
 
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       // Fast forward past the timeout
       jest.advanceTimersByTime(CONFIG.websocket.connectionTimeoutMs + 100)
@@ -80,7 +81,7 @@ describe('WebSocket Connection Tests', () => {
     it('should clear timeout when connection closes normally', async () => {
       // Mock logSubscriptionList.getBySocket to return a Set
       jest.spyOn(logSubscriptionList, 'getBySocket').mockImplementation(() => new Set(['dummy-subscription']))
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       // Simulate connection close
       const closeCallbackEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'close')
@@ -100,25 +101,25 @@ describe('WebSocket Connection Tests', () => {
 
   describe('Connection Limits', () => {
     it('should accept connections when below max limit', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
       expect(mockSocket.close).not.toHaveBeenCalled()
     })
 
     it('should reject connections when at max limit', async () => {
       // Create max number of connections
       for (let i = 0; i < CONFIG.websocket.maxConnections; i++) {
-        await onConnection(mockSocket, { socket: mockSocket })
+        await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
       }
 
       // Try one more connection
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
       expect(mockSocket.close).toHaveBeenCalledWith(1003, 'Server busy. Please try again later.')
     })
   })
 
   describe('Subscription Limits', () => {
     it('should reject subscriptions when at max limit per socket', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       // Get the message handler
       const messageHandlerEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'message')
@@ -145,7 +146,7 @@ describe('WebSocket Connection Tests', () => {
     })
 
     it('should accept subscriptions when below max limit', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       // Get the message handler
       const messageHandlerEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'message')
@@ -174,7 +175,7 @@ describe('WebSocket Connection Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid JSON messages', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       const messageHandlerEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'message')
       if (messageHandlerEntry) {
@@ -185,7 +186,7 @@ describe('WebSocket Connection Tests', () => {
     })
 
     it('should handle invalid RPC version', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       const messageHandlerEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'message')
       if (messageHandlerEntry) {
@@ -207,7 +208,7 @@ describe('WebSocket Connection Tests', () => {
 
   describe('Connection Cleanup', () => {
     it('should clean up resources on connection close', async () => {
-      await onConnection(mockSocket, { socket: mockSocket })
+      await onConnection(mockSocket, { socket: mockSocket } as unknown as IncomingMessage)
 
       const closeHandlerEntry = mockSocket.on.mock.calls.find((call) => call[0] === 'close')
       if (closeHandlerEntry) {
