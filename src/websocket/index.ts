@@ -8,6 +8,7 @@ import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
+import { IncomingMessage } from 'http'
 
 interface Params {
   address?: string | string[]
@@ -36,9 +37,9 @@ setInterval(() => {
     }
   })
 }, CONFIG.websocket.inactivityCheckIntervalMs)
-const connectionsByIP = new Map<string, number>()
+const connectionsByIP = new Map<string, Set<WebSocket.WebSocket>>()
 
-export const onConnection = async (socket: WebSocket.WebSocket, req: any): Promise<void> => {
+export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
   const ip = req.socket.remoteAddress
   if (!ip) {
     socket.close(
@@ -48,10 +49,10 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: any): Promi
     return
   }
 
-  const currentIPConnections = connectionsByIP.get(ip) || 0
+  const currentIPConnections = connectionsByIP.get(ip) || new Set()
 
   // Check max connections per IP limit
-  if (currentIPConnections >= CONFIG.websocket.maxConnectionsPerIP) {
+  if (currentIPConnections.size >= CONFIG.websocket.maxConnectionsPerIP) {
     socket.close(
       1008,
       `Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.`
@@ -62,7 +63,9 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: any): Promi
 
   // Track last activity time
   socketActivityMap.set(socket, Date.now())
-  connectionsByIP.set(ip, currentIPConnections + 1)
+  currentIPConnections.add(socket)
+  connectionsByIP.set(ip, currentIPConnections)
+
   // Set connection timeout
   const timeoutId = setTimeout(() => {
     socket.close(1011, 'Connection timeout reached')
@@ -226,20 +229,20 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: any): Promi
   socket.on('close', (code, reason) => {
     // Clean up
     socketActivityMap.delete(socket)
-    clearTimeout(timeoutId)
+    clearTimeout(timeoutId);
 
     // Decrement connection counter
-    activeConnections--
+    activeConnections--;
 
-    const currentIPConnections = connectionsByIP.get(ip) || 0
-    if (currentIPConnections > 0) {
-      connectionsByIP.set(ip, currentIPConnections - 1)
+    const currentIPConnections = connectionsByIP.get(ip);
+    if (currentIPConnections) {
+      currentIPConnections.delete(socket);
+      if (currentIPConnections.size === 0) {
+        connectionsByIP.delete(ip);
+      }
     }
-    if (currentIPConnections === 0) {
-      connectionsByIP.delete(ip)
-    }
-    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
-    nestedCountersInstance.countEvent('websocket', 'close')
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`);
+    nestedCountersInstance.countEvent('websocket', 'close');
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
@@ -339,3 +342,27 @@ const constructRPCErrorRes = (
     },
   }
 }
+
+const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs; // Run cleanup every 10 minutes
+
+const cleanupStaleConnections = () => {
+  connectionsByIP.forEach((sockets, ip) => {
+    sockets.forEach((socket) => {
+      if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+        sockets.delete(socket);
+        activeConnections--;
+      }
+    });
+
+    if (sockets.size === 0) {
+      connectionsByIP.delete(ip);
+    }
+  });
+
+  if (CONFIG.verbose) {
+    console.log('Cleanup completed. Active connections:', activeConnections);
+  }
+};
+
+// Start the periodic cleanup
+setInterval(cleanupStaleConnections, cleanupIntervalMs);
