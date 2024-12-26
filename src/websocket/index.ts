@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { methods, wrappedMethods } from '../api'
+import { wrappedMethods } from '../api'
 import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
@@ -32,6 +32,17 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   }
   activeConnections++
 
+  // Track last activity time
+  let lastActivityTime = Date.now()
+
+  // Set interval to check for inactivity
+  const inactivityCheckInterval = setInterval(() => {
+    if (Date.now() - lastActivityTime > CONFIG.websocket.inactivityTimeoutMs) {
+      socket.close(1011, 'Connection inactive for too long')
+      clearInterval(inactivityCheckInterval)
+    }
+  }, CONFIG.websocket.inactivityCheckIntervalMs)
+
   // Set connection timeout
   const timeoutId = setTimeout(() => {
     socket.close(1011, 'Connection timeout reached')
@@ -40,6 +51,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', (message: string) => {
+    // Update last activity time on message received
+    lastActivityTime = Date.now()
+
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
@@ -190,8 +204,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   })
 
   socket.on('close', (code, reason) => {
-    // Clear timeout on close
+    // Clear timeout and interval on close
     clearTimeout(timeoutId)
+    clearInterval(inactivityCheckInterval)
 
     // Decrement connection counter
     activeConnections--
