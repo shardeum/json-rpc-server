@@ -354,13 +354,13 @@ const cleanupStaleConnections = () => {
       if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
         // Add socket to removal list instead of deleting directly
         socketsToRemove.push(socket);
-        activeConnections--;
       }
     });
 
     // Remove sockets after iteration to avoid concurrent modification
     socketsToRemove.forEach((socket) => {
       sockets.delete(socket);
+      activeConnections--;
     });
 
     // Remove IP entry if no sockets remain
