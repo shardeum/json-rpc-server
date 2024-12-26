@@ -347,13 +347,23 @@ const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs; // Run cleanup eve
 
 const cleanupStaleConnections = () => {
   connectionsByIP.forEach((sockets, ip) => {
+    // Collect sockets to be removed in a separate array
+    const socketsToRemove: WebSocket.WebSocket[] = [];
+
     sockets.forEach((socket) => {
       if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
-        sockets.delete(socket);
+        // Add socket to removal list instead of deleting directly
+        socketsToRemove.push(socket);
         activeConnections--;
       }
     });
 
+    // Remove sockets after iteration to avoid concurrent modification
+    socketsToRemove.forEach((socket) => {
+      sockets.delete(socket);
+    });
+
+    // Remove IP entry if no sockets remain
     if (sockets.size === 0) {
       connectionsByIP.delete(ip);
     }
