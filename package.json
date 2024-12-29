@@ -13,7 +13,11 @@
     "update-docker-dev": "docker build -t registry.gitlab.com/shardeum/json-rpc-server:dev . --push",
     "format-check": "prettier --check \"./src/**/*.ts\"",
     "format-fix": "prettier --write \"./src/**/*.ts\"",
-    "check-patches": "node -e \"const { execSync } = require('child_process'); const patches = require('fs').readdirSync('.').filter(f => f.endsWith('.patch')); if (patches.length > 0) { let allPassed = true; patches.forEach(patch => { try { execSync('git apply --verbose --check ' + patch, { stdio: 'inherit' }); console.log('\u2714 ' + patch + ' can be applied successfully.'); } catch { console.error('\u2718 ' + patch + ' failed to apply.'); allPassed = false; } }); if (!allPassed) process.exit(1); } else { console.log('No patch files found.'); }\""
+    "check-patches": "node -e \"const { execSync } = require('child_process'); const patches = require('fs').readdirSync('.').filter(f => f.endsWith('.patch')); if (patches.length > 0) { let allPassed = true; patches.forEach(patch => { try { execSync('git apply --verbose --check ' + patch, { stdio: 'inherit' }); console.log('✔ ' + patch + ' can be applied successfully.'); } catch { console.error('✘ ' + patch + ' failed to apply.'); allPassed = false; } }); if (!allPassed) process.exit(1); } else { console.log('No patch files found.'); }\"",
+    "release:prerelease": "npm run compile && npm version prerelease --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
+    "release:patch": "npm run compile && npm version patch && git push --follow-tags && npm publish",
+    "release:minor": "npm run compile && npm version minor && git push --follow-tags && npm publish",
+    "release:major": "npm run compile && npm version major && git push --follow-tags && npm publish"
   },
   "author": "thantsintoe",
   "license": "ISC",
