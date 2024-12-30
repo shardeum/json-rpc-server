@@ -955,9 +955,9 @@ export class RequestersList {
     this.addHeavyRequest(ip)
     const heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (heavyReqHistory && heavyReqHistory.length >= 61) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
+    if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
+      if (now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] < oneMinute) {
+        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than ${config.rateLimitOption.allowedHeavyRequestPerMin} reqs in 60s`)
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
           const transaction = getTransactionObj({ raw: reqParams[0] })
