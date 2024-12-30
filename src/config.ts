@@ -17,6 +17,8 @@ type Config = {
     maxConnections: number // Maximum number of concurrent WebSocket connections
     maxSubscriptionsPerSocket: number // Maximum number of subscriptions per socket
     connectionTimeoutMs: number // Connection timeout in milliseconds (default 1 day)
+    inactivityTimeoutMs: number // 60 seconds inactivity timeout
+    inactivityCheckIntervalMs: number // Check every 10 seconds
   }
   trustProxy: boolean // Whether to trust the X-Forwarded-For header
   log_server: {
@@ -122,6 +124,8 @@ export const CONFIG: Config = {
     maxConnections: Number(process.env.WS_MAX_CONNECTIONS) || 1000,
     maxSubscriptionsPerSocket: Number(process.env.WS_MAX_SUBSCRIPTIONS_PER_SOCKET) || 50,
     connectionTimeoutMs: Number(process.env.WS_CONNECTION_TIMEOUT_MS) || 24 * 60 * 60 * 1000, // 1 day in ms
+    inactivityTimeoutMs: 60000, // 60 seconds inactivity timeout
+    inactivityCheckIntervalMs: 10000, // Check every 10 seconds
   },
   trustProxy: false,
   log_server: {

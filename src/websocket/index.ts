@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
-import { methods, wrappedMethods } from '../api'
+import { wrappedMethods } from '../api'
 import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
@@ -24,6 +24,19 @@ interface Request {
 // Add connection counter
 let activeConnections = 0
 
+const socketActivityMap = new Map<WebSocket.WebSocket, number>()
+
+// Single interval for all connections
+setInterval(() => {
+  const now = Date.now()
+  socketActivityMap.forEach((lastActivity, socket) => {
+    if (now - lastActivity > CONFIG.websocket.inactivityTimeoutMs) {
+      socket.close(1011, 'Connection inactive for too long')
+      socketActivityMap.delete(socket)
+    }
+  })
+}, CONFIG.websocket.inactivityCheckIntervalMs)
+
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   // Check max connections limit
   if (activeConnections >= CONFIG.websocket.maxConnections) {
@@ -31,6 +44,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     return
   }
   activeConnections++
+
+  // Track last activity time
+  socketActivityMap.set(socket, Date.now())
 
   // Set connection timeout
   const timeoutId = setTimeout(() => {
@@ -40,6 +56,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', (message: string) => {
+    // Update last activity time on message received
+    socketActivityMap.set(socket, Date.now())
+
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
@@ -190,7 +209,8 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   })
 
   socket.on('close', (code, reason) => {
-    // Clear timeout on close
+    // Clean up
+    socketActivityMap.delete(socket)
     clearTimeout(timeoutId)
 
     // Decrement connection counter
@@ -205,7 +225,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
       logSubscriptionList.removeBySocket(socket)
       socket.close(code, reason)
     }
-    if(CONFIG.verbose) console.log(logSubscriptionList.getAll())
+    if (CONFIG.verbose) console.log(logSubscriptionList.getAll())
   })
 }
 
