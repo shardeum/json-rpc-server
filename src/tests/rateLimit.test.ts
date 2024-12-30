@@ -4,7 +4,7 @@ import { rateLimitMiddleware } from '../middlewares/rateLimit'
 
 describe('Rate Limiting', () => {
   let requestersList: RequestersList
-  
+
   beforeEach(() => {
     requestersList = new RequestersList([], [])
   })
@@ -14,13 +14,13 @@ describe('Rate Limiting', () => {
       socket: { remoteAddress: '127.0.0.1' },
       body: {
         method: 'eth_call',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -35,18 +35,18 @@ describe('Rate Limiting', () => {
       body: [
         {
           method: 'eth_call',
-          params: []
+          params: [],
         },
         {
           method: 'eth_getBalance',
-          params: []
-        }
-      ]
+          params: [],
+        },
+      ],
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -60,13 +60,13 @@ describe('Rate Limiting', () => {
       socket: { remoteAddress: '127.0.0.1' },
       body: {
         method: 'eth_sendRawTransaction',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -79,4 +79,4 @@ describe('Rate Limiting', () => {
     expect(mockRes.status).toHaveBeenCalledWith(503)
     expect(mockRes.send).toHaveBeenCalledWith('Rejected by rate-limiting')
   })
-}) 
+})

@@ -24,18 +24,18 @@ interface Request {
 // Add connection counter
 let activeConnections = 0
 
-const socketActivityMap = new Map<WebSocket.WebSocket, number>();
+const socketActivityMap = new Map<WebSocket.WebSocket, number>()
 
 // Single interval for all connections
 setInterval(() => {
   const now = Date.now()
   socketActivityMap.forEach((lastActivity, socket) => {
     if (now - lastActivity > CONFIG.websocket.inactivityTimeoutMs) {
-      socket.close(1011, 'Connection inactive for too long');
-      socketActivityMap.delete(socket);
+      socket.close(1011, 'Connection inactive for too long')
+      socketActivityMap.delete(socket)
     }
-  });
-}, CONFIG.websocket.inactivityCheckIntervalMs);
+  })
+}, CONFIG.websocket.inactivityCheckIntervalMs)
 
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   // Check max connections limit
@@ -225,7 +225,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
       logSubscriptionList.removeBySocket(socket)
       socket.close(code, reason)
     }
-    if(CONFIG.verbose) console.log(logSubscriptionList.getAll())
+    if (CONFIG.verbose) console.log(logSubscriptionList.getAll())
   })
 }
 

@@ -7,22 +7,22 @@ jest.mock('../../../src/external/Collector', () => ({
   Collector: jest.fn().mockImplementation(() => ({
     fetchAccount: jest.fn(),
     getBlock: jest.fn(),
-    getTransactionByHash: jest.fn()
+    getTransactionByHash: jest.fn(),
   })),
   collectorAPI: {
     fetchAccount: jest.fn(),
     getBlock: jest.fn(),
-    getTransactionByHash: jest.fn()
-  }
+    getTransactionByHash: jest.fn(),
+  },
 }))
 
 // Mock the RequestersList instance
 jest.mock('../../../src/utils', () => {
   return {
     RequestersList: jest.fn().mockImplementation(() => ({
-      isRequestOkay: jest.fn()
+      isRequestOkay: jest.fn(),
     })),
-    sleep: jest.fn().mockImplementation(() => Promise.resolve())
+    sleep: jest.fn().mockImplementation(() => Promise.resolve()),
   }
 })
 
@@ -32,9 +32,9 @@ jest.mock('../../../src/config', () => ({
     rateLimit: true,
     rateLimitOption: {
       softReject: false,
-      allowedTxCountInCheckInterval: 60
-    }
-  }
+      allowedTxCountInCheckInterval: 60,
+    },
+  },
 }))
 
 describe('Rate Limiting', () => {
@@ -53,13 +53,13 @@ describe('Rate Limiting', () => {
       ip: '127.0.0.1',
       body: {
         method: 'eth_call',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -77,13 +77,13 @@ describe('Rate Limiting', () => {
       ip: '127.0.0.1',
       body: {
         method: 'eth_call',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -94,7 +94,8 @@ describe('Rate Limiting', () => {
   })
 
   it('should allow valid batch requests', async () => {
-    const spy = jest.spyOn(requestersList, 'isRequestOkay')
+    const spy = jest
+      .spyOn(requestersList, 'isRequestOkay')
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true)
 
@@ -103,18 +104,18 @@ describe('Rate Limiting', () => {
       body: [
         {
           method: 'eth_call',
-          params: []
+          params: [],
         },
         {
           method: 'eth_getBalance',
-          params: []
-        }
-      ]
+          params: [],
+        },
+      ],
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -131,13 +132,13 @@ describe('Rate Limiting', () => {
       ip: '127.0.0.1',
       body: {
         method: 'eth_sendRawTransaction',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -159,13 +160,13 @@ describe('Rate Limiting', () => {
       ip: '127.0.0.1',
       body: {
         method: 'eth_sendRawTransaction',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -186,13 +187,13 @@ describe('Rate Limiting', () => {
       ip: '127.0.0.1',
       body: {
         method: 'eth_call',
-        params: []
-      }
+        params: [],
+      },
     } as Request
 
     const mockRes = {
       status: jest.fn().mockReturnThis(),
-      send: jest.fn()
+      send: jest.fn(),
     } as unknown as Response
 
     const mockNext = jest.fn()
@@ -202,4 +203,4 @@ describe('Rate Limiting', () => {
     expect(mockRes.send).toHaveBeenCalledWith('Internal server error')
     expect(mockNext).not.toHaveBeenCalled()
   })
-}) 
+})

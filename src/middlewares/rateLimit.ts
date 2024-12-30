@@ -41,12 +41,10 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
   const requests: RpcRequest[] = Array.isArray(req.body) ? req.body : [req.body]
 
   try {
-    const results = await Promise.all(
-      requests.map(request => checkRequest(ip, request))
-    )
+    const results = await Promise.all(requests.map((request) => checkRequest(ip, request)))
 
     // If any request is not okay, reject the entire batch
-    if (results.some(result => !result)) {
+    if (results.some((result) => !result)) {
       await handleRejection(res, config.rateLimitOption.softReject)
       return
     }
@@ -56,4 +54,4 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
     console.error('Rate limiting error:', error)
     res.status(500).send('Internal server error')
   }
-} 
+}
