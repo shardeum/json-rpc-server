@@ -59,6 +59,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     )
     return
   }
+  // Check max connections limit
+  if (activeConnections >= CONFIG.websocket.maxConnections) {
+    socket.close(1003, 'Server busy. Please try again later.')
+    return
+  }
   activeConnections++
 
   // Track last activity time
@@ -229,10 +234,10 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
   socket.on('close', (code, reason) => {
     // Clean up
     socketActivityMap.delete(socket)
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId)
 
     // Decrement connection counter
-    activeConnections--;
+    activeConnections--
 
     const currentIPConnections = connectionsByIP.get(ip);
     if (currentIPConnections) {
@@ -250,7 +255,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
       logSubscriptionList.removeBySocket(socket)
       socket.close(code, reason)
     }
-    if (CONFIG.verbose) console.log(logSubscriptionList.getAll())
+    if (CONFIG.verbose) console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll());
   })
 }
 
