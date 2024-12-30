@@ -24,6 +24,19 @@ interface Request {
 // Add connection counter
 let activeConnections = 0
 
+const socketActivityMap = new Map<WebSocket.WebSocket, number>();
+
+// Single interval for all connections
+setInterval(() => {
+  const now = Date.now()
+  socketActivityMap.forEach((lastActivity, socket) => {
+    if (now - lastActivity > CONFIG.websocket.inactivityTimeoutMs) {
+      socket.close(1011, 'Connection inactive for too long');
+      socketActivityMap.delete(socket);
+    }
+  });
+}, CONFIG.websocket.inactivityCheckIntervalMs);
+
 export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
   // Check max connections limit
   if (activeConnections >= CONFIG.websocket.maxConnections) {
@@ -33,15 +46,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   activeConnections++
 
   // Track last activity time
-  let lastActivityTime = Date.now()
-
-  // Set interval to check for inactivity
-  const inactivityCheckInterval = setInterval(() => {
-    if (Date.now() - lastActivityTime > CONFIG.websocket.inactivityTimeoutMs) {
-      socket.close(1011, 'Connection inactive for too long')
-      clearInterval(inactivityCheckInterval)
-    }
-  }, CONFIG.websocket.inactivityCheckIntervalMs)
+  socketActivityMap.set(socket, Date.now())
 
   // Set connection timeout
   const timeoutId = setTimeout(() => {
@@ -52,7 +57,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
 
   socket.on('message', (message: string) => {
     // Update last activity time on message received
-    lastActivityTime = Date.now()
+    socketActivityMap.set(socket, Date.now())
 
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
@@ -204,9 +209,9 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   })
 
   socket.on('close', (code, reason) => {
-    // Clear timeout and interval on close
+    // Clean up
+    socketActivityMap.delete(socket)
     clearTimeout(timeoutId)
-    clearInterval(inactivityCheckInterval)
 
     // Decrement connection counter
     activeConnections--
