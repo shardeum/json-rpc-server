@@ -8,6 +8,7 @@ import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
+import { IncomingMessage } from 'http'
 
 interface Params {
   address?: string | string[]
@@ -36,8 +37,28 @@ setInterval(() => {
     }
   })
 }, CONFIG.websocket.inactivityCheckIntervalMs)
+const connectionsByIP = new Map<string, Set<WebSocket.WebSocket>>()
 
-export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
+export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
+  const ip = req.socket.remoteAddress
+  if (!ip) {
+    socket.close(
+      1008,
+      'Connection closed: Unable to determine your IP address. Please check your network settings and try again.'
+    )
+    return
+  }
+
+  const currentIPConnections = connectionsByIP.get(ip) || new Set()
+
+  // Check max connections per IP limit
+  if (currentIPConnections.size >= CONFIG.websocket.maxConnectionsPerIP) {
+    socket.close(
+      1008,
+      `Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.`
+    )
+    return
+  }
   // Check max connections limit
   if (activeConnections >= CONFIG.websocket.maxConnections) {
     socket.close(1003, 'Server busy. Please try again later.')
@@ -47,6 +68,8 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
 
   // Track last activity time
   socketActivityMap.set(socket, Date.now())
+  currentIPConnections.add(socket)
+  connectionsByIP.set(ip, currentIPConnections)
 
   // Set connection timeout
   const timeoutId = setTimeout(() => {
@@ -216,8 +239,15 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
     // Decrement connection counter
     activeConnections--
 
-    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
-    nestedCountersInstance.countEvent('websocket', 'close')
+    const currentIPConnections = connectionsByIP.get(ip);
+    if (currentIPConnections) {
+      currentIPConnections.delete(socket);
+      if (currentIPConnections.size === 0) {
+        connectionsByIP.delete(ip);
+      }
+    }
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`);
+    nestedCountersInstance.countEvent('websocket', 'close');
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
@@ -225,7 +255,7 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
       logSubscriptionList.removeBySocket(socket)
       socket.close(code, reason)
     }
-    if (CONFIG.verbose) console.log(logSubscriptionList.getAll())
+    if (CONFIG.verbose) console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll());
   })
 }
 
@@ -317,3 +347,37 @@ const constructRPCErrorRes = (
     },
   }
 }
+
+const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs; // Run cleanup every 10 minutes
+
+const cleanupStaleConnections = () => {
+  connectionsByIP.forEach((sockets, ip) => {
+    // Collect sockets to be removed in a separate array
+    const socketsToRemove: WebSocket.WebSocket[] = [];
+
+    sockets.forEach((socket) => {
+      if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+        // Add socket to removal list instead of deleting directly
+        socketsToRemove.push(socket);
+      }
+    });
+
+    // Remove sockets after iteration to avoid concurrent modification
+    socketsToRemove.forEach((socket) => {
+      sockets.delete(socket);
+      activeConnections--;
+    });
+
+    // Remove IP entry if no sockets remain
+    if (sockets.size === 0) {
+      connectionsByIP.delete(ip);
+    }
+  });
+
+  if (CONFIG.verbose) {
+    console.log('Cleanup completed. Active connections:', activeConnections);
+  }
+};
+
+// Start the periodic cleanup
+setInterval(cleanupStaleConnections, cleanupIntervalMs);
