@@ -6,15 +6,14 @@ import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
 import path from 'path'
-// import crypto from '@shardus/crypto-utils'
-import { getArchiverList } from '@shardus/archiver-discovery'
-import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
+import { getArchiverList } from '@shardeum-foundation/lib-archiver-discovery'
+import { Archiver } from '@shardeum-foundation/lib-archiver-discovery/dist/src/types'
 import execa from 'execa'
 import { spawn } from 'child_process'
 import { collectorAPI } from './external/Collector'
 import { serviceValidator } from './external/ServiceValidator'
 import { AxiosResponse } from 'axios'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Node,
   Filter,
