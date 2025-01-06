@@ -1,10 +1,10 @@
 import { CONFIG } from '../config'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { rateLimit } from 'express-rate-limit'
 import { DevSecurityLevel } from '../types'
 import { RequestHandler } from 'express'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 const MAX_COUNTER_BUFFER_MILLISECONDS = 10000
 let lastCounter = 0
