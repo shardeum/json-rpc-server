@@ -39,8 +39,22 @@ setInterval(() => {
 }, CONFIG.websocket.inactivityCheckIntervalMs)
 const connectionsByIP = new Map<string, Set<WebSocket.WebSocket>>()
 
+const getClientIP = (req: IncomingMessage): string | undefined => {
+  if (CONFIG.trustProxy) {
+    // Standard X-Forwarded-For header
+    const forwardedFor = req.headers['x-forwarded-for']
+    if (typeof forwardedFor === 'string') {
+      // Take the first IP in the list (leftmost IP)
+      return forwardedFor.split(',')[0].trim()
+    }
+  }
+
+  // Fallback to socket's remote address
+  return req.socket.remoteAddress
+}
+
 export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
-  const ip = req.socket.remoteAddress
+  const ip = getClientIP(req);
   if (!ip) {
     socket.close(
       1008,
