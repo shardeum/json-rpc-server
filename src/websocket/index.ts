@@ -9,7 +9,7 @@ import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
-import { checkRequest } from "../middlewares/rateLimit";
+import {checkRequest, requestersList} from "../middlewares/rateLimit";
 
 interface Params {
   address?: string | string[]
@@ -63,6 +63,13 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     )
     return
   }
+  if (requestersList.isIpBanned(ip)) {
+    socket.close(
+        1008,
+        'Connection closed: IP banned from opening new connections.'
+    )
+    return
+  }
 
   const currentIPConnections = connectionsByIP.get(ip) || new Set()
 
@@ -107,13 +114,16 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         const isRequestOkay = await checkRequest(ip, request)
 
         if (!isRequestOkay) {
-          socket.send(JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } }))
+          socket.close(
+              1008,
+              JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
+          )
           return
         }
 
       } catch (error) {
         console.error('Rate limiting error:', error)
-        socket.send('Internal server error')
+        socket.close(1008, 'Internal server error')
         return
       }
     }
