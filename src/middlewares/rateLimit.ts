@@ -23,7 +23,7 @@ async function handleRejection(res: Response, softReject: boolean): Promise<void
   }
 }
 
-async function checkRequest(ip: string, request: RpcRequest): Promise<boolean> {
+export async function checkRequest(ip: string, request: RpcRequest): Promise<boolean> {
   return await requestersList.isRequestOkay(ip, request.method, request.params)
 }
 
