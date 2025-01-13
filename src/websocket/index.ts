@@ -9,6 +9,7 @@ import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
+import {checkRequest, requestersList} from "../middlewares/rateLimit";
 
 interface Params {
   address?: string | string[]
@@ -62,6 +63,13 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     )
     return
   }
+  if (requestersList.isIpBanned(ip)) {
+    socket.close(
+        1008,
+        'Connection closed: IP banned from opening new connections.'
+    )
+    return
+  }
 
   const currentIPConnections = connectionsByIP.get(ip) || new Set()
 
@@ -92,7 +100,34 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
 
   const eth_methods = Object.freeze(wrappedMethods)
 
-  socket.on('message', (message: string) => {
+  socket.on('message', async (message: string) => {
+    if (CONFIG.rateLimit) {
+      let request
+      try {
+        request = JSON.parse(message)
+      } catch (e) {
+        socket.send('Invalid message format')
+        return
+      }
+
+      try {
+        const isRequestOkay = await checkRequest(ip, request)
+
+        if (!isRequestOkay) {
+          socket.close(
+              1008,
+              JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
+          )
+          return
+        }
+
+      } catch (error) {
+        console.error('Rate limiting error:', error)
+        socket.close(1008, 'Internal server error')
+        return
+      }
+    }
+
     // Update last activity time on message received
     socketActivityMap.set(socket, Date.now())
 
