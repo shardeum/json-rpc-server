@@ -44,10 +44,10 @@ export const node = {
   port: 9001,
 }
 
-const NODE_LIST_CACHE_TTL = 15 // 15 seconds
+const NODE_LIST_CACHE_TTL = 60 // 60 seconds
 const NODE_LIST_CACHE_KEY = 'nodeList'
 
-const NETWORK_ACCOUNT_CACHE_TTL = 5 // 5 seconds
+const NETWORK_ACCOUNT_CACHE_TTL = 30 // 30 seconds
 const NETWORK_ACCOUNT_CACHE_KEY = 'networkAccount'
 
 const nodeListCache = cacheMemory

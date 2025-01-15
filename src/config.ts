@@ -187,7 +187,7 @@ export const CONFIG: Config = {
     collectorApiServerUrl: 'http://0.0.0.0:6001',
   },
   serviceValidatorSourcing: {
-    enabled: true,
+    enabled: false,
     serviceValidatorUrl: 'http://0.0.0.0:7001',
   },
 
