@@ -8,6 +8,8 @@ import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
+import { IncomingMessage } from 'http'
+import {checkRequest, requestersList} from "../middlewares/rateLimit";
 
 interface Params {
   address?: string | string[]
@@ -21,10 +23,114 @@ interface Request {
   params: Params
 }
 
-export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> => {
+// Add connection counter
+let activeConnections = 0
+
+const socketActivityMap = new Map<WebSocket.WebSocket, number>()
+
+// Single interval for all connections
+setInterval(() => {
+  const now = Date.now()
+  socketActivityMap.forEach((lastActivity, socket) => {
+    if (now - lastActivity > CONFIG.websocket.inactivityTimeoutMs) {
+      socket.close(1011, 'Connection inactive for too long')
+      socketActivityMap.delete(socket)
+    }
+  })
+}, CONFIG.websocket.inactivityCheckIntervalMs)
+const connectionsByIP = new Map<string, Set<WebSocket.WebSocket>>()
+
+const getClientIP = (req: IncomingMessage): string | undefined => {
+  if (CONFIG.trustProxy) {
+    // Standard X-Forwarded-For header
+    const forwardedFor = req.headers['x-forwarded-for']
+    if (typeof forwardedFor === 'string') {
+      // Take the first IP in the list (leftmost IP)
+      return forwardedFor.split(',')[0].trim()
+    }
+  }
+
+  // Fallback to socket's remote address
+  return req.socket.remoteAddress
+}
+
+export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
+  const ip = getClientIP(req);
+  if (!ip) {
+    socket.close(
+      1008,
+      'Connection closed: Unable to determine your IP address. Please check your network settings and try again.'
+    )
+    return
+  }
+  if (requestersList.isIpBanned(ip)) {
+    socket.close(
+        1008,
+        'Connection closed: IP banned from opening new connections.'
+    )
+    return
+  }
+
+  const currentIPConnections = connectionsByIP.get(ip) || new Set()
+
+  // Check max connections per IP limit
+  if (currentIPConnections.size >= CONFIG.websocket.maxConnectionsPerIP) {
+    socket.close(
+      1008,
+      `Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.`
+    )
+    return
+  }
+  // Check max connections limit
+  if (activeConnections >= CONFIG.websocket.maxConnections) {
+    socket.close(1003, 'Server busy. Please try again later.')
+    return
+  }
+  activeConnections++
+
+  // Track last activity time
+  socketActivityMap.set(socket, Date.now())
+  currentIPConnections.add(socket)
+  connectionsByIP.set(ip, currentIPConnections)
+
+  // Set connection timeout
+  const timeoutId = setTimeout(() => {
+    socket.close(1011, 'Connection timeout reached')
+  }, CONFIG.websocket.connectionTimeoutMs)
+
   const eth_methods = Object.freeze(wrappedMethods)
 
-  socket.on('message', (message: string) => {
+  socket.on('message', async (message: string) => {
+    if (CONFIG.rateLimit) {
+      let request
+      try {
+        request = JSON.parse(message)
+      } catch (e) {
+        socket.send('Invalid message format')
+        return
+      }
+
+      try {
+        const isRequestOkay = await checkRequest(ip, request)
+
+        if (!isRequestOkay) {
+          socket.close(
+              1008,
+              JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
+          )
+          return
+        }
+
+      } catch (error) {
+        console.error('Rate limiting error:', error)
+        socket.close(1008, 'Internal server error')
+        return
+      }
+    }
+
+    // Update last activity time on message received
+    socketActivityMap.set(socket, Date.now())
+
     if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
@@ -95,6 +201,16 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
         socket.send(JSON.stringify(constructRPCErrorRes('Subscription serving disabled', -1, request.id)))
         return
       }
+
+      // Check subscription limit per socket
+      const currentSubscriptions = logSubscriptionList.getBySocket(socket)?.size || 0
+      if (currentSubscriptions >= CONFIG.websocket.maxSubscriptionsPerSocket) {
+        socket.send(
+          JSON.stringify(constructRPCErrorRes('Maximum subscriptions per connection reached', -1, request.id))
+        )
+        return
+      }
+
       try {
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         if (
@@ -165,15 +281,30 @@ export const onConnection = async (socket: WebSocket.WebSocket): Promise<void> =
   })
 
   socket.on('close', (code, reason) => {
-    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
-    nestedCountersInstance.countEvent('websocket', 'close')
+    // Clean up
+    socketActivityMap.delete(socket)
+    clearTimeout(timeoutId)
+
+    // Decrement connection counter
+    activeConnections--
+
+    const currentIPConnections = connectionsByIP.get(ip);
+    if (currentIPConnections) {
+      currentIPConnections.delete(socket);
+      if (currentIPConnections.size === 0) {
+        connectionsByIP.delete(ip);
+      }
+    }
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`);
+    nestedCountersInstance.countEvent('websocket', 'close');
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       })
       logSubscriptionList.removeBySocket(socket)
+      socket.close(code, reason)
     }
-    console.log(logSubscriptionList.getAll())
+    if (CONFIG.verbose) console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll());
   })
 }
 
@@ -265,3 +396,37 @@ const constructRPCErrorRes = (
     },
   }
 }
+
+const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs; // Run cleanup every 10 minutes
+
+const cleanupStaleConnections = () => {
+  connectionsByIP.forEach((sockets, ip) => {
+    // Collect sockets to be removed in a separate array
+    const socketsToRemove: WebSocket.WebSocket[] = [];
+
+    sockets.forEach((socket) => {
+      if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+        // Add socket to removal list instead of deleting directly
+        socketsToRemove.push(socket);
+      }
+    });
+
+    // Remove sockets after iteration to avoid concurrent modification
+    socketsToRemove.forEach((socket) => {
+      sockets.delete(socket);
+      activeConnections--;
+    });
+
+    // Remove IP entry if no sockets remain
+    if (sockets.size === 0) {
+      connectionsByIP.delete(ip);
+    }
+  });
+
+  if (CONFIG.verbose) {
+    console.log('Cleanup completed. Active connections:', activeConnections);
+  }
+};
+
+// Start the periodic cleanup
+setInterval(cleanupStaleConnections, cleanupIntervalMs);

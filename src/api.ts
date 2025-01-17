@@ -26,6 +26,8 @@ import {
   calculateContractStorageAccountId,
   getSyncTime,
   removeFromNodeList,
+  sanitizeIpAndPort,
+  removeOldestFilter,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -47,6 +49,7 @@ import { RLP } from '@ethereumjs/rlp'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
 import { archiverAPI } from './external/Archiver'
+import { TTLMap } from './utils/TTLMap'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -113,6 +116,13 @@ export type DetailedTxStatus = {
 }
 
 type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue }
+
+const retainTimedOutEntriesForMillis = config.axiosTimeoutInMs * 100 // 300 s = 5 minutes
+// added for expiration of blacklisted IP entries
+const blacklistedIPMapping = new TTLMap<{
+  baseUrl: string
+  blackListedAt: number
+}>()
 
 // [] ask about this with Thant
 type TransactionData = {
@@ -477,7 +487,7 @@ async function getExplorerPendingTransactions(): Promise<string[]> {
   let currentPage = 1
   let hasMorePages = true
 
-  while (hasMorePages) {
+  while (hasMorePages && currentPage <= 100) {
     try {
       const response = await axios.get(
         `${explorerURL}/api/originalTx?pending=true&decode=true&page=${currentPage}`
@@ -574,7 +584,32 @@ async function injectAndRecordTx(
   status: number
 }> {
   const { raw } = tx
-  const { baseUrl } = getBaseUrl()
+  let nodeIpPort: string, baseUrl: string
+  ;({ nodeIpPort, baseUrl } = getBaseUrl())
+
+  if (config.enableBlacklistingIP) {
+    let entry
+    let retries = 0
+
+    do {
+      entry = blacklistedIPMapping.get(nodeIpPort)
+
+      if (entry !== undefined) {
+        retries++
+        if (config.verbose) console.log('The retries are', retries)
+        if (retries >= config.defaultRequestRetry) {
+          console.error('Failed to find a non-blacklisted IP after max retries.')
+          console.log('Injecting transaction with blacklisted node', nodeIpPort)
+          break
+        }
+        if (config.verbose)
+          console.log('The IP address blacklisted is', nodeIpPort)
+          // Reassign nodeIpPort and baseUrl to find a new pair
+        ;({ nodeIpPort, baseUrl } = getBaseUrl())
+      }
+    } while (entry !== undefined)
+  }
+
   totalResult += 1
   const startTime = Date.now()
 
@@ -713,8 +748,24 @@ async function injectAndRecordTx(
       })
       .catch((e: Error) => {
         if (e.message.includes('timeout')) {
-          // TODO: add to blacklist with a TTL and use this blacklist to avoid bad node selction for inject.
+          if (nodeIpPort !== undefined && typeof nodeIpPort === 'string') {
+            const validation = sanitizeIpAndPort(nodeIpPort)
+
+            if (validation.isValid) {
+              blacklistedIPMapping.set(
+                nodeIpPort,
+                { baseUrl: baseUrl, blackListedAt: Date.now() },
+                retainTimedOutEntriesForMillis
+              )
+            } else {
+              console.error(`Invalid nodeIpPort format: ${nodeIpPort} - ${validation.error}`)
+            }
+          } else {
+            console.error(`Invalid nodeIpPort input`)
+          }
+
           console.log(`injectAndRecordTx: transaction timed out ip: ${baseUrl}, e: ${e.message}`)
+          nestedCountersInstance.countEvent('validatorBlacklist', nodeIpPort)
         }
         if (config.verbose) console.log('injectAndRecordTx: Caught Exception: ' + e.message)
         countInjectTxRejections('Caught Exception: ' + trimInjectRejection(e.message))
@@ -2750,6 +2801,9 @@ export const methods = {
       unsubscribe,
       type: Types.FilterTypes.block,
     }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      removeOldestFilter(filtersMap)
+    }
     filtersMap.set(filterId.toString(), internalFilter)
 
     callback(null, filterId)
@@ -2783,6 +2837,9 @@ export const methods = {
       filter: filterObj,
       unsubscribe,
       type: Types.FilterTypes.pendingTransaction,
+    }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      removeOldestFilter(filtersMap)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 
@@ -2836,6 +2893,18 @@ export const methods = {
       countFailedResponse(api_name, 'filter not found')
       return
     }
+    //address may or may not be an array
+    if (Array.isArray(inputFilter.address) && inputFilter.address.length > 100) {
+      callback({ code: -32000, message: 'Invalid address' }, null)
+      countFailedResponse(api_name, 'Invalid address')
+      return
+    }
+    //filter topics should always be an array. If not array, or if array bigger than 200 elements, return error
+    if (!Array.isArray(inputFilter.topics) || inputFilter.topics.length > 200) {
+      callback({ code: -32000, message: 'Invalid topics' }, null)
+      countFailedResponse(api_name, 'Invalid topics')
+      return
+    }
     const { address, topics } = parseFilterDetails(inputFilter || {})
     // Add validate address
     if (address && address.length !== 42) {
@@ -2884,6 +2953,9 @@ export const methods = {
       filter: filterObj,
       unsubscribe,
       type: Types.FilterTypes.log,
+    }
+    if (filtersMap.size >= config.maxEntriesAllowed) {
+      removeOldestFilter(filtersMap)
     }
     filtersMap.set(filterId.toString(), internalFilter)
 

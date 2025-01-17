@@ -14,7 +14,15 @@ type Config = {
   websocket: {
     enabled: boolean
     serveSubscriptions: boolean
+    maxConnections: number // Maximum number of concurrent WebSocket connections
+    maxSubscriptionsPerSocket: number // Maximum number of subscriptions per socket
+    connectionTimeoutMs: number // Connection timeout in milliseconds (default 1 day)
+    inactivityTimeoutMs: number // 60 seconds inactivity timeout
+    inactivityCheckIntervalMs: number // Check every 10 seconds
+    maxConnectionsPerIP: number // Maximum number of connections allowed per IP per socket
+    cleanupIntervalMs: number // Cleanup interval in milliseconds (default 10 minutes)
   }
+  trustProxy: boolean // Whether to trust the X-Forwarded-For header
   log_server: {
     ip: string
     port: number
@@ -105,6 +113,8 @@ type Config = {
     limit: number // max requests per IP within time window
   }
   axiosTimeoutInMs: number
+  enableBlacklistingIP: boolean
+  maxEntriesAllowed: number // maximum number of entries allowed for map to store
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -113,13 +123,21 @@ export const CONFIG: Config = {
   websocket: {
     enabled: true,
     serveSubscriptions: Boolean(process.env.WS_SAVE_SUBSCRIPTIONS) || false,
+    maxConnections: Number(process.env.WS_MAX_CONNECTIONS) || 1000,
+    maxSubscriptionsPerSocket: Number(process.env.WS_MAX_SUBSCRIPTIONS_PER_SOCKET) || 50,
+    connectionTimeoutMs: Number(process.env.WS_CONNECTION_TIMEOUT_MS) || 24 * 60 * 60 * 1000, // 1 day in ms
+    inactivityTimeoutMs: 60000, // 60 seconds inactivity timeout
+    inactivityCheckIntervalMs: 10000, // Check every 10 seconds
+    maxConnectionsPerIP: Number(process.env.WS_MAX_CONNECTIONS_PER_IP) || 3,
+    cleanupIntervalMs: Number(process.env.WS_CLEANUP_INTERVAL_MS) || 600000, // 10 minute in ms
   },
+  trustProxy: false,
   log_server: {
     ip: process.env.LOG_SERVER_HOST || '0.0.0.0',
     port: Number(process.env.LOG_SERVER_PORT) || 4446,
   },
   ip: '0.0.0.0',
-  port: 8080,
+  port: Number(process.env.RPC_PORT) || 8080,
   chainId: 8082,
   nodeIpInfo: {
     externalIp: process.env.NODE_EXTERNAL_IP || '127.0.0.1',
@@ -130,36 +148,36 @@ export const CONFIG: Config = {
   askLocalHostForArchiver: true,
   rotationInterval: 60,
   faucetServerUrl: process.env.FAUCET_URL || 'https://faucet.liberty10.shardeum.org',
-  queryFromValidator: true,
+  queryFromValidator: Boolean(process.env.QUERY_FROM_VALIDATOR) || true,
   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
   queryFromExplorer: false,
   generateTxTimestamp: true,
-  nodelistRefreshInterval: 30000,
+  nodelistRefreshInterval: Number(process.env.NODELIST_REFRESH_INTERVAL) || 30000,
   defaultRequestRetry: 5,
-  gasEstimateMethod: 'serviceValidator', //serviceValidator or replayEngine or validator
+  gasEstimateMethod: process.env.GAS_ESTIMATE_METHOD || 'serviceValidator', //serviceValidator or replayEngine or validator
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
   gasEstimateUseCache: false,
-  staticGasEstimate: '0x5B8D80', // comment out rather than delete this line
+  staticGasEstimate: process.env.STATIC_GAS_ESTIMATE || '0x5B8D80', // comment out rather than delete this line
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
     account: 10000,
     full_nodelist: 10000,
   },
-  aalgWarmup: false,
+  aalgWarmup: Boolean(process.env.AALG_WARMUP) || true,
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false, // not safe for production, keep this off. Known issue.
-  rateLimit: false,
+  rateLimit: true,
   rateLimitOption: {
     softReject: true,
     limitFromAddress: true,
     limitToAddress: true,
-    banIpAddress: false,
+    banIpAddress: true,
     banSpammerAddress: true,
     allowFaucetAccount: true,
     allowedTxCountInCheckInterval: 10, // allow 1 txs in every 12s = (checkInterval * 60 / allowedTxCountInCheckInterval)
     spammerCheckInterval: 2, // check spammers and ban them every 2 min
-    releaseFromBlacklistInterval: 12, // remove banned ip from blacklist after 12 hours
+    releaseFromBlacklistInterval: 5, // remove banned ip from blacklist after 5 mins
     allowedHeavyRequestPerMin: 20, // number of eth_call + tx inject allowed within 60s
   },
   statLog: false, // not safe for production, keep this off
@@ -247,4 +265,6 @@ export const CONFIG: Config = {
     limit: 100, // 100 requests per IP
   },
   axiosTimeoutInMs: 3000,
+  enableBlacklistingIP: false,
+  maxEntriesAllowed: 10000,
 }

@@ -6,15 +6,14 @@ import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
 import path from 'path'
-// import crypto from '@shardus/crypto-utils'
-import { getArchiverList } from '@shardus/archiver-discovery'
-import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
+import { getArchiverList } from '@shardeum-foundation/lib-archiver-discovery'
+import { Archiver } from '@shardeum-foundation/lib-archiver-discovery/dist/src/types'
 import execa from 'execa'
 import { spawn } from 'child_process'
 import { collectorAPI } from './external/Collector'
 import { serviceValidator } from './external/ServiceValidator'
 import { AxiosResponse } from 'axios'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Node,
   Filter,
@@ -29,10 +28,13 @@ import {
   OriginalTxData,
   AccountTypesData,
   Account2,
+  InternalFilter,
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
 import cacheMemory from 'cache-memory'
+import net from 'net'
+
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
 const existingArchivers: Archiver[] = []
@@ -630,7 +632,7 @@ export class RequestersList {
     if (config.rateLimit) {
       setInterval(() => {
         this.clearOldIps()
-      }, config.rateLimitOption.releaseFromBlacklistInterval * 3600 * 1000)
+      }, config.rateLimitOption.releaseFromBlacklistInterval * 60 * 1000)
     }
 
     if (config.rateLimit) {
@@ -641,20 +643,23 @@ export class RequestersList {
   }
 
   addToBlacklist(ip: string): void {
+    if (this.bannedIps.some((record) => record.ip === ip)) {
+      if (verbose) console.log(`IP ${ip} is already in the banned list`)
+      return
+    }
+
     this.bannedIps.push({ ip, timestamp: Date.now() })
+    if (verbose) console.log(`Attempting to add IP ${ip} to blacklist`)
+
     try {
-      fs.readFile(
-        'blacklist.json',
-        function (err: NodeJS.ErrnoException | null, currentDataStr: Buffer): void {
-          const ipList = JSON.parse(currentDataStr.toString())
-          if (ipList.indexOf(ip) >= 0) return
-          const newIpList = [...ipList, ip]
-          console.log(`Added ip ${ip} to banned list`)
-          fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
-        }
-      )
+      const currentDataStr = fs.readFileSync('blacklist.json')
+      const ipList = JSON.parse(currentDataStr.toString())
+      if (ipList.indexOf(ip) >= 0) return
+      const newIpList = [...ipList, ip]
+      if (verbose) console.log(`Added IP ${ip} to banned list`)
+      fs.writeFileSync('blacklist.json', JSON.stringify(newIpList))
     } catch (e) {
-      console.log('Error writing to blacklist.json', e)
+      if (verbose) console.log('Error writing to blacklist.json', e)
     }
   }
 
@@ -684,9 +689,13 @@ export class RequestersList {
     /* eslint-disable security/detect-object-injection */
     const now = Date.now()
     const oneMinute = 60 * 1000
+
+    // Log heavy requests
     for (const [ip, reqHistory] of this.heavyRequests) {
       if (verbose) console.log(`In last 60s, IP ${ip} made ${reqHistory.length} heavy requests`)
     }
+
+    // Clear old heavy requests
     for (const [, reqHistory] of this.heavyRequests) {
       let i = 0
       for (; i < reqHistory.length; i++) {
@@ -696,6 +705,7 @@ export class RequestersList {
       //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
+    // Clear old heavy addresses
     for (const [, reqHistory] of this.heavyAddresses) {
       let i = 0
       for (; i < reqHistory.length; i++) {
@@ -705,12 +715,37 @@ export class RequestersList {
       //console.log('reqHistory after clearing heavy request history', reqHistory.length)
     }
 
-    // unban the ip after 1 hour
-    this.bannedIps = this.bannedIps.filter((record: { ip: string; timestamp: number }) => {
-      if (now - record.timestamp >= 60 * 60 * 1000) return false
-      else return true
+    // unban the ip after 1 hour and ensure synchronization
+    const previousLength = this.bannedIps.length
+    this.bannedIps = this.bannedIps.filter((record) => {
+      if (now - record.timestamp >= 60 * 60 * 1000) {
+        if (verbose) console.log(`Removing IP ${record.ip} from banned list`)
+        return false
+      }
+      return true
     })
-    /* eslint-enable security/detect-object-injection */
+
+    // Only update the file if there were changes
+    if (previousLength !== this.bannedIps.length) {
+      if (verbose) console.log('New banned IPs', this.bannedIps)
+      try {
+        const currentData = this.bannedIps.map((record) => record.ip)
+        fs.writeFileSync('blacklist.json', JSON.stringify(currentData))
+        if (verbose) console.log('Updated blacklist.json with current banned IPs')
+
+        // Verify the bannedIps list is updated
+        const verifyData = JSON.parse(fs.readFileSync('blacklist.json', 'utf8'))
+        if (verifyData.length !== this.bannedIps.length) {
+          if (verbose) console.log('Warning: Inconsistency detected between bannedIps and blacklist.json')
+          // Update the file to match the in-memory bannedIps
+          const currentData = this.bannedIps.map((record) => record.ip)
+          fs.writeFileSync('blacklist.json', JSON.stringify(currentData))
+          if (verbose) console.log('Updated blacklist.json to match in-memory bannedIps')
+        }
+      } catch (error) {
+        if (verbose) console.error('Error writing to or verifying blacklist.json', error)
+      }
+    }
   }
 
   checkAndBanSpammers(): void {
@@ -962,9 +997,9 @@ export class RequestersList {
     this.addHeavyRequest(ip)
     const heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (heavyReqHistory && heavyReqHistory.length >= 61) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
+    if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
+      if (now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] < oneMinute) {
+        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than ${config.rateLimitOption.allowedHeavyRequestPerMin} reqs in 60s`)
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
           const transaction = getTransactionObj({ raw: reqParams[0] })
@@ -1847,6 +1882,54 @@ export function hexToBN(hexString: string): BN {
     hexString = hexString.slice(2) // remove the '0x' prefix
   }
   return new BN(hexString, 16)
+}
+
+function isValidIP(ip: string): boolean {
+  return net.isIP(ip) !== 0 // Returns 4 for IPv4, 6 for IPv6, or 0 for invalid
+}
+
+function isValidPort(port: number): boolean {
+  return Number.isInteger(port) && port > 0 && port <= 65535
+}
+
+export function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: string } {
+  const [ip, portStr] = ipPort.split(':')
+
+  // Check if both IP and port are provided
+  if (!ip || !portStr) {
+    return { isValid: false, error: 'IP and port must both be provided' }
+  }
+
+  // Validate IP
+  if (!isValidIP(ip)) {
+    return { isValid: false, error: 'Invalid IP address' }
+  }
+
+  // Convert port to a number and validate
+  const port = Number(portStr)
+  if (!isValidPort(port)) {
+    return { isValid: false, error: 'Invalid port number' }
+  }
+
+  return { isValid: true }
+}
+
+export function removeOldestFilter(filtersMap: Map<string, InternalFilter>): void {
+  let oldestKey: string | undefined
+  let oldestTimestamp = Infinity
+
+  // Iterate through the map to find the oldest entry
+  for (const [key, value] of filtersMap) {
+    if (value.filter.lastQueriedTimestamp < oldestTimestamp) {
+      oldestTimestamp = value.filter.lastQueriedTimestamp
+      oldestKey = key
+    }
+  }
+
+  // Remove the oldest entry
+  if (oldestKey !== undefined) {
+    filtersMap.delete(oldestKey)
+  }
 }
 
 class Semaphore {

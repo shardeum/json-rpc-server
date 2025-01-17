@@ -4,9 +4,33 @@ import { methods } from '../api'
 const allowedMethods = Object.keys(methods)
 
 export const methodWhitelist = (req: Request, res: Response, next: NextFunction) => {
-  const method = req.body?.method
-  if (method && allowedMethods.includes(method)) {
-    return next()
+  const body = req.body
+
+  if (Array.isArray(body)) {
+    if (body.length === 0) {
+      return res.status(400).json({ error: 'Empty batch request' })
+    }
+    
+    if (body.length > 100) { // remove in favor of jayson option when updated to jayson@4.x.x
+      return res.status(400).json({ error: 'Max batch size exceeded (100)' })
+    }
+
+    // Handle batch requests
+    const allMethodsAllowed = body.every(request => {
+      const method = request?.method
+      return method && allowedMethods.includes(method)
+    })
+
+    if (allMethodsAllowed) {
+      return next()
+    }
+  } else {
+    // Handle single requests
+    const method = body?.method
+    if (method && allowedMethods.includes(method)) {
+      return next()
+    }
   }
+
   return res.status(403).json({ error: 'Forbidden' })
 }

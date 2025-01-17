@@ -29,12 +29,13 @@ import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
 import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
-import { setupArchiverDiscovery } from '@shardus/archiver-discovery'
+import { setupArchiverDiscovery } from '@shardeum-foundation/lib-archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
 import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 import { isIPv4 } from 'net'
+import { rateLimitMiddleware } from './middlewares/rateLimit'
 
 setDefaultResultOrder('ipv4first')
 
@@ -86,7 +87,7 @@ process.on('unhandledRejection', (err) => {
   console.log('unhandledRejection:' + err)
 })
 
-app.set('trust proxy', false)
+app.set('trust proxy', config.trustProxy)
 app.use(cors({ methods: ['POST'] }))
 app.use(express.json())
 app.use(cookieParser())
@@ -181,32 +182,7 @@ app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  if (!config.rateLimit) {
-    next()
-    return
-  }
-  let ip = String(req.socket.remoteAddress)
-  if (ip.substring(0, 7) == '::ffff:') {
-    ip = ip.substring(7)
-  }
-  //console.log('IP is ', ip)
-
-  const reqParams = req.body.params
-  const isRequestOkay = await requestersList.isRequestOkay(ip, req.body.method, reqParams)
-  if (!isRequestOkay) {
-    if (config.rateLimitOption.softReject) {
-      const randomSleepTime = 10 + Math.floor(Math.random() * 10)
-      await sleep(randomSleepTime * 1000)
-      res.status(503).send('Network is currently busy. Please try again later.')
-      return
-    } else {
-      res.status(503).send('Rejected by rate-limiting')
-      return
-    }
-  }
-  next()
-})
+app.use(rateLimitMiddleware)
 
 app.use('/', logRoute)
 app.use('/', healthCheckRouter)

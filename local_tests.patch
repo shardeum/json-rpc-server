@@ -1,16 +1,16 @@
 diff --git a/src/config.ts b/src/config.ts
-index db6061c4..712ab94f 100644
+index a633cf3..1c398bb 100644
 --- a/src/config.ts
 +++ b/src/config.ts
-@@ -134,10 +134,10 @@ export const CONFIG: Config = {
+@@ -137,10 +137,10 @@ export const CONFIG: Config = {
    generateTxTimestamp: true,
-   nodelistRefreshInterval: 30000,
+   nodelistRefreshInterval: Number(process.env.NODELIST_REFRESH_INTERVAL) || 30000,
    defaultRequestRetry: 5,
--  gasEstimateMethod: 'serviceValidator', //serviceValidator or replayEngine or validator
+-  gasEstimateMethod: process.env.GAS_ESTIMATE_METHOD || 'serviceValidator', //serviceValidator or replayEngine or validator
 +  gasEstimateMethod: 'replayEngine', //serviceValidator or replayEngine or validator
    gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
    gasEstimateUseCache: false,
--  staticGasEstimate: '0x5B8D80', // comment out rather than delete this line
+-  staticGasEstimate: process.env.STATIC_GAS_ESTIMATE || '0x5B8D80', // comment out rather than delete this line
 +  staticGasEstimate: '0x2DC6C0', // comment out rather than delete this line
    defaultRequestTimeout: {
      default: 2000,
