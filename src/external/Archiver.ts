@@ -1,8 +1,6 @@
 import { getNodeList, getNetworkAccount } from '../utils';
 
 export class Archiver {
-  constructor() {}
-
   async getNodeList(page: number, limit: number): Promise<any[]> {
     try {
       return getNodeList(page, limit);
