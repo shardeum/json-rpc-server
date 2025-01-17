@@ -3863,46 +3863,46 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-  
-    try {  
+
+    try {
       if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'object')) {
-        callback({ code: -32602, message: 'Invalid params: Expected an object or no parameters.' }, null);
-        countFailedResponse(api_name, 'Invalid params');
-        return;
+        callback({ code: -32602, message: 'Invalid params: Expected an object or no parameters.' }, null)
+        countFailedResponse(api_name, 'Invalid params')
+        return
       }
-    
-      const params = args[0] || {};
-      const page = Math.max(1, parseInt(params.page) || 1);
-      const limit = Math.min(1000, Math.max(1, parseInt(params.limit) || 100));
-      const nodeListResult = await archiverAPI.getNodeList(page, limit);
-  
+
+      const params = args[0] || {}
+      const page = Math.max(1, parseInt(params.page) || 1)
+      const limit = Math.min(1000, Math.max(1, parseInt(params.limit) || 100))
+      const nodeListResult = await archiverAPI.getNodeList(page, limit)
+
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, nodeListResult);
-      countSuccessResponse(api_name, 'success', 'archiver');
+      callback(null, nodeListResult)
+      countSuccessResponse(api_name, 'success', 'archiver')
     } catch (error: any) {
       logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
-      callback(error, null);
+      callback(error, null)
     }
   },
 
   shardeum_getNetworkAccount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'shardeum_getNetworkAccount';
-    nestedCountersInstance.countEvent('endpoint', api_name);
-  
+    const api_name = 'shardeum_getNetworkAccount'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
-      .digest('hex');
-  
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now());
-  
+      .digest('hex')
+
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+
     try {
-      const networkAccountData = await archiverAPI.getNetworkAccount();
-  
+      const networkAccountData = await archiverAPI.getNetworkAccount()
+
       if (networkAccountData && networkAccountData.networkAccount && networkAccountData.networkAccount.data) {
-        const current = networkAccountData.networkAccount.data.current;
-        const archiver = current.archiver || {};
-  
+        const current = networkAccountData.networkAccount.data.current
+        const archiver = current.archiver || {}
+
         // transform the response to match the expected structure
         const response = {
           activeVersion: archiver.activeVersion || current.activeVersion,
@@ -3913,98 +3913,102 @@ export const methods = {
           maintenanceInterval: current.maintenanceInterval,
           penalty: {
             amount: current.nodePenaltyUsd.value,
-            currency: "shm"
+            currency: 'shm',
           },
           slashing: {
             leftNetworkEarlyPenaltyPercent: 0.2,
             nodeRefutedPenaltyPercent: 0.2,
-            syncTimeoutPenaltyPercent: 0.2
+            syncTimeoutPenaltyPercent: 0.2,
           },
           reward: {
             amount: current.nodeRewardAmountUsd.value,
-            currency: "shm",
+            currency: 'shm',
             nodeRewardInterval: current.nodeRewardInterval,
           },
           requiredStake: {
             amount: current.stakeRequiredUsd.value,
-            currency: "shm"
+            currency: 'shm',
           },
           restakeCooldown: current.restakeCooldown,
-          timestamp: networkAccountData.networkAccount.timestamp
-        };
-  
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now());
-        callback(null, response);
-        countSuccessResponse(api_name, 'success', 'archiver');
+          timestamp: networkAccountData.networkAccount.timestamp,
+        }
+
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        callback(null, response)
+        countSuccessResponse(api_name, 'success', 'archiver')
       } else {
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
-        callback({ code: -32000, message: 'Network account data not found or invalid' }, null);
-        countFailedResponse(api_name, 'Network account data not found or invalid');
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback({ code: -32000, message: 'Network account data not found or invalid' }, null)
+        countFailedResponse(api_name, 'Network account data not found or invalid')
       }
     } catch (error: any) {
-      console.error('Error fetching network account data:', error);
-      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
-      callback({ code: -32000, message: 'Failed to fetch network account data', data: error.message }, null);
-      countFailedResponse(api_name, 'Failed to fetch network account data');
+      console.error('Error fetching network account data:', error)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Failed to fetch network account data', data: error.message }, null)
+      countFailedResponse(api_name, 'Failed to fetch network account data')
     }
   },
   shardeum_getCycleInfo: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'shardeum_getCycleInfo';
-    nestedCountersInstance.countEvent('endpoint', api_name);
-    
-    if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)) {
-      callback({ code: -32602, message: 'Invalid params: Expected a single number or null.' }, null);
-      countFailedResponse(api_name, 'Invalid params: Expected a single number or null.');
-      return;
+    const api_name = 'shardeum_getCycleInfo'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (
+      !Array.isArray(args) ||
+      args.length > 1 ||
+      (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)
+    ) {
+      callback({ code: -32602, message: 'Invalid params: Expected a single number or null.' }, null)
+      countFailedResponse(api_name, 'Invalid params: Expected a single number or null.')
+      return
     }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
-      .digest('hex');
-  
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now());
-    const cycleNumber = args.length === 1 ? args[0] : null;
+      .digest('hex')
+
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
+    const cycleNumber = args.length === 1 ? args[0] : null
     try {
-      const result = await collectorAPI.getCycleInfo(cycleNumber);
-  
+      const result = await collectorAPI.getCycleInfo(cycleNumber)
+
       if (result) {
-        const cycleRecord = result.cycleRecord;
+        const cycleRecord = result.cycleRecord
         // transform the response to match the spec structure
         const restructuredData = {
           cycleCounter: cycleRecord.counter,
-          startTime: cycleRecord.start * 1000, 
-          endTime: (cycleRecord.start + cycleRecord.duration) * 1000, 
+          startTime: cycleRecord.start * 1000,
+          endTime: (cycleRecord.start + cycleRecord.duration) * 1000,
           nodes: {
             active: cycleRecord.active,
             standby: cycleRecord.standby,
-            syncing: cycleRecord.syncing
+            syncing: cycleRecord.syncing,
           },
           desired: cycleRecord.desired,
           duration: cycleRecord.duration,
           maxSyncTime: cycleRecord.maxSyncTime,
-          timestamp: cycleRecord.timestamp
-        };
-  
+          timestamp: cycleRecord.timestamp,
+        }
+
         const response = {
           cycleInfo: restructuredData,
-        };
-  
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now());
-        callback(null, response);
-        countSuccessResponse(api_name, 'success', 'collector');
+        }
+
+        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+        callback(null, response)
+        countSuccessResponse(api_name, 'success', 'collector')
       } else {
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
-        callback({ code: -32000, message: 'Cycle info not found' }, null);
-        countFailedResponse(api_name, 'Cycle info not found');
+        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        callback({ code: -32000, message: 'Cycle info not found' }, null)
+        countFailedResponse(api_name, 'Cycle info not found')
       }
     } catch (error: any) {
-      console.error('Error fetching cycle info:', error);
-      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now());
-      callback({ code: -32000, message: 'Failed to fetch cycle info', data: error.message }, null);
-      countFailedResponse(api_name, 'Failed to fetch cycle info');
+      console.error('Error fetching cycle info:', error)
+      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      callback({ code: -32000, message: 'Failed to fetch cycle info', data: error.message }, null)
+      countFailedResponse(api_name, 'Failed to fetch cycle info')
     }
   },
-  
+
   eth_subscribe: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_subscribe'
     nestedCountersInstance.countEvent('endpoint', api_name)

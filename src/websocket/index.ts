@@ -9,7 +9,7 @@ import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
-import {checkRequest, requestersList} from "../middlewares/rateLimit";
+import { checkRequest, requestersList } from '../middlewares/rateLimit'
 
 interface Params {
   address?: string | string[]
@@ -55,7 +55,7 @@ const getClientIP = (req: IncomingMessage): string | undefined => {
 }
 
 export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
-  const ip = getClientIP(req);
+  const ip = getClientIP(req)
   if (!ip) {
     socket.close(
       1008,
@@ -64,10 +64,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     return
   }
   if (requestersList.isIpBanned(ip)) {
-    socket.close(
-        1008,
-        'Connection closed: IP banned from opening new connections.'
-    )
+    socket.close(1008, 'Connection closed: IP banned from opening new connections.')
     return
   }
 
@@ -115,12 +112,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
 
         if (!isRequestOkay) {
           socket.close(
-              1008,
-              JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
+            1008,
+            JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
           )
           return
         }
-
       } catch (error) {
         console.error('Rate limiting error:', error)
         socket.close(1008, 'Internal server error')
@@ -288,15 +284,15 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     // Decrement connection counter
     activeConnections--
 
-    const currentIPConnections = connectionsByIP.get(ip);
+    const currentIPConnections = connectionsByIP.get(ip)
     if (currentIPConnections) {
-      currentIPConnections.delete(socket);
+      currentIPConnections.delete(socket)
       if (currentIPConnections.size === 0) {
-        connectionsByIP.delete(ip);
+        connectionsByIP.delete(ip)
       }
     }
-    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`);
-    nestedCountersInstance.countEvent('websocket', 'close');
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
+    nestedCountersInstance.countEvent('websocket', 'close')
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
@@ -304,7 +300,8 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
       logSubscriptionList.removeBySocket(socket)
       socket.close(code, reason)
     }
-    if (CONFIG.verbose) console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll());
+    if (CONFIG.verbose)
+      console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll())
   })
 }
 
@@ -397,36 +394,36 @@ const constructRPCErrorRes = (
   }
 }
 
-const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs; // Run cleanup every 10 minutes
+const cleanupIntervalMs = CONFIG.websocket.cleanupIntervalMs // Run cleanup every 10 minutes
 
 const cleanupStaleConnections = () => {
   connectionsByIP.forEach((sockets, ip) => {
     // Collect sockets to be removed in a separate array
-    const socketsToRemove: WebSocket.WebSocket[] = [];
+    const socketsToRemove: WebSocket.WebSocket[] = []
 
     sockets.forEach((socket) => {
       if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
         // Add socket to removal list instead of deleting directly
-        socketsToRemove.push(socket);
+        socketsToRemove.push(socket)
       }
-    });
+    })
 
     // Remove sockets after iteration to avoid concurrent modification
     socketsToRemove.forEach((socket) => {
-      sockets.delete(socket);
-      activeConnections--;
-    });
+      sockets.delete(socket)
+      activeConnections--
+    })
 
     // Remove IP entry if no sockets remain
     if (sockets.size === 0) {
-      connectionsByIP.delete(ip);
+      connectionsByIP.delete(ip)
     }
-  });
+  })
 
   if (CONFIG.verbose) {
-    console.log('Cleanup completed. Active connections:', activeConnections);
+    console.log('Cleanup completed. Active connections:', activeConnections)
   }
-};
+}
 
 // Start the periodic cleanup
-setInterval(cleanupStaleConnections, cleanupIntervalMs);
+setInterval(cleanupStaleConnections, cleanupIntervalMs)

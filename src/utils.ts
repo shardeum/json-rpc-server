@@ -55,12 +55,12 @@ const NETWORK_ACCOUNT_CACHE_KEY = 'networkAccount'
 const nodeListCache = cacheMemory
   .ttl(NODE_LIST_CACHE_TTL)
   .storeUndefinedObjects(false)
-  .create({ id: 'nodeListCache' });
+  .create({ id: 'nodeListCache' })
 
-  const networkAccountCache = cacheMemory
+const networkAccountCache = cacheMemory
   .ttl(NETWORK_ACCOUNT_CACHE_TTL)
   .storeUndefinedObjects(false)
-  .create({ id: 'networkAccountCache' });
+  .create({ id: 'networkAccountCache' })
 
 let rotationEdgeToAvoid = 0
 
@@ -201,32 +201,32 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
-  await nodeListCache.set(NODE_LIST_CACHE_KEY, Promise.resolve([...nodeList]));
+  await nodeListCache.set(NODE_LIST_CACHE_KEY, Promise.resolve([...nodeList]))
 }
 
 export async function getNodeList(page: number, limit: number): Promise<any> {
   const fullNodeList = await nodeListCache.getAndSet(NODE_LIST_CACHE_KEY, () => {
-    return Promise.resolve([...nodeList]);
-  });
+    return Promise.resolve([...nodeList])
+  })
 
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedNodeList = fullNodeList.slice(startIndex, endIndex);
+  const startIndex = (page - 1) * limit
+  const endIndex = startIndex + limit
+  const paginatedNodeList = fullNodeList.slice(startIndex, endIndex)
 
   return {
     nodes: paginatedNodeList,
     totalNodes: fullNodeList.length,
     page: page,
     limit: limit,
-    totalPages: Math.ceil(fullNodeList.length / limit)
-  };
+    totalPages: Math.ceil(fullNodeList.length / limit),
+  }
 }
 
 export async function getNetworkAccount(): Promise<any> {
   return networkAccountCache.getAndSet(NETWORK_ACCOUNT_CACHE_KEY, async () => {
-    const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`);
-    return response.data;
-  });
+    const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
+    return response.data
+  })
 }
 
 export function removeFromNodeList(ip: string, port: string): void {
@@ -998,8 +998,14 @@ export class RequestersList {
     const heavyReqHistory = this.heavyRequests.get(ip)
 
     if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
-      if (now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] < oneMinute) {
-        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than ${config.rateLimitOption.allowedHeavyRequestPerMin} reqs in 60s`)
+      if (
+        now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] <
+        oneMinute
+      ) {
+        if (verbose)
+          console.log(
+            `Ban this ip ${ip} due to continuously sending more than ${config.rateLimitOption.allowedHeavyRequestPerMin} reqs in 60s`
+          )
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
           const transaction = getTransactionObj({ raw: reqParams[0] })
