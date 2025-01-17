@@ -1,22 +1,22 @@
 diff --git a/src/config.ts b/src/config.ts
-index e66e445..08898f5 100644
+index 6937747..4444600 100644
 --- a/src/config.ts
 +++ b/src/config.ts
-@@ -180,11 +180,11 @@ export const CONFIG: Config = {
-   isRemoteLocalNetwork: false,
+@@ -202,11 +202,11 @@ export const CONFIG: Config = {
    nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
    collectorSourcing: {
--    enabled: false,
-+    enabled: true,
-     collectorApiServerUrl: 'http://0.0.0.0:6001',
+     enabled: true,
+-    collectorApiServerUrl: 'http://0.0.0.0:6001',
++    collectorApiServerUrl: 'http://0.0.0.0:7001',
    },
    serviceValidatorSourcing: {
--    enabled: false,
-+    enabled: true,
-     serviceValidatorUrl: 'http://0.0.0.0:9001',
+     enabled: false,
+-    serviceValidatorUrl: 'http://0.0.0.0:7001',
++    serviceValidatorUrl: 'http://0.0.0.0:9001',
    },
  
-@@ -193,7 +193,7 @@ export const CONFIG: Config = {
+   ServicePointsPerSecond: 200,
+@@ -214,7 +214,7 @@ export const CONFIG: Config = {
    ServicePoints: {
      ['aalg-warmup']: 20,
    },
