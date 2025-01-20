@@ -3916,9 +3916,9 @@ export const methods = {
             currency: 'shm',
           },
           slashing: {
-            leftNetworkEarlyPenaltyPercent: 0.2,
-            nodeRefutedPenaltyPercent: 0.2,
-            syncTimeoutPenaltyPercent: 0.2,
+            leftNetworkEarlyPenaltyPercent: current.slashing.leftNetworkEarlyPenaltyPercent,
+            nodeRefutedPenaltyPercent: current.slashing.nodeRefutedPenaltyPercent,
+            syncTimeoutPenaltyPercent: current.slashing.syncTimeoutPenaltyPercent,
           },
           reward: {
             amount: current.nodeRewardAmountUsd.value,
