@@ -67,13 +67,17 @@ export const setupEvmLogProviderConnectionStream = (): void => {
       if (message.method == 'unsubscribe') {
         if (message.success) {
           const socket = logSubscriptionList.getById(message.subscription_id)?.socket
-          socket?.send(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
-              result: true,
-            })
-          )
+          try {
+            socket?.send(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
+                result: true,
+              })
+            )
+          } catch (error) {
+            console.error('Failed to send message on WebSocket:', error)
+          }
           logSubscriptionList.removeById(message.subscription_id)
 
           const socketSubscriptions = logSubscriptionList.getBySocket(socket as WebSocket.WebSocket)
@@ -81,13 +85,17 @@ export const setupEvmLogProviderConnectionStream = (): void => {
             socket?.close()
           }
         } else {
-          logSubscriptionList.getById(message.subscription_id)?.socket.send(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
-              result: false,
-            })
-          )
+          try {
+            logSubscriptionList.getById(message.subscription_id)?.socket.send(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
+                result: false,
+              })
+            )
+          } catch (error) {
+            console.error('Failed to send message on WebSocket:', error)
+          }
         }
       }
       if (message.method == 'log_found') {
