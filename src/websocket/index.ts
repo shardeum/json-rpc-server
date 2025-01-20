@@ -106,7 +106,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
       try {
         request = JSON.parse(message)
       } catch (e) {
-        socket.send('Invalid message format')
+        try {
+          socket.send('Invalid message format')
+        } catch (error) {
+          console.error('Failed to send message on WebSocket:', error)
+        }
         return
       }
 
@@ -170,7 +174,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
             code: -1,
           },
         }
-        socket.send(JSON.stringify(err_res_obj))
+        try {
+          socket.send(JSON.stringify(err_res_obj))
+        } catch (error) {
+          console.error('Failed to send message on WebSocket:', error)
+        }
         return
       }
       const res_obj = {
@@ -178,7 +186,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         jsonrpc: '2.0',
         result: result,
       }
-      socket.send(JSON.stringify(res_obj))
+      try {
+        socket.send(JSON.stringify(res_obj))
+      } catch (error) {
+        console.error('Failed to send message on WebSocket:', error)
+      }
       return
     }
 
