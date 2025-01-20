@@ -32,8 +32,8 @@ import {
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
-import cacheMemory from 'cache-memory'
 import net from 'net'
+import { TTLMap } from './utils/TTLMap'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -46,21 +46,13 @@ export const node = {
   port: 9001,
 }
 
-const NODE_LIST_CACHE_TTL = 60 // 60 seconds
-const NODE_LIST_CACHE_KEY = 'nodeList'
 
-const NETWORK_ACCOUNT_CACHE_TTL = 30 // 30 seconds
-const NETWORK_ACCOUNT_CACHE_KEY = 'networkAccount'
+const NODE_LIST_CACHE_TTL = 60 * 1000 // Cache snapshot for 1 minute
+const nodeListSnapshotCache = new TTLMap<Node[]>() // New cache for snapshots
 
-const nodeListCache = cacheMemory
-  .ttl(NODE_LIST_CACHE_TTL)
-  .storeUndefinedObjects(false)
-  .create({ id: 'nodeListCache' })
 
-const networkAccountCache = cacheMemory
-  .ttl(NETWORK_ACCOUNT_CACHE_TTL)
-  .storeUndefinedObjects(false)
-  .create({ id: 'networkAccountCache' })
+const NETWORK_ACCOUNT_CACHE_TTL = 30 * 1000 // Convert 30 seconds to milliseconds
+const networkAccountSnapshotCache = new TTLMap<any>() // Snapshot Cache
 
 let rotationEdgeToAvoid = 0
 
@@ -201,33 +193,60 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
-  await nodeListCache.set(NODE_LIST_CACHE_KEY, Promise.resolve([...nodeList]))
+  nodeListSnapshotCache.set("snapshot", [...nodeList], NODE_LIST_CACHE_TTL)
+  
 }
 
 export async function getNodeList(page: number, limit: number): Promise<any> {
-  const fullNodeList = await nodeListCache.getAndSet(NODE_LIST_CACHE_KEY, () => {
-    return Promise.resolve([...nodeList])
-  })
+  try {
+    // ✅ Get snapshot from cache
+    let nodeListCache = await nodeListSnapshotCache.get("nodeListCache")
 
-  const startIndex = (page - 1) * limit
-  const endIndex = startIndex + limit
-  const paginatedNodeList = fullNodeList.slice(startIndex, endIndex)
+    // If no snapshot is available, take a fresh one
+    if (!nodeListCache) {
+      nodeListCache = [...nodeList]
+      nodeListSnapshotCache.set("nodeListCache", nodeListCache, NODE_LIST_CACHE_TTL)
+    }
 
-  return {
-    nodes: paginatedNodeList,
-    totalNodes: fullNodeList.length,
-    page: page,
-    limit: limit,
-    totalPages: Math.ceil(fullNodeList.length / limit),
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const paginatedNodeList = nodeListCache.slice(startIndex, endIndex)
+
+    return {
+      nodes: paginatedNodeList,
+      totalNodes: nodeListCache.length,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(nodeListCache.length / limit),
+    }
+  } catch (error) {
+    console.error('Error in getNodeList:', error)
+    throw error
   }
 }
 
+
 export async function getNetworkAccount(): Promise<any> {
-  return networkAccountCache.getAndSet(NETWORK_ACCOUNT_CACHE_KEY, async () => {
-    const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
-    return response.data
-  })
+  try {
+    // ✅ Get the latest snapshot
+    let cachedAccount = await networkAccountSnapshotCache.get("networkAccountCache")
+
+    // ✅ If no snapshot exists, fetch fresh data
+    if (!cachedAccount) {
+      const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
+      cachedAccount = response.data
+
+      // ✅ Store snapshot to ensure consistency across multiple requests
+      networkAccountSnapshotCache.set("networkAccountCache", cachedAccount, NETWORK_ACCOUNT_CACHE_TTL)
+    }
+
+    return cachedAccount
+  } catch (error) {
+    console.error('Error fetching network account:', error)
+    throw error
+  }
 }
+
 
 export function removeFromNodeList(ip: string, port: string): void {
   nodeList = nodeList.filter((node) => node.ip !== ip || node.port !== Number(port))
