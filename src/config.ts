@@ -201,12 +201,12 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: true,
+    enabled: false,
     collectorApiServerUrl: 'http://0.0.0.0:6001',
   },
   serviceValidatorSourcing: {
     enabled: false,
-    serviceValidatorUrl: 'http://0.0.0.0:7001',
+    serviceValidatorUrl: 'http://0.0.0.0:9001',
   },
 
   ServicePointsPerSecond: 200,

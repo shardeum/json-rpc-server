@@ -564,10 +564,6 @@ class Collector extends BaseExternal {
     return result as readableTransaction
   }
   async getCycleInfo(cycleNumber?: number): Promise<any | null> {
-    if (!CONFIG.collectorSourcing.enabled) {
-      console.log('Collector sourcing is not enabled')
-      return null
-    }
     nestedCountersInstance.countEvent('collector', 'getCycleInfo')
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
