@@ -228,15 +228,12 @@ export async function getNodeList(page: number, limit: number): Promise<any> {
 
 export async function getNetworkAccount(): Promise<any> {
   try {
-    // ✅ Get the latest snapshot
+    
     let cachedAccount = await networkAccountSnapshotCache.get("networkAccountCache")
 
-    // ✅ If no snapshot exists, fetch fresh data
     if (!cachedAccount) {
       const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
       cachedAccount = response.data
-
-      // ✅ Store snapshot to ensure consistency across multiple requests
       networkAccountSnapshotCache.set("networkAccountCache", cachedAccount, NETWORK_ACCOUNT_CACHE_TTL)
     }
 
