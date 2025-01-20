@@ -199,7 +199,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
 
 export async function getNodeList(page: number, limit: number): Promise<any> {
   try {
-    // ✅ Get snapshot from cache
+    
     let nodeListCache = await nodeListSnapshotCache.get("nodeListCache")
 
     // If no snapshot is available, take a fresh one
