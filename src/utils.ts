@@ -6,15 +6,14 @@ import axios from 'axios'
 import { CONFIG as config } from './config'
 import fs from 'fs'
 import path from 'path'
-// import crypto from '@shardus/crypto-utils'
-import { getArchiverList } from '@shardus/archiver-discovery'
-import { Archiver } from '@shardus/archiver-discovery/dist/src/types'
+import { getArchiverList } from '@shardeum-foundation/lib-archiver-discovery'
+import { Archiver } from '@shardeum-foundation/lib-archiver-discovery/dist/src/types'
 import execa from 'execa'
 import { spawn } from 'child_process'
 import { collectorAPI } from './external/Collector'
 import { serviceValidator } from './external/ServiceValidator'
 import { AxiosResponse } from 'axios'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import {
   Node,
   Filter,
@@ -29,11 +28,12 @@ import {
   OriginalTxData,
   AccountTypesData,
   Account2,
-  InternalFilter
+  InternalFilter,
 } from './types'
 import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
 import net from 'net'
+import { TTLMap } from './utils/TTLMap'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -45,6 +45,14 @@ export const node = {
   ip: '127.0.0.1',
   port: 9001,
 }
+
+
+const NODE_LIST_CACHE_TTL = 60 * 1000 // Cache snapshot for 1 minute
+const nodeListSnapshotCache = new TTLMap<Node[]>() // New cache for snapshots
+
+
+const NETWORK_ACCOUNT_CACHE_TTL = 30 * 1000 // Convert 30 seconds to milliseconds
+const networkAccountSnapshotCache = new TTLMap<any>() // Snapshot Cache
 
 let rotationEdgeToAvoid = 0
 
@@ -115,7 +123,7 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
 
   console.time('nodelist_update')
-  const nRetry = tryInfinate ? -1 : 0 // infinitely retry or no retries
+  const nRetry = tryInfinate ? -1 : 5 // infinitely retry or 5 retries if initial request fails
   if (config.askLocalHostForArchiver === true) {
     if (gotArchiver === false) {
       gotArchiver = true
@@ -185,7 +193,57 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
+  nodeListSnapshotCache.set("snapshot", [...nodeList], NODE_LIST_CACHE_TTL)
+  
 }
+
+export async function getNodeList(page: number, limit: number): Promise<any> {
+  try {
+    
+    let nodeListCache = await nodeListSnapshotCache.get("nodeListCache")
+
+    // If no snapshot is available, take a fresh one
+    if (!nodeListCache) {
+      nodeListCache = [...nodeList]
+      nodeListSnapshotCache.set("nodeListCache", nodeListCache, NODE_LIST_CACHE_TTL)
+    }
+
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const paginatedNodeList = nodeListCache.slice(startIndex, endIndex)
+
+    return {
+      nodes: paginatedNodeList,
+      totalNodes: nodeListCache.length,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(nodeListCache.length / limit),
+    }
+  } catch (error) {
+    console.error('Error in getNodeList:', error)
+    throw error
+  }
+}
+
+
+export async function getNetworkAccount(): Promise<any> {
+  try {
+    
+    let cachedAccount = await networkAccountSnapshotCache.get("networkAccountCache")
+
+    if (!cachedAccount) {
+      const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
+      cachedAccount = response.data
+      networkAccountSnapshotCache.set("networkAccountCache", cachedAccount, NETWORK_ACCOUNT_CACHE_TTL)
+    }
+
+    return cachedAccount
+  } catch (error) {
+    console.error('Error fetching network account:', error)
+    throw error
+  }
+}
+
 
 export function removeFromNodeList(ip: string, port: string): void {
   nodeList = nodeList.filter((node) => node.ip !== ip || node.port !== Number(port))
@@ -955,9 +1013,15 @@ export class RequestersList {
     this.addHeavyRequest(ip)
     const heavyReqHistory = this.heavyRequests.get(ip)
 
-    if (heavyReqHistory && heavyReqHistory.length >= 61) {
-      if (now - heavyReqHistory[heavyReqHistory.length - 61] < oneMinute) {
-        if (verbose) console.log(`Ban this ip ${ip} due to continuously sending more than 60 reqs in 60s`)
+    if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
+      if (
+        now - heavyReqHistory[heavyReqHistory.length - config.rateLimitOption.allowedHeavyRequestPerMin] <
+        oneMinute
+      ) {
+        if (verbose)
+          console.log(
+            `Ban this ip ${ip} due to continuously sending more than ${config.rateLimitOption.allowedHeavyRequestPerMin} reqs in 60s`
+          )
         this.addToBlacklist(ip)
         if (config.recordTxStatus && reqType === 'eth_sendRawTransaction') {
           const transaction = getTransactionObj({ raw: reqParams[0] })
@@ -1873,20 +1937,20 @@ export function sanitizeIpAndPort(ipPort: string): { isValid: boolean; error?: s
 }
 
 export function removeOldestFilter(filtersMap: Map<string, InternalFilter>): void {
-  let oldestKey: string | undefined;
-  let oldestTimestamp = Infinity;
+  let oldestKey: string | undefined
+  let oldestTimestamp = Infinity
 
   // Iterate through the map to find the oldest entry
   for (const [key, value] of filtersMap) {
     if (value.filter.lastQueriedTimestamp < oldestTimestamp) {
-      oldestTimestamp = value.filter.lastQueriedTimestamp;
-      oldestKey = key;
+      oldestTimestamp = value.filter.lastQueriedTimestamp
+      oldestKey = key
     }
   }
 
   // Remove the oldest entry
   if (oldestKey !== undefined) {
-    filtersMap.delete(oldestKey);
+    filtersMap.delete(oldestKey)
   }
 }
 
