@@ -1228,7 +1228,6 @@ export const methods = {
         }
       }
       if (config.queryFromValidator) {
-        console.log('Querying from validator')
         const res: any = await getAccountFromValidator(storageAccountId)
         if (res && res.account && res.account['value']) {
           const value = Uint8Array.from(Object.values(res?.account['value']))
@@ -1244,7 +1243,6 @@ export const methods = {
       callback(null, result)
       countSuccessResponse(api_name, 'success', 'fallback')
     } catch (e) {
-      console.log('Unable to get storage', e)
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
       callback({ code: -32000, message: 'Unable to get storage' }, null)
       countFailedResponse(api_name, 'Unable to get storage')
