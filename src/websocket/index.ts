@@ -4,7 +4,6 @@ import { wrappedMethods } from '../api'
 import { logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
-import { ipport } from '../server'
 import { evmLogProvider_ConnectionStream } from './log_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
@@ -16,6 +15,7 @@ interface Params {
   topics?: (string | undefined)[]
   [key: number]: string | string[] | Params | WebSocket.WebSocket
 }
+
 interface Request {
   jsonrpc: string
   id: number
@@ -319,7 +319,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
 
 export const subscriptionEventEmitter = new EventEmitter()
 
-export const setupSubscriptionEventHandlers = (): void => {
+export const setupSubscriptionEventHandlers = (ipport: string): void => {
   subscriptionEventEmitter.on('evm_log_received', async (logs, subscription_id) => {
     if (!logSubscriptionList.getById(subscription_id)) {
       // this subscription id belong to other rpc

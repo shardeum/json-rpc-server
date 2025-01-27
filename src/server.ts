@@ -12,9 +12,7 @@ import {
   changeNode,
   setConsensorNode,
   updateNodeList,
-  RequestersList,
   checkArchiverHealth,
-  sleep,
   cleanBadNodes,
   initSyncTime,
   updateEdgeNodeConfig,
@@ -23,8 +21,6 @@ import { router as logRoute } from './routes/log'
 import { healthCheckRouter } from './routes/healthCheck'
 import { Request, Response } from 'express'
 import { CONFIG, CONFIG as config } from './config'
-import blackList from '../blacklist.json'
-import spammerList from '../spammerlist.json'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
@@ -162,8 +158,6 @@ app.get('/counts-reset', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: R
   res.send(`counts reset ${Date.now()}`)
 })
 
-const requestersList = new RequestersList(blackList, spammerList)
-
 interface CustomError extends Error {
   status?: number
   statusCode?: number | undefined
@@ -212,7 +206,7 @@ setupArchiverDiscovery({
       console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
       setupDatabase()
       setupLogEvents()
-      setupSubscriptionEventHandlers()
+      setupSubscriptionEventHandlers(ipport)
       setupEvmLogProviderConnectionStream()
     })
   })
