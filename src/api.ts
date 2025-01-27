@@ -1206,7 +1206,7 @@ export const methods = {
       )
       if (CONFIG.collectorSourcing.enabled) {
         const res = await collectorAPI.fetchAccount(storageAccountId)
-        if (res?.data?.accounts[0]?.account?.value) {
+        if (res?.data?.accounts?.[0]?.account?.value) {
           const value = Uint8Array.from(Object.values(res?.data?.accounts[0]?.account?.value))
           const hexValue = bytesToHex(value)
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
