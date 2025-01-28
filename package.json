@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "start": "npm run compile && node dist/src/server.js",
+    "start": "rm -rf dist && npm run compile && node dist/src/server.js",
     "dev": "nodemon",
     "compile": "tsc -p .",
     "clean-log": "rm -rf ./log",
