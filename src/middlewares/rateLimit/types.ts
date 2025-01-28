@@ -42,4 +42,4 @@ export interface RequestTracker {
 export interface AbusedSender {
   address: string
   count: number
-} 
+}
