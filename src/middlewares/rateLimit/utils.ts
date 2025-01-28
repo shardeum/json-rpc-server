@@ -39,24 +39,23 @@ export function writeToSpammerList(address: string): void {
 }
 
 export function writeNewBlacklistWithRetry(bannedIps: string[]): void {
-     // Only update the file if there were changes
+  // Only update the file if there were changes
   if (config.verbose) console.log('New banned IPs', bannedIps)
   try {
     fs.writeFileSync('blacklist.json', JSON.stringify(bannedIps))
     if (config.verbose) console.log('Updated blacklist.json with current banned IPs')
 
-      // Verify the bannedIps list is updated
+    // Verify the bannedIps list is updated
     const verifyData = JSON.parse(fs.readFileSync('blacklist.json', 'utf8'))
     if (verifyData.length !== bannedIps.length) {
-    if (config.verbose) console.log('Warning: Inconsistency detected between bannedIps and blacklist.json')
+      if (config.verbose) console.log('Warning: Inconsistency detected between bannedIps and blacklist.json')
       // Update the file to match the in-memory bannedIps
       fs.writeFileSync('blacklist.json', JSON.stringify(bannedIps))
       if (config.verbose) console.log('Updated blacklist.json to match in-memory bannedIps')
     }
   } catch (error) {
-      if (config.verbose) console.error('Error writing to or verifying blacklist.json', error)
+    if (config.verbose) console.error('Error writing to or verifying blacklist.json', error)
   }
-
 }
 
 /**
@@ -90,7 +89,7 @@ export function getTransactionObj(tx: OriginalTxData): Transaction | AccessListE
  * Sleep utility function
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**

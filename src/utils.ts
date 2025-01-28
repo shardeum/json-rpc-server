@@ -46,10 +46,8 @@ export const node = {
   port: 9001,
 }
 
-
 const NODE_LIST_CACHE_TTL = 60 * 1000 // Cache snapshot for 1 minute
 const nodeListSnapshotCache = new TTLMap<Node[]>() // New cache for snapshots
-
 
 const NETWORK_ACCOUNT_CACHE_TTL = 30 * 1000 // Convert 30 seconds to milliseconds
 const networkAccountSnapshotCache = new TTLMap<any>() // Snapshot Cache
@@ -193,19 +191,17 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
-  nodeListSnapshotCache.set("snapshot", [...nodeList], NODE_LIST_CACHE_TTL)
-  
+  nodeListSnapshotCache.set('snapshot', [...nodeList], NODE_LIST_CACHE_TTL)
 }
 
 export async function getNodeList(page: number, limit: number): Promise<any> {
   try {
-    
-    let nodeListCache = await nodeListSnapshotCache.get("nodeListCache")
+    let nodeListCache = await nodeListSnapshotCache.get('nodeListCache')
 
     // If no snapshot is available, take a fresh one
     if (!nodeListCache) {
       nodeListCache = [...nodeList]
-      nodeListSnapshotCache.set("nodeListCache", nodeListCache, NODE_LIST_CACHE_TTL)
+      nodeListSnapshotCache.set('nodeListCache', nodeListCache, NODE_LIST_CACHE_TTL)
     }
 
     const startIndex = (page - 1) * limit
@@ -225,16 +221,14 @@ export async function getNodeList(page: number, limit: number): Promise<any> {
   }
 }
 
-
 export async function getNetworkAccount(): Promise<any> {
   try {
-    
-    let cachedAccount = await networkAccountSnapshotCache.get("networkAccountCache")
+    let cachedAccount = await networkAccountSnapshotCache.get('networkAccountCache')
 
     if (!cachedAccount) {
       const response = await axios.get(`${getArchiverUrl().url}/get-network-account?hash=false`)
       cachedAccount = response.data
-      networkAccountSnapshotCache.set("networkAccountCache", cachedAccount, NETWORK_ACCOUNT_CACHE_TTL)
+      networkAccountSnapshotCache.set('networkAccountCache', cachedAccount, NETWORK_ACCOUNT_CACHE_TTL)
     }
 
     return cachedAccount
@@ -243,7 +237,6 @@ export async function getNetworkAccount(): Promise<any> {
     throw error
   }
 }
-
 
 export function removeFromNodeList(ip: string, port: string): void {
   nodeList = nodeList.filter((node) => node.ip !== ip || node.port !== Number(port))

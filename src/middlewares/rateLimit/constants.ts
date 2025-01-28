@@ -15,4 +15,4 @@ export const MESSAGES = {
   INTERNAL_ERROR: 'Internal server error during rate limiting',
   SENDER_BLACKLISTED: 'Sender is blacklisted.',
   NODE_ROTATION: 'Node is close to rotation edges.',
-} 
+}

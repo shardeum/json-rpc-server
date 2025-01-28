@@ -38,11 +38,11 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
   }
 
   const requests: RpcRequest[] = Array.isArray(req.body) ? req.body : [req.body]
-  
+
   try {
     const results = await Promise.all(requests.map((request) => checkRequest(ip, request)))
     const allRequestsOk = results.every((result) => result)
-  
+
     // If any request is not okay, reject the entire batch
     if (!allRequestsOk) {
       await handleRejection(res, config.rateLimitOption.softReject)
