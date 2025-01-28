@@ -27,6 +27,17 @@ export async function checkRequest(ip: string, request: RpcRequest): Promise<boo
   return await requestersList.isRequestOkay(ip, request.method, request.params)
 }
 
+function isInternalRequest(ip: string): boolean {
+  // Check for localhost and internal IP patterns
+  return (
+    ip === 'localhost' ||
+    ip === '127.0.0.1' ||
+    ip.startsWith('127.') ||
+    ip === '0.0.0.0' ||
+    ip === '::1'
+  )
+}
+
 export async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
   if (!config.rateLimit) {
     next()
@@ -36,6 +47,12 @@ export async function rateLimitMiddleware(req: Request, res: Response, next: Nex
 
   if (ip.substring(0, 7) == '::ffff:') {
     ip = ip.substring(7)
+  }
+
+  // Skip rate limiting for internal requests
+  if (isInternalRequest(ip)) {
+    next()
+    return
   }
 
   const requests: RpcRequest[] = Array.isArray(req.body) ? req.body : [req.body]
