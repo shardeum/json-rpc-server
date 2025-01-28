@@ -1,5 +1,4 @@
 import { CONFIG as config } from '../../config'
-import { Transaction } from '@ethereumjs/tx'
 import { bufferToHex } from 'ethereumjs-util'
 import { IpData, ToData, FromData, BlacklistData, RequestTracker, AbusedSender } from './types'
 import { ONE_MINUTE, ONE_HOUR } from './constants'
@@ -8,10 +7,10 @@ import axios from 'axios'
 export class RequestersList {
   heavyRequests: Map<string, number[]>
   heavyAddresses: Map<string, number[]>
-  abusedSenders: Map<string, { address: string; count: number }>
+  abusedSenders: Map<string, AbusedSender>
   abusedToAddresses: Map<string, ToData>
-  bannedIps: { ip: string; timestamp: number }[]
-  requestTracker: Record<string, IpData>
+  bannedIps: BlacklistData[]
+  requestTracker: RequestTracker
   allRequestTracker: Record<string, IpData>
   totalTxTracker: Record<string, IpData>
   blackListedSenders: Set<string>

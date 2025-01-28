@@ -20,16 +20,6 @@ export interface RpcRequest {
   params: any[]
 }
 
-export interface TxStatusData {
-  txHash: string
-  ip: string
-  raw: string
-  injected: boolean
-  accepted: boolean
-  reason: string
-  timestamp: number
-}
-
 export interface BlacklistData {
   ip: string
   timestamp: number
