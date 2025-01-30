@@ -3912,7 +3912,7 @@ export const methods = {
           maintenanceFee: current.maintenanceFee,
           maintenanceInterval: current.maintenanceInterval,
           penalty: {
-            amount: current.nodePenaltyUsd.value,
+            amount: `0x${current.nodePenaltyUsd.value}`,
             currency: 'shm',
           },
           slashing: {
@@ -3921,12 +3921,12 @@ export const methods = {
             syncTimeoutPenaltyPercent: current.slashing.syncTimeoutPenaltyPercent,
           },
           reward: {
-            amount: current.nodeRewardAmountUsd.value,
+            amount: `0x${current.nodeRewardAmountUsd.value}`,
             currency: 'shm',
             nodeRewardInterval: current.nodeRewardInterval,
           },
           requiredStake: {
-            amount: current.stakeRequiredUsd.value,
+            amount: `0x${current.stakeRequiredUsd.value}`,
             currency: 'shm',
           },
           restakeCooldown: current.restakeCooldown,
