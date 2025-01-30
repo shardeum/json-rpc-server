@@ -46,9 +46,6 @@ export const node = {
   port: 9001,
 }
 
-const NODE_LIST_CACHE_TTL = 60 * 1000 // Cache snapshot for 1 minute
-const nodeListSnapshotCache = new TTLMap<Node[]>() // New cache for snapshots
-
 const NETWORK_ACCOUNT_CACHE_TTL = 30 * 1000 // Convert 30 seconds to milliseconds
 const networkAccountSnapshotCache = new TTLMap<any>() // Snapshot Cache
 
@@ -114,14 +111,14 @@ async function checkIfNodeIsActive(node: Node): Promise<boolean> {
   return false
 }
 
-// if tryInfinate value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
+// if tryInfinite value is true, it'll keep pinging the archiver unitl it responds infinitely, this is useful for first time updating NodeList
 // linear complexity, O(n) where n is the amount of nodes object { ip: string, port number }
-export async function updateNodeList(tryInfinate = false): Promise<void> {
+export async function updateNodeList(tryInfinite = false): Promise<void> {
   if (!healthyArchivers.length) await checkArchiverHealth()
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
 
   console.time('nodelist_update')
-  const nRetry = tryInfinate ? -1 : 5 // infinitely retry or 5 retries if initial request fails
+  const nRetry = tryInfinite ? -1 : 5 // infinitely retry or 5 retries if initial request fails
   if (config.askLocalHostForArchiver === true) {
     if (gotArchiver === false) {
       gotArchiver = true
@@ -191,29 +188,20 @@ export async function updateNodeList(tryInfinate = false): Promise<void> {
     }
   }
   console.timeEnd('nodelist_update')
-  nodeListSnapshotCache.set('snapshot', [...nodeList], NODE_LIST_CACHE_TTL)
 }
 
 export async function getNodeList(page: number, limit: number): Promise<any> {
   try {
-    let nodeListCache = await nodeListSnapshotCache.get('nodeListCache')
-
-    // If no snapshot is available, take a fresh one
-    if (!nodeListCache) {
-      nodeListCache = [...nodeList]
-      nodeListSnapshotCache.set('nodeListCache', nodeListCache, NODE_LIST_CACHE_TTL)
-    }
-
     const startIndex = (page - 1) * limit
     const endIndex = startIndex + limit
-    const paginatedNodeList = nodeListCache.slice(startIndex, endIndex)
+    const paginatedNodeList = nodeList.slice(startIndex, endIndex)
 
     return {
       nodes: paginatedNodeList,
-      totalNodes: nodeListCache.length,
+      totalNodes: nodeList.length,
       page: page,
       limit: limit,
-      totalPages: Math.ceil(nodeListCache.length / limit),
+      totalPages: Math.ceil(nodeList.length / limit),
     }
   } catch (error) {
     console.error('Error in getNodeList:', error)
@@ -281,8 +269,7 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
       return { url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter }
     } catch (error: unknown) {
       console.error(
-        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${(error as NodeJSError).errno} => ${
-          (error as NodeJSError).code
+        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${(error as NodeJSError).errno} => ${(error as NodeJSError).code
         }`
       )
       return { url: `http://${url.ip}:${url.port}`, cycle_value: null }
