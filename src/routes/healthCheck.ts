@@ -23,5 +23,7 @@ healthCheckRouter.get('/is-healthy', (req: Request, res: Response) => {
     isServiceValidatorMode: CONFIG.serviceValidatorSourcing.enabled
   }
 
-  return res.sendStatus(dbHealthy ? 200 : 500).json(result)
+  // fastify automatically converts 500 body if not explicitly set like this
+  res.header('Content-Type', 'application/json')
+  return res.status(dbHealthy ? 200 : 500).send(result)
 })
