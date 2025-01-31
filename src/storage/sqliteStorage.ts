@@ -33,6 +33,17 @@ async function createTables(): Promise<void> {
   )
 }
 
+export function checkDatabaseHealth(): boolean {
+  try {
+    // Run a simple SELECT to check if the database is responding
+    db.prepare('SELECT 1').get();
+    return true;
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return false;
+  }
+}
+
 export async function setupDatabase(): Promise<void> {
   await init()
   await createTables()
