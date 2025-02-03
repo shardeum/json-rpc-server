@@ -278,6 +278,42 @@ describe('Rate Limiting', () => {
       
       expect(mockRes.status).toHaveBeenCalled()
     })
+
+    it('should not blacklist IPs that are whitelisted', async () => {
+      // Clean up the existing instance
+      requestersList.cleanUp()
+      
+      // Create a new instance with the whitelisted IP
+      const newRequestersList = new RequestersList([], [], ['127.0.0.1'])
+      
+      // Replace the global instance with our new one
+      Object.assign(requestersList, newRequestersList)
+
+      const mockReq = createMockRequest()
+      const mockRes = createMockResponse()
+      const mockNext = jest.fn()
+
+      // Try to trigger blacklisting by exceeding request limits
+      await makeParallelRequests(
+        DEFAULT_CONFIG.rateLimitOption.allowedHeavyRequestPerMin * 2,
+        mockReq,
+        mockRes,
+        mockNext
+      )
+
+      // Verify the IP was not blacklisted
+      expect(requestersList.isIpBanned('127.0.0.1')).toBe(false)
+      
+      // Verify next() was called instead of sending error response
+      expect(mockNext).toHaveBeenCalled()
+      expect(mockRes.status).not.toHaveBeenCalled()
+      expect(mockRes.send).not.toHaveBeenCalled()
+
+      // Verify IP was not written to blacklist file
+      const blacklistWrites = (fs.writeFileSync as jest.Mock).mock.calls
+        .filter(call => (call[0] as string).includes('blacklist.json'))
+      expect(blacklistWrites.length).toBe(0)
+    })
   })
 
   describe('Initialization', () => {

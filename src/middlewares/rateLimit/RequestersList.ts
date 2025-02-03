@@ -61,6 +61,13 @@ export class RequestersList {
   }
 
   addToBlacklist(ip: string): void {
+    // Don't blacklist whitelisted IPs
+    if (this.whiteList.has(ip)) {
+      if (config.verbose) console.log(`IP ${ip} is whitelisted, cannot be blacklisted`)
+      return
+    }
+
+    // Don't add if already blacklisted
     if (this.bannedIps.some((record) => record.ip === ip)) {
       if (config.verbose) console.log(`IP ${ip} is already in the banned list`)
       return
@@ -220,6 +227,11 @@ export class RequestersList {
   }
 
   addHeavyRequest(ip: string): void {
+    // Skip tracking for whitelisted IPs
+    if (this.whiteList.has(ip)) {
+      return
+    }
+
     /*eslint-disable security/detect-object-injection */
     if (this.requestTracker[ip]) {
       this.requestTracker[ip].count += 1
@@ -378,8 +390,12 @@ export class RequestersList {
       return true
     }
 
-    // record this heavy request before checking
-    this.addHeavyRequest(ip)
+    // Don't track heavy requests for whitelisted IPs
+    if (!this.whiteList.has(ip)) {
+      // record this heavy request before checking
+      this.addHeavyRequest(ip)
+    }
+    
     const heavyReqHistory = this.heavyRequests.get(ip)
 
     if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
