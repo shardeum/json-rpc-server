@@ -4071,9 +4071,7 @@ export const methods = {
     try {
       const subscription_name = args[0]
       const filters = args[1]
-
-      // this is pre injected before calling this api, check src/websocket/index.ts
-      const sub_id = args[10] 
+      const sub_id = args[10]
 
       if (subscription_name !== 'logs' && subscription_name !== 'newHeads') {
         logSubscriptionList.removeById(args[10])
@@ -4083,8 +4081,8 @@ export const methods = {
       }
 
       if (subscription_name === 'newHeads' && blockSubscriptionList.has(sub_id)) {
-         callback(null, sub_id)
-         return
+        callback(null, sub_id)
+        return
       }
 
       if (!filters.address && !filters.topics) {
