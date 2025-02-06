@@ -2122,7 +2122,7 @@ export const methods = {
     if (args[0] !== 'latest' && args[0] !== 'earliest') {
       blockNumber = parseInt(blockNumber)
     }
-    
+
     result = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
     if (!result) {
       if (verbose) console.log('eth_getBlockByNumber !result', blockNumber, args[0])
