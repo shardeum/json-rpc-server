@@ -3137,7 +3137,8 @@ export const methods = {
     if (fromBlock === 'earliest') {
       fromBlock = '0x0'
     }
-    if (fromBlock === 'latest') {
+    // If fromBlock is not provided, use latest block number as default value
+    if (!fromBlock || fromBlock === 'latest') {
       fromBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!fromBlock || !isHex(fromBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
@@ -3146,8 +3147,8 @@ export const methods = {
         return
       }
     }
-
-    if (toBlock === 'latest') {
+    // If toBlock is not provided, use latest block number as default value
+    if (!toBlock || toBlock === 'latest') {
       toBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!toBlock || !isHex(toBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
