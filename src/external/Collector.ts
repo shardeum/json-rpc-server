@@ -323,44 +323,46 @@ class Collector extends BaseExternal {
       }
 
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
-      let blockGasUsed = '0x0'
-      // This parameter is used to determine the total gas used of transactions in the block
-      // It is used to calculate the block gas used
-      resultBlock.transactions = await axios
-        .get(txQuery)
-        .then((response) => {
-          if (!response.data.success) return []
-          return response.data.transactions.map((tx: any) => {
-            const decodedTx = this.decodeTransaction(tx)
-            let gasUsedByThisTx = decodedTx.gas
-            if (
-              tx.wrappedEVMAccount &&
-              tx.wrappedEVMAccount.readableReceipt &&
-              tx.wrappedEVMAccount.readableReceipt.gasUsed
-            ) {
-              gasUsedByThisTx = tx.wrappedEVMAccount.readableReceipt.gasUsed
-            }
-            blockGasUsed = BigNumber.from(blockGasUsed).add(gasUsedByThisTx).toHexString()
-            // need to review the safety of this for caching and support that this could change!
-            // UPDATE: We're now handling the response as per the "details" flag by mutating the "transactions" field. The default cache storage contains the full transaction details.
-            return decodedTx
-          })
-        })
-        .catch((e) => {
-          nestedCountersInstance.countEvent('collector', `getBlock-error tx ${e.message}`)
-          console.error('collector.getBlock could not get txs for the block', e)
-          return []
-        })
-      // Now we have the block gas used then return it to the RPC method
-      resultBlock.gasUsed = blockGasUsed
-      // Start to calculate the transaction root fot this block
-      resultBlock.transactionsRoot = await this.calculateTransactionRoot(
-        resultBlock.transactions.map((tx: any) => tx.hash)
-      )
+      /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock txQuery: ${txQuery}`)
 
-      if (CONFIG.enableBlockCache)
+      try {
+        const txResponse = await axios.get(txQuery)
+        if (txResponse.data.success && txResponse.data.transactions) {
+          resultBlock.transactions = txResponse.data.transactions.map((tx: any) => this.decodeTransaction(tx))
+          // Calculate block gas used with proper hex value handling
+          let blockGasUsed = BigNumber.from(0)
+          txResponse.data.transactions.forEach((tx: any) => {
+            const gasUsedHex = tx.wrappedEVMAccount?.readableReceipt?.gasUsed
+            if (gasUsedHex && gasUsedHex !== '0x' && gasUsedHex !== '0x0') {
+              try {
+                // Normalize if necessary before converting to BigNumber
+                const gasUsed = BigNumber.from(gasUsedHex)
+                blockGasUsed = blockGasUsed.add(gasUsed)
+              } catch (gasError) {
+                console.warn('Invalid gas value in transaction:', tx.hash, gasUsedHex)
+              }
+            }
+          })
+          resultBlock.gasUsed = blockGasUsed.toHexString()
+
+          // Extract transaction hash array
+          const transactionHashes = resultBlock.transactions.map((tx: any) => tx.hash)
+          // Calculate transaction root using the transaction hash array
+          resultBlock.transactionsRoot = await this.calculateTransactionRoot(transactionHashes)
+        } else {
+          resultBlock.transactions = []
+          resultBlock.gasUsed = '0x0'
+        }
+      } catch (txError) {
+        console.error('Error fetching block transactions:', txError)
+        resultBlock.transactions = []
+        resultBlock.gasUsed = '0x0'
+      }
+
+      if (CONFIG.enableBlockCache) {
         this.blockCacheManager.update(blockSearchValue, blockSearchType, resultBlock)
-      //if we dont need details we must adjust the return value that we got from cache
+      }
+
       if (details === false) {
         //need a shallow copy because we will mutate transactions field
         return this.mutateTxField(resultBlock)
@@ -576,8 +578,7 @@ class Collector extends BaseExternal {
       const res = await axiosWithRetry<{ success: boolean; cycles: any[] }>(requestConfig)
       if (!res.data.success || !res.data.cycles || res.data.cycles.length === 0) {
         console.log(
-          `No cycles found in the response ${
-            cycleNumber ? `for cycleNumber: ${cycleNumber}` : 'for latest cycle'
+          `No cycles found in the response ${cycleNumber ? `for cycleNumber: ${cycleNumber}` : 'for latest cycle'
           }`
         )
         return null

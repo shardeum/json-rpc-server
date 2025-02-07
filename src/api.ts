@@ -604,7 +604,7 @@ async function injectAndRecordTx(
         }
         if (config.verbose)
           console.log('The IP address blacklisted is', nodeIpPort)
-          // Reassign nodeIpPort and baseUrl to find a new pair
+            // Reassign nodeIpPort and baseUrl to find a new pair
         ;({ nodeIpPort, baseUrl } = getBaseUrl())
       }
     } while (entry !== undefined)
@@ -3137,7 +3137,8 @@ export const methods = {
     if (fromBlock === 'earliest') {
       fromBlock = '0x0'
     }
-    if (fromBlock === 'latest') {
+    // If fromBlock is not provided, use latest block number as default value
+    if (!fromBlock || fromBlock === 'latest') {
       fromBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!fromBlock || !isHex(fromBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
@@ -3146,8 +3147,8 @@ export const methods = {
         return
       }
     }
-
-    if (toBlock === 'latest') {
+    // If toBlock is not provided, use latest block number as default value
+    if (!toBlock || toBlock === 'latest') {
       toBlock = await getBlockNumberForLatest(lastBlockInfo)
       if (!toBlock || !isHex(toBlock)) {
         callback(null, new Error(`eth_getLogs: failed to get current block`))
@@ -3858,6 +3859,7 @@ export const methods = {
   },
   shardeum_getNodeList: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shardeum_getNodeList'
+    nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
@@ -3865,23 +3867,62 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
 
     try {
+      // Validate input parameters
       if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'object')) {
-        callback({ code: -32602, message: 'Invalid params: Expected an object or no parameters.' }, null)
+        const error = { code: -32602, message: 'Invalid params: Expected an object or no parameters.' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
         countFailedResponse(api_name, 'Invalid params')
         return
       }
 
       const params = args[0] || {}
-      const page = Math.max(1, parseInt(params.page) || 1)
-      const limit = Math.min(1000, Math.max(1, parseInt(params.limit) || 100))
-      const nodeListResult = await archiverAPI.getNodeList(page, limit)
+
+      // Validate and parse page parameter
+      const pageParam = parseInt(params.page)
+      if (params.page && (isNaN(pageParam) || pageParam < 1)) {
+        const error = { code: -32602, message: 'Invalid page parameter: Must be a positive integer' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
+        countFailedResponse(api_name, 'Invalid page parameter')
+        return
+      }
+      const page = pageParam || 1
+
+      // Validate and parse limit parameter
+      const limitParam = parseInt(params.limit)
+      if (params.limit && (isNaN(limitParam) || limitParam < 1)) {
+        const error = { code: -32602, message: 'Invalid limit parameter: Must be a positive integer' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
+        countFailedResponse(api_name, 'Invalid limit parameter')
+        return
+      }
+      const limit = Math.min(1000, limitParam || 100)
+
+      // Get node list from archiver
+      const nodeListResult = await archiverAPI.getPaginatedNodeList(page, limit)
+      if (!nodeListResult) {
+        const error = { code: -32603, message: 'Failed to retrieve node list' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
+        countFailedResponse(api_name, 'Failed to retrieve node list')
+        return
+      }
 
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, nodeListResult)
       countSuccessResponse(api_name, 'success', 'archiver')
+
     } catch (error: any) {
-      logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
-      callback(error, null)
+      const errorMessage = error?.message || 'Internal server error'
+      const errorResponse = {
+        code: -32603,
+        message: errorMessage
+      }
+      logEventEmitter.emit('fn_end', ticket, { success: false, error: errorMessage }, performance.now())
+      callback(errorResponse, null)
+      countFailedResponse(api_name, `Exception: ${errorMessage}`)
     }
   },
 
@@ -3912,7 +3953,7 @@ export const methods = {
           maintenanceFee: current.maintenanceFee,
           maintenanceInterval: current.maintenanceInterval,
           penalty: {
-            amount: current.nodePenaltyUsd.value,
+            amount: `0x${current.nodePenaltyUsd.value}`,
             currency: 'shm',
           },
           slashing: {
@@ -3921,12 +3962,12 @@ export const methods = {
             syncTimeoutPenaltyPercent: current.slashing.syncTimeoutPenaltyPercent,
           },
           reward: {
-            amount: current.nodeRewardAmountUsd.value,
+            amount: `0x${current.nodeRewardAmountUsd.value}`,
             currency: 'shm',
             nodeRewardInterval: current.nodeRewardInterval,
           },
           requiredStake: {
-            amount: current.stakeRequiredUsd.value,
+            amount: `0x${current.stakeRequiredUsd.value}`,
             currency: 'shm',
           },
           restakeCooldown: current.restakeCooldown,
@@ -3951,61 +3992,68 @@ export const methods = {
   shardeum_getCycleInfo: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'shardeum_getCycleInfo'
     nestedCountersInstance.countEvent('endpoint', api_name)
-
-    if (
-      !Array.isArray(args) ||
-      args.length > 1 ||
-      (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)
-    ) {
-      callback({ code: -32602, message: 'Invalid params: Expected a single number or null.' }, null)
-      countFailedResponse(api_name, 'Invalid params: Expected a single number or null.')
-      return
-    }
     const ticket = crypto
       .createHash('sha1')
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
-
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    const cycleNumber = args.length === 1 ? args[0] : null
+
     try {
-      const result = await collectorAPI.getCycleInfo(cycleNumber)
-
-      if (result) {
-        const cycleRecord = result.cycleRecord
-        // transform the response to match the spec structure
-        const restructuredData = {
-          cycleCounter: cycleRecord.counter,
-          startTime: cycleRecord.start * 1000,
-          endTime: (cycleRecord.start + cycleRecord.duration) * 1000,
-          nodes: {
-            active: cycleRecord.active,
-            standby: cycleRecord.standby,
-            syncing: cycleRecord.syncing,
-          },
-          desired: cycleRecord.desired,
-          duration: cycleRecord.duration,
-          maxSyncTime: cycleRecord.maxSyncTime,
-          timestamp: cycleRecord.timestamp,
-        }
-
-        const response = {
-          cycleInfo: restructuredData,
-        }
-
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-        callback(null, response)
-        countSuccessResponse(api_name, 'success', 'collector')
-      } else {
-        logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
-        callback({ code: -32000, message: 'Cycle info not found' }, null)
-        countFailedResponse(api_name, 'Cycle info not found')
+      // Validate input parameters
+      if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)) {
+        const error = { code: -32602, message: 'Invalid params: Expected a single number or null.' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
+        countFailedResponse(api_name, 'Invalid params')
+        return
       }
+
+      const cycleNumber = args.length === 1 ? args[0] : null
+
+      // Get cycle info from collector
+      const result = await collectorAPI.getCycleInfo(cycleNumber)
+      if (!result) {
+        const error = { code: -32000, message: 'Cycle info not found' }
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
+        callback(error, null)
+        countFailedResponse(api_name, 'Cycle info not found')
+        return
+      }
+
+      const cycleRecord = result.cycleRecord
+      const restructuredData = {
+        cycleCounter: cycleRecord.counter,
+        startTime: cycleRecord.start * 1000,
+        endTime: (cycleRecord.start + cycleRecord.duration) * 1000,
+        nodes: {
+          active: cycleRecord.active,
+          standby: cycleRecord.standby,
+          syncing: cycleRecord.syncing,
+        },
+        desired: cycleRecord.desired,
+        duration: cycleRecord.duration,
+        maxSyncTime: cycleRecord.maxSyncTime,
+        timestamp: cycleRecord.timestamp,
+      }
+
+      const response = {
+        cycleInfo: restructuredData,
+      }
+
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, response)
+      countSuccessResponse(api_name, 'success', 'collector')
+
     } catch (error: any) {
-      console.error('Error fetching cycle info:', error)
-      logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
-      callback({ code: -32000, message: 'Failed to fetch cycle info', data: error.message }, null)
-      countFailedResponse(api_name, 'Failed to fetch cycle info')
+      const errorMessage = error?.message || 'Internal server error'
+      const errorResponse = {
+        code: -32000,
+        message: 'Failed to fetch cycle info',
+        data: errorMessage
+      }
+      logEventEmitter.emit('fn_end', ticket, { success: false, error: errorMessage }, performance.now())
+      callback(errorResponse, null)
+      countFailedResponse(api_name, `Exception: ${errorMessage}`)
     }
   },
 
