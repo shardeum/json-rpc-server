@@ -1,9 +1,12 @@
 import WebSocket from 'ws'
 import { subscriptionEventEmitter } from '.'
 import { CONFIG } from '../config'
-import { logSubscriptionList } from './clients'
+import { nestedCountersInstance } from '../utils/nestedCounters'
+import { blockSubscriptionList, logSubscriptionList } from './clients'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 export let evmLogProvider_ConnectionStream: WebSocket | null = null
+export let newHeadSubscriptionProvider_ConnectionStream: WebSocket | null = null
 
 const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port}`
 
@@ -29,12 +32,12 @@ export const setupEvmLogProviderConnectionStream = (): void => {
       value.socket.close()
     })
 
-    console.log('Attempting to establish websocket stream to log_server...')
+    console.log('Attempting to establish websocket stream to log_server for log subscription...')
     setTimeout(setupEvmLogProviderConnectionStream, 5000)
   })
   evmLogProvider_ConnectionStream.on('message', function message(data) {
     try {
-      const message = JSON.parse(data.toString())
+      const message = Utils.safeJsonParse(data.toString())
       if (message.method == 'subscribe') {
         if (!logSubscriptionList.getById(message.subscription_id)) {
           // unsubscribe
@@ -46,7 +49,7 @@ export const setupEvmLogProviderConnectionStream = (): void => {
           // }))
 
           logSubscriptionList.getById(message.subscription_id)?.socket.send(
-            JSON.stringify({
+            Utils.safeStringify({
               jsonrpc: '2.0',
               id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
               result: message.subscription_id,
@@ -54,7 +57,7 @@ export const setupEvmLogProviderConnectionStream = (): void => {
           )
         } else {
           logSubscriptionList.getById(message.subscription_id)?.socket.send(
-            JSON.stringify({
+            Utils.safeStringify({
               jsonrpc: '2.0',
               error: {
                 message: message.error.message,
@@ -69,7 +72,7 @@ export const setupEvmLogProviderConnectionStream = (): void => {
           const socket = logSubscriptionList.getById(message.subscription_id)?.socket
           try {
             socket?.send(
-              JSON.stringify({
+              Utils.safeStringify({
                 jsonrpc: '2.0',
                 id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
                 result: true,
@@ -87,7 +90,7 @@ export const setupEvmLogProviderConnectionStream = (): void => {
         } else {
           try {
             logSubscriptionList.getById(message.subscription_id)?.socket.send(
-              JSON.stringify({
+              Utils.safeStringify({
                 jsonrpc: '2.0',
                 id: logSubscriptionList.requestIdBySubscriptionId.get(message.subscription_id),
                 result: false,
@@ -112,5 +115,96 @@ export const setupEvmLogProviderConnectionStream = (): void => {
     } catch (e) {
       console.log(e)
     }
+  })
+}
+
+export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
+  if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
+  if (newHeadSubscriptionProvider_ConnectionStream?.readyState === 1 || newHeadSubscriptionProvider_ConnectionStream?.readyState === 0) return
+
+  newHeadSubscriptionProvider_ConnectionStream = new WebSocket.WebSocket(log_server_ws_url + '/newHead_subscription')
+
+  newHeadSubscriptionProvider_ConnectionStream.on('error', () => {
+    newHeadSubscriptionProvider_ConnectionStream?.close()
+  })
+
+  newHeadSubscriptionProvider_ConnectionStream.on('open', function open() {
+    console.log('NewHead Websocket Connection Established')
+  })
+
+  newHeadSubscriptionProvider_ConnectionStream.on('message', function message(data) {
+    try {
+      const message = Utils.safeJsonParse(data.toString())
+      if (message.method === 'subscribe') {
+        if (!blockSubscriptionList.has(message.subscription_id)) {
+          // subscription missing – possibly already unsubscribed
+        }
+        if (message.success) {
+          console.log('Returning NewHeads SubID')
+          const subscription = blockSubscriptionList.get(message.subscription_id)
+          subscription?.socket.send(
+            Utils.safeStringify({
+              jsonrpc: '2.0',
+              id: subscription.rpc_request_id,
+              result: message.subscription_id,
+            })
+          )
+        } else {
+          const subscription = blockSubscriptionList.get(message.subscription_id)
+          subscription?.socket.send(
+            Utils.safeStringify({
+              jsonrpc: '2.0',
+              error: { message: message.error.message, code: -1 },
+            })
+          )
+        }
+      }
+      if (message.method === 'unsubscribe') {
+        if (message.success) {
+          const subscription = blockSubscriptionList.get(message.subscription_id)
+          try {
+            subscription?.socket.send(
+              Utils.safeStringify({
+                jsonrpc: '2.0',
+                id: subscription.rpc_request_id,
+                result: true,
+              })
+            )
+          } catch (error) {
+            console.error('Failed to send message on WebSocket:', error)
+          }
+          blockSubscriptionList.delete(message.subscription_id)
+        } else {
+          const subscription = blockSubscriptionList.get(message.subscription_id)
+          try {
+            subscription?.socket.send(
+              Utils.safeStringify({
+                jsonrpc: '2.0',
+                id: subscription.rpc_request_id,
+                result: false,
+              })
+            )
+          } catch (error) {
+            console.error('Failed to send message on WebSocket:', error)
+          }
+        }
+      }
+      if (message.method === 'newBlock_produced') {
+        if (blockSubscriptionList.size === 0) return
+        const block = message.payload
+        subscriptionEventEmitter.emit('evm_newHead_received', block)
+      }
+    } catch (e) {
+      nestedCountersInstance.countEvent('websocket_subscriptions', 'Failed to broadcast new block to subscribers')
+    }
+  })
+
+  newHeadSubscriptionProvider_ConnectionStream.on('close', function close() {
+    for (const [subscriptionId, subscription] of blockSubscriptionList.entries()) {
+      subscription.socket.close()
+    }
+    blockSubscriptionList.clear()
+    console.log('Attempting to establish websocket stream to log_server for newHeads subscription...')
+    setTimeout(setupNewHeadSubscriptionProviderConnectionStream, 5000)
   })
 }
