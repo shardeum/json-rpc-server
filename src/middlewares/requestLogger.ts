@@ -1,11 +1,17 @@
 import { Request, Response, NextFunction } from 'express'
 import { CONFIG as config } from '../config'
+import createLogger from '../utils/logger'
+
+const logger = createLogger({
+  enableConsole: process.env.NODE_ENV !== 'production',
+  enableFile: process.env.NODE_ENV === 'production',
+  filename: 'logs/requests.log',
+})
 
 const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   if (config.enableRequestLogger) {
     const reqTime = Date.now()
-    const senderIp = req.ip
-    const userAgent = req.headers['user-agent'] || 'Unknown'
+    // const userAgent = req.headers['user-agent'] || 'Unknown'
 
     const responseChunks: Buffer[] = []
 
@@ -44,31 +50,33 @@ const requestLogger = (req: Request, res: Response, next: NextFunction): void =>
     }
 
     res.on('finish', () => {
-      const resTime = Date.now()
-
-      console.log(
-        `Request URL: ${req.originalUrl} ||` +
-          ` Response Status Code: ${res.statusCode} ||` +
-          ` Sender IP: ${senderIp} ||` +
-          ` Request Timestamp: ${new Date(reqTime).toISOString()} ||` +
-          ` Response Timestamp: ${new Date(resTime).toISOString()} ||` +
-          ` Request Method: ${req.method} ||` +
-          ` Response Time: ${resTime - reqTime}ms ||` +
-          ` User Agent: ${userAgent}`
-      )
+      logger.info({
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        requestTimestamp: new Date(reqTime).toISOString(),
+        responseTimestamp: new Date(Date.now()).toISOString(),
+        responseTime: Date.now() - reqTime,
+        request: req.body,
+        response: JSON.parse(res.locals.responseBody),
+      })
 
       const responseBody = res.locals.responseBody
       if (res.statusCode !== 200) {
-        console.log(
-          `Request Failed with ${res.statusCode} ||` +
-            `Request Body: ${JSON.stringify(req.body)} ||` +
-            ` Response Body: ${res.locals.responseBody}`
-        )
+        logger.error({
+          message: 'RPC Request Failed',
+          url: req.originalUrl,
+          statusCode: res.statusCode,
+          requestTimestamp: new Date(reqTime).toISOString(),
+          responseTimestamp: new Date(Date.now()).toISOString(),
+          responseTime: Date.now() - reqTime,
+          request: req.body,
+          response: JSON.parse(responseBody),
+        })
       } else if (responseBody) {
         try {
           const parsedBody = JSON.parse(responseBody)
           if (parsedBody && 'error' in parsedBody) {
-            console.log(
+            logger.error(
               `RPC Request Failed with Error ||` +
                 ` Request Body: ${JSON.stringify(req.body)} ||` +
                 ` Response Body: ${res.locals.responseBody}`
