@@ -83,11 +83,14 @@ describe('Logger', () => {
     const stdoutSpy = jest.spyOn(process.stdout, 'write')
     const testObject = { key: 'value', nested: { prop: 'test' } }
     
-    logger.info('Test message', testObject)
+    logger.info({ message: 'Test message', ...testObject })
     
     expect(stdoutSpy).toHaveBeenCalled()
     const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
     expect(output).toContain('Test message')
+    expect(output).toContain('"key":"value"')
+    expect(output).toContain('"nested":{"prop":"test"}')
+    
     stdoutSpy.mockRestore()
   })
 }) 

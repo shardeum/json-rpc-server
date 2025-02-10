@@ -11,7 +11,7 @@ const logger = createLogger({
 const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   if (config.enableRequestLogger) {
     const reqTime = Date.now()
-    // const userAgent = req.headers['user-agent'] || 'Unknown'
+    const userAgent = req.headers['user-agent'] || 'Unknown'
 
     const responseChunks: Buffer[] = []
 
@@ -49,42 +49,25 @@ const requestLogger = (req: Request, res: Response, next: NextFunction): void =>
       return originalSend(body)
     }
 
-    res.on('finish', () => {
-      logger.info({
-        url: req.originalUrl,
-        statusCode: res.statusCode,
-        requestTimestamp: new Date(reqTime).toISOString(),
-        responseTimestamp: new Date(Date.now()).toISOString(),
-        responseTime: Date.now() - reqTime,
-        request: req.body,
-        response: JSON.parse(res.locals.responseBody),
-      })
-
-      const responseBody = res.locals.responseBody
-      if (res.statusCode !== 200) {
-        logger.error({
-          message: 'RPC Request Failed',
+    res.once('finish', () => {
+      try {
+        const responseBody = JSON.parse(res.locals.responseBody)
+        logger[responseBody.result ? 'info' : 'error']({
+          type: 'request',
           url: req.originalUrl,
+          userAgent,
           statusCode: res.statusCode,
           requestTimestamp: new Date(reqTime).toISOString(),
           responseTimestamp: new Date(Date.now()).toISOString(),
           responseTime: Date.now() - reqTime,
           request: req.body,
-          response: JSON.parse(responseBody),
+          response: responseBody,
         })
-      } else if (responseBody) {
-        try {
-          const parsedBody = JSON.parse(responseBody)
-          if (parsedBody && 'error' in parsedBody) {
-            logger.error(
-              `RPC Request Failed with Error ||` +
-                ` Request Body: ${JSON.stringify(req.body)} ||` +
-                ` Response Body: ${res.locals.responseBody}`
-            )
-          }
-        } catch (e) {
-          // Silently fail if parsing fails, no logging here
-        }
+      } catch (e) {
+        logger.error({
+          type: 'request',
+          message: 'Failed to parse response body',
+        })
       }
     })
   }

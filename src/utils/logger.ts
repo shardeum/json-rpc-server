@@ -1,5 +1,5 @@
 import winston, { format } from 'winston'
-const { printf, timestamp, colorize, combine, splat } = format
+const { printf, timestamp, colorize, combine } = format
 
 const singleLineFormat = format((info) => {
   // Keep timestamp and level as is
@@ -12,11 +12,17 @@ const singleLineFormat = format((info) => {
     }
   })
 
-  return { ...rest, timestamp, level: level.toUpperCase() }
+  return { ...rest, timestamp, level }
 })
 
-const customFormat = printf(({ level, message, timestamp }) => {
-  return `${timestamp} ${level}: ${message}`
+const uppercaseFormat = format((info) => {
+  return { ...info, level: info.level.toUpperCase() }
+})
+
+const customFormat = printf((info) => {
+  const { timestamp, level, message, ...rest } = info
+  const logObject = typeof message === 'object' ? message : { ...rest, message }
+  return `${timestamp} ${level} ${JSON.stringify(logObject)}`
 })
 
 type LoggerOptions = {
@@ -37,7 +43,12 @@ const createLogger = (options: LoggerOptions) => {
   if (enableConsole) {
     transports.push(
       new winston.transports.Console({
-        format: combine(timestamp(), colorize({ all: true }), customFormat),
+        format: combine(
+          timestamp(),
+          uppercaseFormat(),
+          colorize({ all: false, level: true }),
+          customFormat
+        ),
       })
     )
   }
@@ -45,7 +56,7 @@ const createLogger = (options: LoggerOptions) => {
     transports.push(
       new winston.transports.File({
         filename,
-        format: combine(timestamp(), singleLineFormat(), customFormat),
+        format: combine(timestamp(), uppercaseFormat(), customFormat),
       })
     )
   }
@@ -53,7 +64,7 @@ const createLogger = (options: LoggerOptions) => {
     transports,
   })
 }
-export default createLogger;
+export default createLogger
 
 // type ConsoleLogLike = (...args: unknown[]) => void
 
