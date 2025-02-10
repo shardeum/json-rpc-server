@@ -1,10 +1,27 @@
 import { Request, Response, NextFunction } from 'express'
 import { CONFIG as config } from '../config'
+import createLogger from '../utils/logger'
+import crypto from 'crypto'
+
+// default to true if not set
+const enableConsole = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING === 'true'
+
+let enableFile: boolean = true;
+if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
+  enableFile = false;
+} 
+
+const logDir = process.env.SHARDEUM_JSONRPC_LOGGING_DIR || 'logs';
+
+const logger = createLogger({
+  enableConsole,
+  enableFile,
+  filename: `${logDir}/requests.log`,
+})
 
 const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   if (config.enableRequestLogger) {
     const reqTime = Date.now()
-    const senderIp = req.ip
     const userAgent = req.headers['user-agent'] || 'Unknown'
 
     const responseChunks: Buffer[] = []
@@ -43,40 +60,24 @@ const requestLogger = (req: Request, res: Response, next: NextFunction): void =>
       return originalSend(body)
     }
 
-    res.on('finish', () => {
-      const resTime = Date.now()
-
-      console.log(
-        `Request URL: ${req.originalUrl} ||` +
-          ` Response Status Code: ${res.statusCode} ||` +
-          ` Sender IP: ${senderIp} ||` +
-          ` Request Timestamp: ${new Date(reqTime).toISOString()} ||` +
-          ` Response Timestamp: ${new Date(resTime).toISOString()} ||` +
-          ` Request Method: ${req.method} ||` +
-          ` Response Time: ${resTime - reqTime}ms ||` +
-          ` User Agent: ${userAgent}`
-      )
-
-      const responseBody = res.locals.responseBody
-      if (res.statusCode !== 200) {
-        console.log(
-          `Request Failed with ${res.statusCode} ||` +
-            `Request Body: ${JSON.stringify(req.body)} ||` +
-            ` Response Body: ${res.locals.responseBody}`
-        )
-      } else if (responseBody) {
-        try {
-          const parsedBody = JSON.parse(responseBody)
-          if (parsedBody && 'error' in parsedBody) {
-            console.log(
-              `RPC Request Failed with Error ||` +
-                ` Request Body: ${JSON.stringify(req.body)} ||` +
-                ` Response Body: ${res.locals.responseBody}`
-            )
-          }
-        } catch (e) {
-          // Silently fail if parsing fails, no logging here
-        }
+    res.once('finish', () => {
+      try {
+        // TODO: remove sendRawTx or filter or replace it with a dummy one or something
+        const responseBody = JSON.parse(res.locals.responseBody)
+        logger[responseBody.result ? 'info' : 'error']({
+          type: 'request',
+          userAgent,
+          hashedIp: crypto.createHash('sha256').update(req.ip).digest('hex'),
+          statusCode: res.statusCode,
+          responseTime: Date.now() - reqTime,
+          request: req.body,
+          response: responseBody,
+        })
+      } catch (e) {
+        logger.error({
+          type: 'request',
+          message: 'Failed to parse response body',
+        })
       }
     })
   }
