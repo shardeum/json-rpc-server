@@ -32,6 +32,7 @@ type LoggerOptions = {
 }
 
 const defaultOptions: LoggerOptions = {
+  // TODO: add logLevels from winston
   enableConsole: true,
   enableFile: false,
   filename: 'logs/requests.log',
@@ -56,7 +57,7 @@ const createLogger = (options: LoggerOptions) => {
     transports.push(
       new winston.transports.File({
         filename,
-        format: combine(timestamp(), uppercaseFormat(), customFormat),
+        format: combine(timestamp(), uppercaseFormat(), customFormat, singleLineFormat()),
       })
     )
   }

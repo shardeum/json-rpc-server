@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express'
 import { CONFIG as config } from '../config'
 import createLogger from '../utils/logger'
+import crypto from 'crypto'
+
 
 const logger = createLogger({
   enableConsole: process.env.NODE_ENV !== 'production',
@@ -51,14 +53,13 @@ const requestLogger = (req: Request, res: Response, next: NextFunction): void =>
 
     res.once('finish', () => {
       try {
+        // TODO: remove sendRawTx or filter or replace it with a dummy one or something
         const responseBody = JSON.parse(res.locals.responseBody)
         logger[responseBody.result ? 'info' : 'error']({
           type: 'request',
-          url: req.originalUrl,
           userAgent,
+          hashedIp: crypto.createHash('sha256').update(req.ip).digest('hex'),
           statusCode: res.statusCode,
-          requestTimestamp: new Date(reqTime).toISOString(),
-          responseTimestamp: new Date(Date.now()).toISOString(),
           responseTime: Date.now() - reqTime,
           request: req.body,
           response: responseBody,
