@@ -1,5 +1,4 @@
 import pino from 'pino'
-import { WriteStream } from 'fs'
 
 type LoggerOptions = {
   enableConsole: boolean
@@ -23,29 +22,26 @@ const createLogger = (options: LoggerOptions) => {
       }
     },
     timestamp: () => `,"time":"${new Date(Date.now()).toISOString()}"`,
+    // Only use sync mode if we're writing to console (needed for tests)
+    sync: enableConsole
   }
 
-  const destinations: any[] = []
+  const streams = []
   
   if (enableConsole) {
-    destinations.push(pino.destination({ 
-      sync: true,
-      dest: 1, // stdout
-      minLength: 4096, // Ensure immediate flushing
-      mkdir: true
-    }))
+    streams.push({ stream: process.stdout })
   }
   
   if (enableFile) {
-    destinations.push(pino.destination({ 
-      sync: true,
-      dest: filename,
-      minLength: 4096, // Ensure immediate flushing
-      mkdir: true
-    }))
+    streams.push({ 
+      stream: pino.destination({ 
+        dest: filename,
+        // Use async mode for better performance if only writing to file
+        sync: enableConsole,
+        mkdir: true
+      })
+    })
   }
-
-  const streams = destinations.map(dest => ({ stream: dest }))
 
   return pino(
     baseOptions,
