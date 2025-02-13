@@ -1,15 +1,19 @@
-import { existsSync, unlinkSync } from 'fs'
+import { existsSync, unlinkSync, readFileSync } from 'fs'
 import createLogger from '../../../src/utils/logger'
-import { transports } from 'winston'
 
 describe('Logger', () => {
   const testLogFile = 'test-logs.log'
+  let stdoutSpy: jest.SpyInstance
   
-  // Clean up test log file after each test
+  beforeEach(() => {
+    stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
+  })
+
   afterEach(() => {
     if (existsSync(testLogFile)) {
       unlinkSync(testLogFile)
     }
+    stdoutSpy.mockRestore()
   })
 
   it('should create a console-only logger when enableFile is false', () => {
@@ -19,78 +23,93 @@ describe('Logger', () => {
       filename: testLogFile
     })
     
-    expect(logger.transports).toHaveLength(1)
-    expect(logger.transports[0]).toBeInstanceOf(transports.Console)
+    logger.info('Test message')
+    expect(stdoutSpy).toHaveBeenCalled()
+    const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const logObject = JSON.parse(output)
+    expect(logObject.level).toBe('INFO')
+    expect(logObject.msg).toBe('Test message')
+    expect(logObject.time).toBeDefined()
   })
 
-  it('should create a file-only logger when enableConsole is false', () => {
+  it('should create a file-only logger when enableConsole is false', async () => {
     const logger = createLogger({
       enableConsole: false,
       enableFile: true,
       filename: testLogFile
     })
     
-    expect(logger.transports).toHaveLength(1)
-    expect(logger.transports[0]).toBeInstanceOf(transports.File)
-  })
-
-  it('should create both console and file transports when both are enabled', () => {
-    const logger = createLogger({
-      enableConsole: true,
-      enableFile: true,
-      filename: testLogFile
-    })
+    logger.info('Test message')
     
-    expect(logger.transports).toHaveLength(2)
-    expect(logger.transports.some(t => t instanceof transports.Console)).toBe(true)
-    expect(logger.transports.some(t => t instanceof transports.File)).toBe(true)
-  })
-
-  it('should use default options when none are provided', () => {
-    const logger = createLogger({
-      enableConsole: true,
-      enableFile: false,
-      filename: testLogFile
-    })
-    
-    expect(logger.transports).toHaveLength(1)
-    expect(logger.transports[0]).toBeInstanceOf(transports.Console)
-  })
-
-  it('should write logs to file when file transport is enabled', async () => {
-    const logger = createLogger({
-      enableConsole: false,
-      enableFile: true,
-      filename: testLogFile
-    })
-
-    const testMessage = 'Test log message'
-    logger.info(testMessage)
-    
-    // Wait a bit for the file to be written
+    // Wait for file write
     await new Promise(resolve => setTimeout(resolve, 100))
     
     expect(existsSync(testLogFile)).toBe(true)
+    const fileContent = readFileSync(testLogFile, 'utf8')
+    const logObject = JSON.parse(fileContent)
+    expect(logObject.level).toBe('INFO')
+    expect(logObject.msg).toBe('Test message')
+    expect(logObject.time).toBeDefined()
   })
 
-  it('should format object messages correctly', async () => {
+  it('should create both console and file outputs when both are enabled', async () => {
+    const logger = createLogger({
+      enableConsole: true,
+      enableFile: true,
+      filename: testLogFile
+    })
+    
+    logger.info('Test message')
+    
+    // Wait for file write
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Check console output
+    expect(stdoutSpy).toHaveBeenCalled()
+    const consoleOutput = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const consoleLogObject = JSON.parse(consoleOutput)
+    expect(consoleLogObject.level).toBe('INFO')
+    expect(consoleLogObject.msg).toBe('Test message')
+    expect(consoleLogObject.time).toBeDefined()
+    
+    // Check file output
+    expect(existsSync(testLogFile)).toBe(true)
+    const fileContent = readFileSync(testLogFile, 'utf8')
+    const fileLogObject = JSON.parse(fileContent)
+    expect(fileLogObject.level).toBe('INFO')
+    expect(fileLogObject.msg).toBe('Test message')
+    expect(fileLogObject.time).toBeDefined()
+  })
+
+  it('should use default options when none are provided', () => {
+    const logger = createLogger({} as any)
+    
+    logger.info('Test message')
+    expect(stdoutSpy).toHaveBeenCalled()
+    const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const logObject = JSON.parse(output)
+    expect(logObject.level).toBe('INFO')
+    expect(logObject.msg).toBe('Test message')
+    expect(logObject.time).toBeDefined()
+  })
+
+  it('should format object messages correctly', () => {
     const logger = createLogger({
       enableConsole: true,
       enableFile: false,
       filename: testLogFile
     })
 
-    const stdoutSpy = jest.spyOn(process.stdout, 'write')
     const testObject = { key: 'value', nested: { prop: 'test' } }
-    
     logger.info({ message: 'Test message', ...testObject })
     
     expect(stdoutSpy).toHaveBeenCalled()
     const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
-    expect(output).toContain('Test message')
-    expect(output).toContain('"key":"value"')
-    expect(output).toContain('"nested":{"prop":"test"}')
-    
-    stdoutSpy.mockRestore()
+    const logObject = JSON.parse(output)
+    expect(logObject.level).toBe('INFO')
+    expect(logObject.message).toBe('Test message')
+    expect(logObject.key).toBe('value')
+    expect(logObject.nested).toEqual({ prop: 'test' })
+    expect(logObject.time).toBeDefined()
   })
 }) 

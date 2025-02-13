@@ -5,8 +5,8 @@ import crypto from 'crypto'
 
 
 const logger = createLogger({
-  enableConsole: process.env.NODE_ENV !== 'production',
-  enableFile: process.env.NODE_ENV === 'production',
+  enableConsole: process.env.JSONRPC_REQUEST_CONSOLE_LOGGING === 'true',
+  enableFile: process.env.JSONRPC_REQUEST_FILE_LOGGING === 'true',
   filename: 'logs/requests.log',
 })
 

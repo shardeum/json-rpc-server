@@ -104,6 +104,11 @@ make clean
 
 This will remove all docker images created by the server during the build process.
 
+# Request Logging
+Request logging can be turned on by setting `JSONRPC_REQUEST_FILE_LOGGING=true` in your environment. The logs can then be viewed by running `npm run tail-request-logs`.
+
+These can also be inline in the console by setting `JSONRPC_REQUEST_CONSOLE_LOGGING=true` in your environment.
+
 # DEBUG Endpoints
 
 These api are protected preventing general public to wiping out debug data to authenticate use `/authenticate/:passphrase`. `passphrase` is set in `config.ts` config file or within the system env variable.
