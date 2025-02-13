@@ -50,7 +50,6 @@ import { nestedCountersInstance } from './utils/nestedCounters'
 import { trySpendServicePoints } from './utils/servicePoints'
 import { archiverAPI } from './external/Archiver'
 import { TTLMap } from './utils/TTLMap'
-import { Logger } from 'winston'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
