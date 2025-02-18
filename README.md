@@ -43,7 +43,7 @@ Let’s install the project source code, switch to `dev` branch and follow the b
 
 ```bash
 git clone https://github.com/shardeum/json-rpc-server.git
-cd shardeum-json-rpc
+cd json-rpc-server
 git switch dev
 ```
 
