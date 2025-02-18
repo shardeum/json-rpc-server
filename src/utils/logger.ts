@@ -15,15 +15,13 @@ const defaultOptions: LoggerOptions = {
 const createLogger = (options: LoggerOptions) => {
   const { enableConsole, enableFile, filename } = { ...defaultOptions, ...options }
   
-  const baseOptions = {
+  const baseOptions: pino.LoggerOptions = {
     formatters: {
       level: (label: string) => {
         return { level: label.toUpperCase() }
-      }
+      },
     },
     timestamp: () => `,"time":"${new Date(Date.now()).toISOString()}"`,
-    // Only use sync mode if we're writing to console (needed for tests)
-    sync: enableConsole
   }
 
   const streams = []
@@ -36,8 +34,7 @@ const createLogger = (options: LoggerOptions) => {
     streams.push({ 
       stream: pino.destination({ 
         dest: filename,
-        // Use async mode for better performance if only writing to file
-        sync: enableConsole,
+        sync: false,
         mkdir: true
       })
     })

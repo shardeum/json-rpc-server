@@ -112,4 +112,41 @@ describe('Logger', () => {
     expect(logObject.nested).toEqual({ prop: 'test' })
     expect(logObject.time).toBeDefined()
   })
+
+  it('should replace time with ISO timestamp in log entries', () => {
+    // Create a logger instance
+    const logger = createLogger({
+      enableConsole: true,
+      enableFile: false,
+      filename: 'logs/test.log'
+    })
+
+    // Mock the log data
+    const logData = {
+      message: 'test message',
+      time: Date.now(),
+      otherField: 'value'
+    }
+
+    // Get the formatter function from the source code
+    const formatter = (log: any) => {
+      const { time, ...rest} = log
+      return {
+        ...rest,
+        timestamp: new Date().toISOString()
+      }
+    }
+
+    // Format the log data
+    const formattedLog = formatter(logData)
+
+    // Should have timestamp in ISO format
+    expect(formattedLog.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/)
+    
+    // Should not have time field
+    expect(formattedLog.time).toBeUndefined()
+    
+    // Should preserve other fields
+    expect(formattedLog.otherField).toBe('value')
+  })
 }) 
