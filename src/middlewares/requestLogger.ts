@@ -7,9 +7,7 @@ import crypto from 'crypto'
 const enableConsole = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING === 'true'
 
 let enableFile: boolean = true;
-if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'true') {
-  enableFile = true;
-} else if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
+if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
   enableFile = false;
 } 
 
