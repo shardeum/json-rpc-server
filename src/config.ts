@@ -185,7 +185,7 @@ export const CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
-  enableRequestLogger: true,
+  enableRequestLogger: process.env.SHARDEUM_JSONRPC_ENABLE_REQUEST_LOGGING === 'true' || false,
   verboseRequestWithRetry: false,
   verboseAALG: false,
   firstLineLogs: true, // default is true and turn off for prod for perf

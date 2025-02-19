@@ -39,7 +39,7 @@ If you are using `Docker`, in order to run the Shardeum JSON-RPC server, you mus
 
 ## Installing project source code
 
-Let’s install the project source code, switch to `dev` branch and follow the below instructions:
+Let's install the project source code, switch to `dev` branch and follow the below instructions:
 
 ```bash
 git clone https://github.com/shardeum/json-rpc-server.git
@@ -105,9 +105,15 @@ make clean
 This will remove all docker images created by the server during the build process.
 
 # Request Logging
-Request logging can be turned on by setting `JSONRPC_REQUEST_FILE_LOGGING=true` in your environment. The logs can then be viewed by running `npm run tail-request-logs`.
 
-These can also be inline in the console by setting `JSONRPC_REQUEST_CONSOLE_LOGGING=true` in your environment.
+Request logging can be enabled by setting `SHARDEUM_JSONRPC_ENABLE_REQUEST_LOGGING=true` in your environment. When enabled:
+
+- File logging is enabled by default and logs are written to `logs/requests.log`
+  - Can be disabled by explicitly setting `SHARDEUM_JSONRPC_FILE_LOGGING=false`
+  - The logs can be viewed by running `npm run tail-request-logs`
+- Console logging is disabled by default
+  - Can be enabled by setting `SHARDEUM_JSONRPC_CONSOLE_LOGGING=true`
+
 
 # DEBUG Endpoints
 

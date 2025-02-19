@@ -9,7 +9,8 @@ jest.mock('../../../src/utils/logger', () => {
     info: jest.fn(),
     error: jest.fn(),
   }
-  return jest.fn(() => mockLogger)
+  const mockCreateLogger = jest.fn(() => mockLogger)
+  return mockCreateLogger
 })
 
 describe('requestLogger middleware', () => {
@@ -21,6 +22,9 @@ describe('requestLogger middleware', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks()
+    
+    // Get reference to mocked logger
+    mockLogger = (createLogger as jest.Mock)()
     
     // Mock request object
     mockReq = {
@@ -44,9 +48,6 @@ describe('requestLogger middleware', () => {
 
     // Mock next function
     mockNext = jest.fn()
-
-    // Get reference to mocked logger
-    mockLogger = (createLogger as jest.Mock)() as any
   })
 
   it('should not log when request logging is disabled', () => {
@@ -305,4 +306,367 @@ describe('requestLogger middleware', () => {
     expect(mockWrite).toHaveBeenCalledTimes(2)
   })
 
+  it('should handle all file logging env var conditions', async () => {
+    // Save original env var
+    const originalFileLogging = process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    
+    // Test when env var is not set (should default to true)
+    delete process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Test when env var is 'true'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger2 = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger2)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger2).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Test when env var is 'false'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger3 = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger3)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger3).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Restore original env var
+    if (originalFileLogging === undefined) {
+      delete process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    } else {
+      process.env.SHARDEUM_JSONRPC_FILE_LOGGING = originalFileLogging
+    }
+  })
+
+  it('should create logger with correct console and file logging settings', async () => {
+    // Save original env vars
+    const originalConsoleLogging = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING
+    const originalFileLogging = process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    
+    // Test case 1: both console and file logging enabled
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'true'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: true,
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Test case 2: console logging disabled, file logging enabled
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'false'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger2 = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger2)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger2).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: false,
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Test case 3: console logging enabled, file logging disabled
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'true'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger3 = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger3)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger3).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: true,
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Test case 4: both console and file logging disabled
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'false'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger4 = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger4)
+    await import('../../../src/middlewares/requestLogger')
+    expect(mockCreateLogger4).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: false,
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+    
+    // Restore original env vars
+    if (originalConsoleLogging === undefined) {
+      delete process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING
+    } else {
+      process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = originalConsoleLogging
+    }
+    
+    if (originalFileLogging === undefined) {
+      delete process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    } else {
+      process.env.SHARDEUM_JSONRPC_FILE_LOGGING = originalFileLogging
+    }
+  })
+
+  it('should use correct logger level based on response result', () => {
+    CONFIG.enableRequestLogger = true
+    
+    // Test case 1: response with result = true
+    mockRes.locals.responseBody = JSON.stringify({ id: 1, jsonrpc: '2.0', result: true })
+    
+    requestLogger(mockReq as Request, mockRes as Response, mockNext)
+    const onceHandler1 = (mockRes.once as jest.Mock).mock.calls[0][1]
+    onceHandler1()
+    
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'request',
+      request: mockReq.body,
+      response: { id: 1, jsonrpc: '2.0', result: true },
+      userAgent: 'test-agent',
+      hashedIp: expect.any(String),
+      statusCode: 200,
+      responseTime: expect.any(Number)
+    }))
+    
+    // Test case 2: response with result = null
+    jest.clearAllMocks()
+    mockRes.locals.responseBody = JSON.stringify({ id: 1, jsonrpc: '2.0', result: null })
+    
+    requestLogger(mockReq as Request, mockRes as Response, mockNext)
+    const onceHandler2 = (mockRes.once as jest.Mock).mock.calls[0][1]
+    onceHandler2()
+    
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'request',
+      request: mockReq.body,
+      response: { id: 1, jsonrpc: '2.0', result: null },
+      userAgent: 'test-agent',
+      hashedIp: expect.any(String),
+      statusCode: 200,
+      responseTime: expect.any(Number)
+    }))
+    
+    // Test case 3: response with result = false
+    jest.clearAllMocks()
+    mockRes.locals.responseBody = JSON.stringify({ id: 1, jsonrpc: '2.0', result: false })
+    
+    requestLogger(mockReq as Request, mockRes as Response, mockNext)
+    const onceHandler3 = (mockRes.once as jest.Mock).mock.calls[0][1]
+    onceHandler3()
+    
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'request',
+      request: mockReq.body,
+      response: { id: 1, jsonrpc: '2.0', result: false },
+      userAgent: 'test-agent',
+      hashedIp: expect.any(String),
+      statusCode: 200,
+      responseTime: expect.any(Number)
+    }))
+  })
+
+})
+
+describe('file logging configuration', () => {
+  let originalFileLogging: string | undefined
+  let originalConsoleLogging: string | undefined
+
+  beforeEach(() => {
+    originalFileLogging = process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    originalConsoleLogging = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING
+  })
+
+  afterEach(() => {
+    if (originalFileLogging === undefined) {
+      delete process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    } else {
+      process.env.SHARDEUM_JSONRPC_FILE_LOGGING = originalFileLogging
+    }
+    if (originalConsoleLogging === undefined) {
+      delete process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING
+    } else {
+      process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = originalConsoleLogging
+    }
+  })
+
+  async function createLoggerWithConfig() {
+    jest.resetModules()
+    jest.clearAllMocks()
+    const mockCreateLogger = jest.fn().mockReturnValue({ info: jest.fn(), error: jest.fn() })
+    jest.doMock('../../../src/utils/logger', () => mockCreateLogger)
+    await import('../../../src/middlewares/requestLogger')
+    return mockCreateLogger
+  }
+
+  it('should enable file logging by default when env var is not set', async () => {
+    delete process.env.SHARDEUM_JSONRPC_FILE_LOGGING
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should enable file logging when env var is true', async () => {
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should disable file logging when env var is false', async () => {
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should enable both console and file logging when both env vars are true', async () => {
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'true'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: true,
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should disable console but enable file logging when configured', async () => {
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'false'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'true'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: false,
+      enableFile: true,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should enable console but disable file logging when configured', async () => {
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'true'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: true,
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+  })
+
+  it('should disable both console and file logging when both env vars are false', async () => {
+    process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING = 'false'
+    process.env.SHARDEUM_JSONRPC_FILE_LOGGING = 'false'
+    const mockCreateLogger = await createLoggerWithConfig()
+    expect(mockCreateLogger).toHaveBeenCalledWith(expect.objectContaining({
+      enableConsole: false,
+      enableFile: false,
+      filename: 'logs/requests.log'
+    }))
+  })
+})
+
+describe('logger level selection', () => {
+  let mockReq: Partial<Request>
+  let mockRes: Partial<Response> & { locals: { responseBody?: any } }
+  let mockNext: NextFunction
+  let mockLogger: { info: jest.Mock; error: jest.Mock }
+
+  beforeEach(() => {
+    CONFIG.enableRequestLogger = true
+    
+    // Reset all mocks
+    jest.clearAllMocks()
+    
+    // Get reference to mocked logger
+    mockLogger = (createLogger as jest.Mock)()
+    
+    // Mock request object
+    mockReq = {
+      ip: '127.0.0.1',
+      headers: {
+        'user-agent': 'test-agent'
+      },
+      body: { method: 'test', params: [] }
+    }
+
+    // Mock response object
+    mockRes = {
+      statusCode: 200,
+      write: jest.fn(),
+      end: jest.fn(),
+      json: jest.fn(),
+      send: jest.fn(),
+      once: jest.fn(),
+      locals: {},
+    }
+
+    // Mock next function
+    mockNext = jest.fn()
+  })
+
+  function simulateResponse(result: any) {
+    mockRes.locals.responseBody = JSON.stringify({ id: 1, jsonrpc: '2.0', result })
+    requestLogger(mockReq as Request, mockRes as Response, mockNext)
+    const onceHandler = (mockRes.once as jest.Mock).mock.calls[0][1]
+    onceHandler()
+  }
+
+  const expectedLogData = {
+    type: 'request',
+    request: { method: 'test', params: [] },
+    userAgent: 'test-agent',
+    hashedIp: expect.any(String),
+    statusCode: 200,
+    responseTime: expect.any(Number)
+  }
+
+  it('should use info level when result is true', () => {
+    simulateResponse(true)
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.objectContaining({
+      ...expectedLogData,
+      response: { id: 1, jsonrpc: '2.0', result: true }
+    }))
+  })
+
+  it('should use error level when result is null', () => {
+    simulateResponse(null)
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
+      ...expectedLogData,
+      response: { id: 1, jsonrpc: '2.0', result: null }
+    }))
+  })
+
+  it('should use error level when result is false', () => {
+    simulateResponse(false)
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
+      ...expectedLogData,
+      response: { id: 1, jsonrpc: '2.0', result: false }
+    }))
+  })
 }) 
