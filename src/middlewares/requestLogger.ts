@@ -3,12 +3,19 @@ import { CONFIG as config } from '../config'
 import createLogger from '../utils/logger'
 import crypto from 'crypto'
 
+// default to true if not set
+const enableConsole = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING === 'true'
+
+let enableFile: boolean = true;
+if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'true') {
+  enableFile = true;
+} else if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
+  enableFile = false;
+} 
+
 const logger = createLogger({
-  enableConsole: process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING === 'true',
-  // default to true if not set
-  enableFile: process.env.SHARDEUM_JSONRPC_FILE_LOGGING
-    ? process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'true'
-    : true,
+  enableConsole,
+  enableFile,
   filename: 'logs/requests.log',
 })
 
