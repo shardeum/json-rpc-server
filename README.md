@@ -110,6 +110,7 @@ Request logging can be enabled by setting `SHARDEUM_JSONRPC_ENABLE_REQUEST_LOGGI
 
 - File logging is enabled by default and logs are written to `logs/requests.log`
   - Can be disabled by explicitly setting `SHARDEUM_JSONRPC_FILE_LOGGING=false`
+  - The logging directory can be configured using `SHARDEUM_JSONRPC_LOGGING_DIR` (defaults to `logs`)
   - The logs can be viewed by running `npm run tail-request-logs`
 - Console logging is disabled by default
   - Can be enabled by setting `SHARDEUM_JSONRPC_CONSOLE_LOGGING=true`

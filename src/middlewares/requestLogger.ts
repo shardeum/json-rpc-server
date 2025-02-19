@@ -11,10 +11,12 @@ if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
   enableFile = false;
 } 
 
+const logDir = process.env.SHARDEUM_JSONRPC_LOGGING_DIR || 'logs';
+
 const logger = createLogger({
   enableConsole,
   enableFile,
-  filename: 'logs/requests.log',
+  filename: `${logDir}/requests.log`,
 })
 
 const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
