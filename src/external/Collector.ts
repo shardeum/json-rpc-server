@@ -269,6 +269,16 @@ class Collector extends BaseExternal {
     details = false
   ): Promise<readableBlock | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
+    const MAX_BLOCK_SIZE = 1024 * 1024 // 1MB limit
+    const MAX_RESPONSE_TIME = 5 * 60 * 1000 // 5 min timeout
+    const MAX_RESPONSE_LENGTH = 10 * 1024 * 1024 // 10MB limit
+
+    // Validate input size
+    if (Buffer.from(blockSearchValue).length > MAX_BLOCK_SIZE) {
+      console.error('Block search value exceeds size limit')
+      return null
+    }
+
     nestedCountersInstance.countEvent('collector', 'getBlock')
     /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${blockSearchValue}`)
 
@@ -301,7 +311,11 @@ class Collector extends BaseExternal {
       }
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
 
-      const response = await axios.get(blockQuery).then((response) => response.data)
+      const response = await axios.get(blockQuery, {
+        maxContentLength: MAX_RESPONSE_LENGTH, //10MB limit
+        timeout: MAX_RESPONSE_TIME //5 min timeout
+      }).then((response) => response.data)
+
       if (!response.success) return null
 
       const { readableBlock, number } = response
@@ -326,7 +340,11 @@ class Collector extends BaseExternal {
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock txQuery: ${txQuery}`)
 
       try {
-        const txResponse = await axios.get(txQuery)
+        const txResponse = await axios.get(txQuery, {
+          maxContentLength: MAX_RESPONSE_LENGTH, //10MB limit
+          timeout: MAX_RESPONSE_TIME //5 min timeout
+        })
+
         if (txResponse.data.success && txResponse.data.transactions) {
           resultBlock.transactions = txResponse.data.transactions.map((tx: any) => this.decodeTransaction(tx))
           // Calculate block gas used with proper hex value handling
