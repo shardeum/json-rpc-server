@@ -116,6 +116,9 @@ type Config = {
   axiosTimeoutInMs: number
   enableBlacklistingIP: boolean
   maxEntriesAllowed: number // maximum number of entries allowed for map to store
+  otterscanMethods:{
+    enabled: boolean
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -203,8 +206,8 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: false,
-    collectorApiServerUrl: 'http://0.0.0.0:6001',
+    enabled: true,
+    collectorApiServerUrl: 'http://0.0.0.0:6101',
   },
   serviceValidatorSourcing: {
     enabled: false,
@@ -269,4 +272,7 @@ export const CONFIG: Config = {
   axiosTimeoutInMs: 3000,
   enableBlacklistingIP: false,
   maxEntriesAllowed: 10000,
+  otterscanMethods: {
+    enabled: true,
+  },
 }

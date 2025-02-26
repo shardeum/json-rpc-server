@@ -2,7 +2,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { verbose, firstLineLogs } from '../api'
 import { CONFIG } from '../config'
-import { LogQueryRequest, TxByBlockRequest } from '../types'
+import { LogQueryRequest, TransactionFromExplorer, TxByBlockRequest, WrappedEVMAccount } from '../types'
 import { BaseExternal, axiosWithRetry } from './BaseExternal'
 import {
   TransactionFactory,
@@ -613,8 +613,343 @@ class Collector extends BaseExternal {
       return null
     }
   }
+  private parseWrappedEVMAccount(wrappedEVMAccount: string | WrappedEVMAccount): any {
+    try {
+      if (typeof wrappedEVMAccount === 'string') {
+        return JSON.parse(wrappedEVMAccount)
+      }
+      return wrappedEVMAccount
+    } catch (e) {
+      console.error('Error parsing wrappedEVMAccount:', e)
+      return null
+    }
+  }
+  async searchTransactions(
+    address: string,
+    options: TransactionSearchOptions
+  ): Promise<TransactionSearchResponse | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    try {
+      const pageSize = options.pageSize || 10
+      const params = new URLSearchParams({
+        address: address.toLowerCase(),
+        page: '1',
+        count: pageSize.toString(),
+      })
+
+      if (options.beforeBlock) {
+        params.append('beforeBlock', options.beforeBlock)
+      }
+      if (options.afterBlock) {
+        params.append('afterBlock', options.afterBlock)
+      }
+
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/transaction?${params.toString()}`,
+        headers: this.defaultHeaders,
+      }
+
+      const response = await axiosWithRetry<{ success: boolean; transactions: TransactionFromExplorer[] }>(
+        requestConfig
+      )
+
+      if (!response.data.success) return null
+
+      const txs = response.data.transactions
+        .map((tx) => {
+          const wrappedEVM = this.parseWrappedEVMAccount(tx.wrappedEVMAccount)
+          if (!wrappedEVM) {
+            return null
+          }
+
+          return {
+            hash: tx.txHash,
+            type: Number(tx.transactionType),
+            blockHash: tx.blockHash,
+            blockNumber: tx.blockNumber.toString(),
+            transactionIndex: wrappedEVM.readableReceipt?.transactionIndex || '0x0',
+            from: tx.txFrom,
+            to: tx.txTo,
+            gasPrice: wrappedEVM.readableReceipt?.gasPrice || '0x0',
+            gasLimit: wrappedEVM.readableReceipt?.gasLimit || '0x0',
+            value: wrappedEVM.readableReceipt?.value || '0x0',
+            nonce: wrappedEVM.readableReceipt?.nonce || '0x0',
+            data: wrappedEVM.readableReceipt?.data || '0x',
+            r: wrappedEVM.readableReceipt?.r || '0x0',
+            s: wrappedEVM.readableReceipt?.s || '0x0',
+            v: wrappedEVM.readableReceipt?.v || '0x0',
+            chainId: wrappedEVM.readableReceipt?.chainId || CONFIG.chainId.toString(16),
+            timestamp: tx.timestamp,
+          }
+        })
+        .filter((tx): tx is any => tx !== null)
+
+      const receipts = await Promise.all(
+        txs.map(async (tx) => {
+          const receipt = await this.getTransactionReceipt(tx.hash)
+          if (!receipt) return null
+          
+          return {
+            blockHash: receipt.blockHash,
+            blockNumber: receipt.blockNumber,
+            transactionHash: receipt.transactionHash,
+            transactionIndex: receipt.transactionIndex,
+            from: receipt.from || tx.from,
+            to: receipt.to || tx.to,
+            gasUsed: receipt.gasUsed,
+            status: receipt.status,
+            logs: receipt.logs || [],
+            timestamp: tx.timestamp,
+          }
+        })
+      )
+
+      const lastBlockNumber = txs[0]?.blockNumber;
+      const blockTxs = lastBlockNumber ? txs.filter((tx) => tx.blockNumber === lastBlockNumber) : [];
+      
+      // Only filter if there are transactions with different block numbers
+      const finalTxs = (blockTxs.length < txs.length && blockTxs.length + txs.length > options.pageSize)
+        ? txs.filter((tx) => tx.blockNumber !== lastBlockNumber)
+        : txs;
+
+      return {
+        txs: finalTxs,
+        receipts: receipts.filter((r): r is SimpleTransactionReceipt => r !== null),
+        firstPage: options.beforeBlock === '0' || txs.length < options.pageSize,
+        lastPage: options.afterBlock === '0' || txs.length < options.pageSize,
+      }
+    } catch (error) {
+      console.error('Collector: Error searching transactions', error)
+      return null
+    }
+  }
+  async getInternalOperations(txHash: string): Promise<InternalOperation[] | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getInternalOperations')
+
+    try {
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/transaction`,
+        params: {
+          txHash,
+          type: 'internal',
+        },
+        headers: this.defaultHeaders,
+      }
+
+      const response = await axiosWithRetry<{
+        success: boolean
+        data?: {
+          operations: InternalOperation[]
+        }
+      }>(requestConfig)
+
+      if (!response.data.success || !response.data.data) {
+        return null
+      }
+
+      return response.data.data.operations
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getInternalOperations-error')
+      console.error('Collector: Error getting internal operations', error)
+      return null
+    }
+  }
+  async getContractCreator(
+    address: string
+  ): Promise<{ hash: string; creator: string; blockNumber: string } | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) {
+      return null
+    }
+    nestedCountersInstance.countEvent('collector', 'getContractCreator')
+
+    try {
+      const apiQuery = `${this.baseUrl}/api/contract/creator?address=${address}`
+      const response = await axiosWithRetry<{
+        success: boolean
+        data?: {
+          hash: string
+          creator: string
+          blockNumber: string
+        }
+      }>({
+        method: 'get',
+        url: apiQuery,
+        headers: this.defaultHeaders,
+      })
+
+      if (!response.data.success || !response.data.data) {
+        return null
+      }
+
+      return response.data.data
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getContractCreator-error')
+      console.error('Collector: Error in getContractCreator', error)
+      return null
+    }
+  }
+  private formatBlockDetails(block: readableBlock): BlockDetailsResponse {
+    // Parse readableBlock if it's a string
+    const blockData = typeof block === 'string' ? JSON.parse(block) : block
+
+    const transactionCount = Array.isArray(blockData.transactions) ? blockData.transactions.length : 0
+
+    return {
+      block: {
+        hash: blockData.hash,
+        parentHash: blockData.parentHash,
+        number: blockData.number,
+        timestamp: blockData.timestamp,
+        nonce: blockData.nonce || '0x0',
+        difficulty: blockData.difficulty || '0x0',
+        gasLimit: blockData.gasLimit,
+        gasUsed: blockData.gasUsed,
+        miner: blockData.miner,
+        extraData: blockData.extraData || '0x',
+        stateRoot: blockData.stateRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        transactionsRoot: blockData.transactionsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        receiptsRoot: blockData.receiptsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        mixHash: blockData.mixHash || '0x0',
+        totalDifficulty: blockData.totalDifficulty || '0x0',
+        size: '0x0',
+        transactionCount
+      },
+      issuance: {
+        blockReward: '0x0',
+        uncleReward: '0x0', 
+        issuance: '0x0'
+      },
+      totalFees: '0x0',
+      gasUsedDepositTx: '0x0'
+    }
+  }
+  async getBlockDetails(blockNumber: string): Promise<BlockDetailsResponse | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getBlockDetails')
+
+    try {
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/blocks?numberHex=${blockNumber}`,
+        headers: this.defaultHeaders,
+      }
+
+      const response = await axiosWithRetry<{
+        success: boolean
+        readableBlock: readableBlock
+      }>(requestConfig)
+
+      if (!response.data.success) return null
+      return this.formatBlockDetails(response.data.readableBlock)
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getBlockDetails-error')
+      console.error('Collector: Error getting block details', error)
+      return null
+    }
+  }
+  async getBlockDetailsByHash(blockHash: string): Promise<BlockDetailsResponse | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getBlockDetailsByHash')
+
+    try {
+      const block = await this.getBlockByHash(blockHash)
+      if (!block) return null
+
+      return this.formatBlockDetails(block)
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getBlockDetailsByHash-error')
+      console.error('Collector: Error getting block details by hash', error)
+      return null
+    }
+  }
+  async getBlockByHash(blockHash: string): Promise<readableBlock | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getBlockByHash')
+
+    try {
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/blocks?hash=${blockHash}`,
+        headers: this.defaultHeaders,
+      }
+
+      const response = await axiosWithRetry<{ 
+        success: boolean; 
+        readableBlock: readableBlock 
+      }>(requestConfig)
+      
+      if (!response.data.success) return null
+
+      return response.data.readableBlock
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getBlockByHash-error')
+      console.error('Collector: Error getting block by hash', error)
+      return null
+    }
+  }
+}
+interface BlockDetailsResponse {
+  block: {
+    hash: string
+    parentHash: string
+    number: string
+    timestamp: string
+    nonce: string
+    difficulty: string
+    gasLimit: string
+    gasUsed: string
+    miner: string
+    extraData: string
+    stateRoot: string
+    transactionsRoot: string
+    size: string
+    transactionCount: number
+    receiptsRoot: string
+    mixHash: string
+    totalDifficulty: string
+  }
+  issuance: {
+    blockReward: string
+    uncleReward: string
+    issuance: string
+  }
+  totalFees: string
+  gasUsedDepositTx: string
+}
+interface SimpleTransactionReceipt {
+  blockHash: string
+  blockNumber: string
+  transactionHash: string
+  transactionIndex: string
+  from: string
+  to: string
+  gasUsed: string
+  status: string
+  logs: any[]
+  timestamp: string
+}
+interface InternalOperation {
+  type: number 
+  from: string
+  to: string
+  value: string
+}
+interface TransactionSearchResponse {
+  txs: readableTransaction[]
+  receipts: SimpleTransactionReceipt[]
+  firstPage: boolean
+  lastPage: boolean
 }
 
+interface TransactionSearchOptions {
+  beforeBlock?: string
+  afterBlock?: string
+  pageSize: number
+  address?: string
+}
 interface readableReceipt {
   blockHash: string
   blockNumber: string
@@ -681,6 +1016,7 @@ type readableLegacyTransaction = {
   r: string
   s: string
   transactionIndex: string
+  timestamp: string
 }
 
 type readableEIP2930Transaction = readableLegacyTransaction & {
