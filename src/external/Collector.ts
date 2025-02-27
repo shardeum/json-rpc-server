@@ -624,6 +624,7 @@ class Collector extends BaseExternal {
       return null
     }
   }
+
   async searchTransactions(
     address: string,
     options: TransactionSearchOptions
@@ -705,8 +706,8 @@ class Collector extends BaseExternal {
       return {
         txs: txs,
         receipts: receipts.filter((r): r is SimpleTransactionReceipt => r !== null),
-        firstPage: options.beforeBlock === '0' || txs.length < options.pageSize,
-        lastPage: options.afterBlock === '0' || txs.length < options.pageSize,
+        firstPage: options.beforeBlock === '0',
+        lastPage: options.afterBlock === '0' || txs.length < (options.pageSize || 30),
       }
     } catch (error) {
       console.error('Collector: Error searching transactions', error)
@@ -776,7 +777,7 @@ class Collector extends BaseExternal {
       return response.data.data
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getContractCreator-error')
-      console.error('Collector: Error in getContractCreator', error)
+      console.error('Collector: Error in getContractCreator')
       return null
     }
   }
