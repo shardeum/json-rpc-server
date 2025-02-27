@@ -630,11 +630,9 @@ class Collector extends BaseExternal {
   ): Promise<TransactionSearchResponse | null> {
     if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
     try {
-      const pageSize = options.pageSize || 10
       const params = new URLSearchParams({
         address: address.toLowerCase(),
         page: '1',
-        count: pageSize.toString(),
       })
 
       if (options.beforeBlock) {
@@ -704,17 +702,8 @@ class Collector extends BaseExternal {
           }
         })
       )
-
-      const lastBlockNumber = txs[0]?.blockNumber;
-      const blockTxs = lastBlockNumber ? txs.filter((tx) => tx.blockNumber === lastBlockNumber) : [];
-      
-      // Only filter if there are transactions with different block numbers
-      const finalTxs = (blockTxs.length < txs.length && blockTxs.length + txs.length > options.pageSize)
-        ? txs.filter((tx) => tx.blockNumber !== lastBlockNumber)
-        : txs;
-
       return {
-        txs: finalTxs,
+        txs: txs,
         receipts: receipts.filter((r): r is SimpleTransactionReceipt => r !== null),
         firstPage: options.beforeBlock === '0' || txs.length < options.pageSize,
         lastPage: options.afterBlock === '0' || txs.length < options.pageSize,
