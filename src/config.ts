@@ -139,7 +139,7 @@ export const CONFIG: Config = {
   },
   ip: '0.0.0.0',
   port: Number(process.env.RPC_PORT) || 8080,
-  chainId: 8082,
+  chainId: Number(process.env.CHAIN_ID) || 8082,
   nodeIpInfo: {
     externalIp: process.env.NODE_EXTERNAL_IP || '127.0.0.1',
     externalPort: Number(process.env.NODE_EXTERNAL_PORT) || 9001,
