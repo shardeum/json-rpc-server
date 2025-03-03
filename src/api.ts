@@ -3972,6 +3972,7 @@ export const methods = {
           },
           restakeCooldown: current.restakeCooldown,
           timestamp: networkAccountData.networkAccount.timestamp,
+          chainId: networkAccountData.ChainID || config.chainId,
         }
 
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
