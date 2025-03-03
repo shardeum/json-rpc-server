@@ -28,6 +28,7 @@ import {
   removeFromNodeList,
   sanitizeIpAndPort,
   removeOldestFilter,
+  getNetworkAccount,
 } from './utils'
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
@@ -1640,8 +1641,8 @@ export const methods = {
           raw,
         }
         if (config.generateTxTimestamp) tx.timestamp = now
+        tx.chainID = (getNetworkAccount() as any).chainID ?? config.chainId // 8082
         const transaction = getTransactionObj(tx)
-
         txHash = bufferToHex(transaction.hash())
         gasLimit = transaction.gasLimit.toString(16)
       }

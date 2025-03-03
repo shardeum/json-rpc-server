@@ -148,6 +148,7 @@ type Log = {
 export type OriginalTxData = {
   raw: string
   timestamp?: number
+  chainID?: number
 }
 
 type TransactionResult = {
