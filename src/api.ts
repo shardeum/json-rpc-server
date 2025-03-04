@@ -1641,7 +1641,7 @@ export const methods = {
           raw,
         }
         if (config.generateTxTimestamp) tx.timestamp = now
-        tx.chainID = (getNetworkAccount() as any).chainID ?? config.chainId // 8082
+        tx.chainID = config.chainId // 8082
         const transaction = getTransactionObj(tx)
         txHash = bufferToHex(transaction.hash())
         gasLimit = transaction.gasLimit.toString(16)
@@ -3973,7 +3973,7 @@ export const methods = {
           },
           restakeCooldown: current.restakeCooldown,
           timestamp: networkAccountData.networkAccount.timestamp,
-          chainId: networkAccountData.ChainID || config.chainId,
+          chainId: config.chainId,
         }
 
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
