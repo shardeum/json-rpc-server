@@ -633,81 +633,80 @@ class Collector extends BaseExternal {
     try {
       const params = new URLSearchParams({
         address: address.toLowerCase(),
-        page: '1',
+        page: (options.page || 1).toString(),
+        pageSize: (options.pageSize || 10).toString(),
       })
-
-      if (options.beforeBlock) {
-        params.append('beforeBlock', options.beforeBlock)
-      }
-      if (options.afterBlock) {
-        params.append('afterBlock', options.afterBlock)
-      }
-
+  
       const requestConfig: AxiosRequestConfig = {
         method: 'get',
         url: `${this.baseUrl}/api/transaction?${params.toString()}`,
         headers: this.defaultHeaders,
       }
-
-      const response = await axiosWithRetry<{ success: boolean; transactions: TransactionFromExplorer[] }>(
-        requestConfig
-      )
-
+  
+      const response = await axiosWithRetry<{
+        success: boolean;
+        transactions: TransactionFromExplorer[];
+        totalTransactions: number;
+      }>(requestConfig)
+  
       if (!response.data.success) return null
-
-      const txs = response.data.transactions
-        .map((tx) => {
+  
+      // Do all formatting here in one place
+      const txs = await Promise.all(
+        response.data.transactions.map(async (tx) => {
           const wrappedEVM = this.parseWrappedEVMAccount(tx.wrappedEVMAccount)
-          if (!wrappedEVM) {
-            return null
-          }
-
-          return {
-            hash: tx.txHash,
-            type: Number(tx.transactionType),
-            blockHash: tx.blockHash,
-            blockNumber: tx.blockNumber.toString(),
-            transactionIndex: wrappedEVM.readableReceipt?.transactionIndex || '0x0',
-            from: tx.txFrom,
-            to: tx.txTo,
-            gasPrice: wrappedEVM.readableReceipt?.gasPrice || '0x0',
-            gasLimit: wrappedEVM.readableReceipt?.gasLimit || '0x0',
-            value: wrappedEVM.readableReceipt?.value || '0x0',
-            nonce: wrappedEVM.readableReceipt?.nonce || '0x0',
-            data: wrappedEVM.readableReceipt?.data || '0x',
-            r: wrappedEVM.readableReceipt?.r || '0x0',
-            s: wrappedEVM.readableReceipt?.s || '0x0',
-            v: wrappedEVM.readableReceipt?.v || '0x0',
-            chainId: wrappedEVM.readableReceipt?.chainId || CONFIG.chainId.toString(16),
-            timestamp: tx.timestamp,
-          }
-        })
-        .filter((tx): tx is any => tx !== null)
-
-      const receipts = await Promise.all(
-        txs.map(async (tx) => {
-          const receipt = await this.getTransactionReceipt(tx.hash)
-          if (!receipt) return null
+          if (!wrappedEVM) return null
+  
+          const receipt = await this.getTransactionReceipt(tx.txHash)
           
           return {
-            blockHash: receipt.blockHash,
-            blockNumber: receipt.blockNumber,
-            transactionHash: receipt.transactionHash,
-            transactionIndex: receipt.transactionIndex,
-            from: receipt.from || tx.from,
-            to: receipt.to || tx.to,
-            gasUsed: receipt.gasUsed,
-            status: receipt.status,
-            logs: receipt.logs || [],
-            timestamp: tx.timestamp,
+            transaction: {
+              hash: tx.txHash,
+              type: tx.transactionType.toString(),
+              blockHash: tx.blockHash,
+              blockNumber: tx.blockNumber.toString(),
+              transactionIndex: wrappedEVM.readableReceipt?.transactionIndex || '0x0',
+              from: tx.txFrom,
+              to: tx.txTo,
+              value: wrappedEVM.readableReceipt?.value || '0x0',
+              gasPrice: wrappedEVM.readableReceipt?.gasPrice || '0x0',
+              gas: wrappedEVM.readableReceipt?.gasLimit || '0x0',
+              input: wrappedEVM.readableReceipt?.data || '0x',
+              nonce: wrappedEVM.readableReceipt?.nonce || '0x0',
+              chainId: wrappedEVM.readableReceipt?.chainId || CONFIG.chainId.toString(16),
+              v: wrappedEVM.readableReceipt?.v || '0x0',
+              r: wrappedEVM.readableReceipt?.r || '0x0', 
+              s: wrappedEVM.readableReceipt?.s || '0x0',
+              timestamp: tx.timestamp.toString(),
+            },
+            receipt: receipt ? {
+              blockHash: receipt.blockHash,
+              blockNumber: receipt.blockNumber,
+              transactionHash: receipt.transactionHash,
+              transactionIndex: receipt.transactionIndex,
+              from: receipt.from || tx.txFrom,
+              to: receipt.to || tx.txTo,
+              gasUsed: receipt.gasUsed,
+              status: receipt.status,
+              logs: receipt.logs || [],
+              timestamp: tx.timestamp.toString(),
+            } : null
           }
         })
       )
+  
+      const validTxs = txs.filter((tx): tx is NonNullable<typeof tx> => tx !== null)
+  
+      const totalPages = Math.ceil(response.data.totalTransactions / (options.pageSize || 10))
+      const currentPage = options.page || 1
+  
       return {
-        txs: txs,
-        receipts: receipts.filter((r): r is SimpleTransactionReceipt => r !== null),
-        firstPage: options.beforeBlock === '0',
-        lastPage: options.afterBlock === '0' || txs.length < (options.pageSize || 30),
+        txs: validTxs.map(tx => tx.transaction),
+        receipts: validTxs.map(tx => tx.receipt).filter((r): r is NonNullable<typeof r> => r !== null),
+        firstPage: currentPage === 1,
+        lastPage: currentPage === totalPages,
+        totalPages: totalPages,
+        totalTransactions: response.data.totalTransactions
       }
     } catch (error) {
       console.error('Collector: Error searching transactions', error)
@@ -932,6 +931,8 @@ interface TransactionSearchResponse {
   receipts: SimpleTransactionReceipt[]
   firstPage: boolean
   lastPage: boolean
+  totalPages: number
+  totalTransactions: number
 }
 
 interface TransactionSearchOptions {
@@ -939,6 +940,7 @@ interface TransactionSearchOptions {
   afterBlock?: string
   pageSize: number
   address?: string
+  page?: number
 }
 interface readableReceipt {
   blockHash: string

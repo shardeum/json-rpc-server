@@ -4371,7 +4371,7 @@ export const methods = {
       countFailedResponse(api_name, 'exception')
     }
   },
-  ots_searchTransactionsBefore: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+  ots_getTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'ots_searchTransactionsBefore'
     nestedCountersInstance.countEvent('endpoint', api_name)
 
@@ -4386,22 +4386,11 @@ export const methods = {
       return
     }
 
-    const [address, blockNumberOrTag, pageSize] = args
+    const [address, pageNumber = 1, pageSize = 10] = args
     try {
-      // Convert 'latest' to actual block number
-      let blockNumber = blockNumberOrTag
-      if (blockNumberOrTag === 'latest') {
-        const latestBlock = await collectorAPI.getLatestBlockNumber()
-        if (!latestBlock) {
-          callback(null, null)
-          return
-        }
-        blockNumber = latestBlock.number
-      }
-
       const result = await collectorAPI.searchTransactions(address, {
-        beforeBlock: blockNumber,
-        pageSize: pageSize || 100,
+        page: pageNumber,
+        pageSize: pageSize,
       })
 
       if (!result) {
@@ -4409,35 +4398,7 @@ export const methods = {
         return
       }
 
-      callback(null, {
-        txs: result.txs.map((tx) => ({
-          hash: tx.hash,
-          type: tx.type,
-          blockNumber: tx.blockNumber,
-          transactionIndex: tx.transactionIndex,
-          from: tx.from,
-          to: tx.to,
-          value: tx.value,
-          gasPrice: tx.gasPrice,
-          gas: tx.gas,
-          input: tx.input,
-          timestamp: tx.timestamp,
-        })),
-        receipts: result.receipts.map((receipt) => ({
-          blockHash: receipt.blockHash,
-          blockNumber: receipt.blockNumber,
-          transactionHash: receipt.transactionHash,
-          transactionIndex: receipt.transactionIndex,
-          from: receipt.from,
-          to: receipt.to,
-          gasUsed: receipt.gasUsed,
-          status: receipt.status,
-          logs: receipt.logs || [],
-          timestamp: receipt.timestamp,
-        })),
-        firstPage: result.firstPage,
-        lastPage: result.lastPage,
-      })
+      callback(null, result)
       countSuccessResponse(api_name, 'success')
     } catch (e) {
       console.error(`Error in ots_searchTransactionsBefore:`, e)
@@ -4445,80 +4406,6 @@ export const methods = {
       countFailedResponse(api_name, 'exception')
     }
   },
-  ots_searchTransactionsAfter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'ots_searchTransactionsAfter'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-
-    if (!CONFIG.otterscanMethods.enabled) {
-      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
-      countFailedResponse(api_name, 'Otterscan methods disabled')
-      return
-    }
-
-    if (!ensureArrayArgs(args, callback)) {
-      countFailedResponse(api_name, 'Invalid params: non-array args')
-      return
-    }
-
-    const [address, blockNumberOrTag, pageSize] = args
-    try {
-      // Convert 'latest' or 0 to actual block number
-      let blockNumber = blockNumberOrTag
-      if (blockNumberOrTag === 'latest' || blockNumberOrTag === '0' || blockNumberOrTag === 0) {
-        const latestBlock = await collectorAPI.getLatestBlockNumber()
-        if (!latestBlock) {
-          callback(null, null)
-          return
-        }
-        blockNumber = blockNumberOrTag === '0' ? '0' : latestBlock.number
-      }
-
-      const result = await collectorAPI.searchTransactions(address, {
-        afterBlock: blockNumber,
-        pageSize: pageSize || 100,
-      })
-
-      if (!result) {
-        callback(null, null)
-        return
-      }
-
-      callback(null, {
-        txs: result.txs.map((tx) => ({
-          hash: tx.hash,
-          type: tx.type,
-          blockNumber: tx.blockNumber,
-          transactionIndex: tx.transactionIndex,
-          from: tx.from,
-          to: tx.to,
-          value: tx.value,
-          gasPrice: tx.gasPrice,
-          gas: tx.gas,
-          input: tx.input,
-          timestamp: tx.timestamp,
-        })),
-        receipts: result.receipts.map((receipt) => ({
-          blockHash: receipt.blockHash,
-          blockNumber: receipt.blockNumber,
-          transactionHash: receipt.transactionHash,
-          transactionIndex: receipt.transactionIndex,
-          from: receipt.from,
-          to: receipt.to,
-          gasUsed: receipt.gasUsed,
-          status: receipt.status,
-          logs: receipt.logs || [],
-          timestamp: receipt.timestamp,
-        })),
-        firstPage: result.firstPage,
-        lastPage: result.lastPage,
-      })
-      countSuccessResponse(api_name, 'success')
-    } catch (e) {
-      console.error(`Error in ots_searchTransactionsAfter:`, e)
-      callback(errorBusy)
-      countFailedResponse(api_name, 'exception')
-    }
-  }
 }
 
 const wrapMethod = (method: Function) => {
