@@ -1641,7 +1641,6 @@ export const methods = {
           raw,
         }
         if (config.generateTxTimestamp) tx.timestamp = now
-        tx.chainID = config.chainId // 8082
         const transaction = getTransactionObj(tx)
         txHash = bufferToHex(transaction.hash())
         gasLimit = transaction.gasLimit.toString(16)
