@@ -546,7 +546,7 @@ class Collector extends BaseExternal {
       gas: '0x' + txObj.gasLimit.toString(16),
       value: '0x' + txObj.value.toString('hex'),
       input: '0x' + txObj.data.toString('hex'),
-      gasPrice: '0x' + txObj.getBaseFee().toString(16),
+      gasPrice: readableReceipt.gasPrice,
       chainId: '0x' + CONFIG.chainId.toString(16),
       transactionIndex: readableReceipt.transactionIndex,
       v: '0x' + txObj.v?.toString('hex'),
