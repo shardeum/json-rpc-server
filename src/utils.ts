@@ -34,6 +34,7 @@ import Sntp from '@hapi/sntp'
 import { randomBytes, createHash } from 'crypto'
 import net from 'net'
 import { TTLMap } from './utils/TTLMap'
+import { loadFoundationNodes, isFoundationNode, isFoundationNodeFilteringEnabled } from './utils/foundationNodes'
 
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
 
@@ -116,6 +117,11 @@ async function checkIfNodeIsActive(node: Node): Promise<boolean> {
 export async function updateNodeList(tryInfinite = false): Promise<void> {
   if (!healthyArchivers.length) await checkArchiverHealth()
   console.log(`Updating NodeList from ${getArchiverUrl().url}`)
+
+  // Load foundation nodes once per cycle
+  if (config.foundationNodeFilter.enabled) {
+    await loadFoundationNodes()
+  }
 
   console.time('nodelist_update')
   const nRetry = tryInfinite ? -1 : 5 // infinitely retry or 5 retries if initial request fails
@@ -479,22 +485,70 @@ function rotateConsensorNode(): void {
   let count = 0
   const maxRetry = 10
   let success = false
+  const foundationFilterEnabled = isFoundationNodeFilteringEnabled()
+
   while (count < maxRetry && !success) {
     count++
     const consensor: Node | null = config.useRoundRobinConsensorSelection
       ? getNextConsensorNode()
       : getRandomConsensorNode()
-    const ipPort = `${consensor?.ip}:${consensor?.port}`
-    if (consensor && !badNodesMap.has(ipPort)) {
-      let nodeIp = consensor.ip
-      //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
-      //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
-      if (config.useConfigNodeIp === true) {
-        nodeIp = config.nodeIpInfo.externalIp
-      }
-      changeNode(nodeIp, consensor.port)
-      success = true
+
+    if (!consensor) continue;
+
+    const ipPort = `${consensor.ip}:${consensor.port}`
+    // Skip if node is in bad nodes map
+    if (badNodesMap.has(ipPort)) continue;
+
+    // Skip if foundation node filtering is enabled and this is not a foundation node
+    if (foundationFilterEnabled && !isFoundationNode(ipPort)) {
+      // decrement count so skipping this non foundation node doesn't count as a retry
+      count--
+      continue
+    } 
+
+    let nodeIp = consensor.ip
+    //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
+    //config.useConfigNodeIp will override the local IPs with the config node external IP when rotating nodes
+    if (config.useConfigNodeIp === true) {
+      nodeIp = config.nodeIpInfo.externalIp
     }
+    changeNode(nodeIp, consensor.port)
+    success = true
+  }
+
+  // If we couldn't find a foundation node after max retries, fall back to any node
+  if (!success && foundationFilterEnabled) {
+    console.log('Could not find a suitable foundation node after max retries, falling back to any node')
+    rotateConsensorNodeWithoutFilter();
+  }
+}
+
+export { rotateConsensorNode }
+
+function rotateConsensorNodeWithoutFilter(): void {
+  let count = 0
+  const maxRetry = 10
+  let success = false
+
+  while (count < maxRetry && !success) {
+    count++
+    const consensor: Node | null = config.useRoundRobinConsensorSelection
+      ? getNextConsensorNode()
+      : getRandomConsensorNode()
+
+    if (!consensor) continue;
+
+    const ipPort = `${consensor.ip}:${consensor.port}`
+
+    // Skip if node is in bad nodes map
+    if (badNodesMap.has(ipPort)) continue;
+
+    let nodeIp = consensor.ip
+    if (config.useConfigNodeIp === true) {
+      nodeIp = config.nodeIpInfo.externalIp
+    }
+    changeNode(nodeIp, consensor.port)
+    success = true
   }
 }
 
