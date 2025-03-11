@@ -500,7 +500,11 @@ function rotateConsensorNode(): void {
     if (badNodesMap.has(ipPort)) continue;
 
     // Skip if foundation node filtering is enabled and this is not a foundation node
-    if (foundationFilterEnabled && !isFoundationNode(ipPort)) continue;
+    if (foundationFilterEnabled && !isFoundationNode(ipPort)) {
+      // decrement count so skipping this non foundation node doesn't count as a retry
+      count--
+      continue
+    } 
 
     let nodeIp = consensor.ip
     //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
