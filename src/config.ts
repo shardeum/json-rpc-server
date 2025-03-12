@@ -115,6 +115,13 @@ type Config = {
   axiosTimeoutInMs: number
   enableBlacklistingIP: boolean
   maxEntriesAllowed: number // maximum number of entries allowed for map to store
+  foundationNodeFilter: {
+    enabled: boolean
+    useEndpoint: boolean
+    endpointUrl: string
+    filePath: string
+    minFoundationNodesForInjectFilter: number
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -267,4 +274,11 @@ export const CONFIG: Config = {
   axiosTimeoutInMs: 3000,
   enableBlacklistingIP: false,
   maxEntriesAllowed: 10000,
+  foundationNodeFilter: {
+    enabled: false,
+    useEndpoint: false,
+    endpointUrl: '', // not used if useEndpoint is false
+    filePath: './foundation-nodes.json',
+    minFoundationNodesForInjectFilter: 50
+  },
 }

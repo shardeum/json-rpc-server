@@ -36,6 +36,7 @@ import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 import { isIPv4 } from 'net'
 import { rateLimitMiddleware } from './middlewares/rateLimit'
+import { loadFoundationNodes } from './utils/foundationNodes'
 
 setDefaultResultOrder('ipv4first')
 
@@ -217,3 +218,16 @@ setupArchiverDiscovery({
     })
   })
 })
+
+// Use foundation nodes if enabled
+if (config.foundationNodeFilter.enabled) {
+  loadFoundationNodes().then(enabled => {
+    if (enabled) {
+      console.log('Foundation node filtering is enabled')
+    } else {
+      console.log('Foundation node filtering is disabled')
+    }
+  }).catch(err => {
+    console.error('Error initializing foundation node filtering:', err)
+  })
+}
