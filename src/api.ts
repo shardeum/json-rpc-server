@@ -219,7 +219,7 @@ function extractTransactionObject(
       from: tx.readableReceipt.from,
       gas:
         '0x' +
-        (hexStrToInt(tx.readableReceipt.gasUsed) + hexStrToInt(tx.readableReceipt.gasRefund)).toString(),
+        (hexToBN(tx.readableReceipt.gasUsed).add(hexToBN(tx.readableReceipt.gasRefund)).toString(16)),
       gasPrice: tx.readableReceipt.gasPrice,
       maxFeePerGas: undefined,
       maxPriorityFeePerGas: undefined,
