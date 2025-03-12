@@ -28,7 +28,7 @@ import spammerList from '../spammerlist.json'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
-import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
+import { setupEvmLogProviderConnectionStream, setupNewHeadSubscriptionProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardeum-foundation/lib-archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
@@ -36,6 +36,7 @@ import { methodWhitelist } from './middlewares/methodWhitelist'
 import { isDebugModeMiddlewareLow, rateLimitedDebugAuth } from './middlewares/debugMiddleware'
 import { isIPv4 } from 'net'
 import { rateLimitMiddleware } from './middlewares/rateLimit'
+import { loadFoundationNodes } from './utils/foundationNodes'
 
 setDefaultResultOrder('ipv4first')
 
@@ -214,6 +215,20 @@ setupArchiverDiscovery({
       setupLogEvents()
       setupSubscriptionEventHandlers()
       setupEvmLogProviderConnectionStream()
+      setupNewHeadSubscriptionProviderConnectionStream()
     })
   })
 })
+
+// Use foundation nodes if enabled
+if (config.foundationNodeFilter.enabled) {
+  loadFoundationNodes().then(enabled => {
+    if (enabled) {
+      console.log('Foundation node filtering is enabled')
+    } else {
+      console.log('Foundation node filtering is disabled')
+    }
+  }).catch(err => {
+    console.error('Error initializing foundation node filtering:', err)
+  })
+}
