@@ -32,7 +32,7 @@ import {
 import crypto from 'crypto'
 import { logEventEmitter } from './logger'
 import { CONFIG, CONFIG as config } from './config'
-import { logSubscriptionList } from './websocket/clients'
+import { blockSubscriptionList, logSubscriptionList } from './websocket/clients'
 import { ipport } from './server'
 import { subscriptionEventEmitter } from './websocket'
 import { evmLogProvider_ConnectionStream } from './websocket/log_server'
@@ -4072,12 +4072,19 @@ export const methods = {
       const subscription_name = args[0]
       const filters = args[1]
       const sub_id = args[10]
-      if (subscription_name !== 'logs') {
+
+      if (subscription_name !== 'logs' && subscription_name !== 'newHeads') {
         logSubscriptionList.removeById(args[10])
-        callback({ message: 'Shardeum only support logs subscriptions' } as JSONRPCError, null)
-        countFailedResponse(api_name, 'Shardeum only support logs subscriptions')
+        callback({ message: 'Shardeum only support logs and newHeads subscriptions' } as JSONRPCError, null)
+        countFailedResponse(api_name, 'Shardeum only support logs and newHeads subscriptions')
         return
       }
+
+      if (subscription_name === 'newHeads' && blockSubscriptionList.has(sub_id)) {
+        callback(null, sub_id)
+        return
+      }
+
       if (!filters.address && !filters.topics) {
         logSubscriptionList.removeById(args[10])
         callback({ message: 'Invalid Filters' } as JSONRPCError, null)
@@ -4123,14 +4130,32 @@ export const methods = {
       const subscription_id: string = args[0]
       const socket: WebSocket.WebSocket = args[10]
 
-      if (!logSubscriptionList.getById(subscription_id)) {
+      let found = false
+
+      // Check if the subscription exists in the logSubscriptionList
+      const logSub = logSubscriptionList.getById(subscription_id)
+      if (logSub) {
+        if (logSub.socket !== socket) {
+          throw new Error('Subscription not found')
+        }
+        logSubscriptionList.removeById(subscription_id)
+        found = true
+      }
+
+      // Also check the blockSubscriptionList for "newHeads" subscriptions
+      if (blockSubscriptionList.has(subscription_id)) {
+        const blockSub = blockSubscriptionList.get(subscription_id)
+        if (blockSub?.socket !== socket) {
+          throw new Error('Subscription not found')
+        }
+        blockSubscriptionList.delete(subscription_id)
+        found = true
+      }
+
+      if (!found) {
         throw new Error('Subscription not found')
       }
 
-      // this mean client is trying to unsubscribe someone else's subscription
-      if (logSubscriptionList.getById(subscription_id)?.socket !== socket) {
-        throw new Error('Subscription not found')
-      }
       subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       countNonResponse(api_name, 'success')
     } catch (e: unknown) {
