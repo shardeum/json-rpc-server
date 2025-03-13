@@ -171,7 +171,7 @@ export const CONFIG: Config = {
     account: 10000,
     full_nodelist: 10000,
   },
-  aalgWarmup: Boolean(process.env.AALG_WARMUP) || true,
+  aalgWarmup: Boolean(process.env.AALG_WARMUP) || false, // this should be off for mainnet-launch (EVM related)
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false, // not safe for production, keep this off. Known issue.
   rateLimit: true,
@@ -272,7 +272,7 @@ export const CONFIG: Config = {
     limit: 100, // 100 requests per IP
   },
   axiosTimeoutInMs: 3000,
-  enableBlacklistingIP: false,
+  enableBlacklistingIP: false, // do not set this to true if we are using the foundaition node filter.
   maxEntriesAllowed: 10000,
   foundationNodeFilter: {
     enabled: false,
