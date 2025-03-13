@@ -22,7 +22,7 @@ export async function axiosWithRetry<T>(
   retryInterval = 500
 ): Promise<AxiosResponse<T>> {
   try {
-    return await axios(config)
+    return await axios({ ...config, maxContentLength: 15 * 1024 * 1024 }) // 15MB
   } catch (error) {
     const axiosError = error as AxiosError
 
