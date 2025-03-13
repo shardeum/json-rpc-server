@@ -351,7 +351,7 @@ export async function requestWithRetry(
         url,
         data,
         timeout,
-        maxContentLength: 15 * 1024 * 1024, // 15MB
+        maxContentLength: config.maxResponseSize, // 15MB
       })
       if (res.status === 200 && !res.data.error) {
         const isValidResponse = responseCheck(res.data)

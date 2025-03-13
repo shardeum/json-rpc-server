@@ -123,6 +123,7 @@ type Config = {
     filePath: string
     minFoundationNodesForInjectFilter: number
   }
+  maxResponseSize: number // Limit the size of the response
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -271,4 +272,5 @@ export const CONFIG: Config = {
     filePath: './foundation-nodes.json',
     minFoundationNodesForInjectFilter: 50
   },
+  maxResponseSize: 1024 * 1024 * 15, // 15MB
 }

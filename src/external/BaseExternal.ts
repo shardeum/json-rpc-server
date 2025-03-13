@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
+import { CONFIG } from '../config'
 
 export interface StringToStringMap {
   [key: string]: string
@@ -22,7 +23,7 @@ export async function axiosWithRetry<T>(
   retryInterval = 500
 ): Promise<AxiosResponse<T>> {
   try {
-    return await axios({ ...config, maxContentLength: 15 * 1024 * 1024 }) // 15MB
+    return await axios({ ...config, maxContentLength: CONFIG.maxResponseSize }) // 15MB
   } catch (error) {
     const axiosError = error as AxiosError
 
