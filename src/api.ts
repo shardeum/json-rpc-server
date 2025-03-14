@@ -4084,14 +4084,20 @@ export const methods = {
       if (subscription_name === 'newHeads' && blockSubscriptionList.has(sub_id)) {
         callback(null, sub_id)
         return
+      } else if (subscription_name === 'newHeads') {
+        blockSubscriptionList.set(sub_id, { socket: args[10], rpc_request_id: args[1] })
+        callback(null, sub_id)
+        return
       }
 
-      if (!filters.address && !filters.topics) {
+      // Only check filters for logs subscriptions
+      if (subscription_name === 'logs' && !filters.address && !filters.topics) {
         logSubscriptionList.removeById(args[10])
         callback({ message: 'Invalid Filters' } as JSONRPCError, null)
         countFailedResponse(api_name, 'Invalid Filters')
         return
       }
+
       if (!sub_id) {
         throw new Error('Subscription id missing, internal server Error')
       }

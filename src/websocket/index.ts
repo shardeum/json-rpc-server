@@ -9,6 +9,10 @@ import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
 import { checkRequest, requestersList } from '../middlewares/rateLimit'
+import {
+  newHeadSubscriptionProvider_ConnectionStream,
+  setupNewHeadSubscriptionProviderConnectionStream,
+} from './newhead_server'
 
 interface Params {
   address?: string | string[]
@@ -222,13 +226,20 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
       try {
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         let subscription_id = crypto.randomBytes(32).toString('hex')
-        subscription_id =
-          '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
+        subscription_id = '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
         subscription_id = subscription_id.substring(0, 46)
         request.params[10] = subscription_id
 
         if (request.params[0] === 'newHeads') {
           blockSubscriptionList.set(subscription_id, { socket: socket, rpc_request_id: request.id })
+          // Emit event to establish connection with log server for newHeads
+          subscriptionEventEmitter.emit('evm_newHead_subscribe', {
+            subscription_id,
+            ipport: `${ip}:${CONFIG.port}`,
+          })
+          // Send success response for newHeads subscription
+          callback(null, subscription_id)
+          return
         }
 
         if (
@@ -377,6 +388,8 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
           blockSubscriptionList.delete(key)
           continue
         }
+        // Update socket activity when sending newHeads data
+        socketActivityMap.set(value.socket, Date.now())
         value.socket.send(
           JSON.stringify({
             jsonrpc: '2.0',
@@ -389,7 +402,7 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
         )
       }
     } catch (e) {
-      return;
+      return
     }
   })
 
@@ -412,6 +425,22 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: { subscription_id } }))
   })
 
+  subscriptionEventEmitter.on(
+    'evm_newHead_subscribe',
+    async (payload: { subscription_id: string; ipport: string }) => {
+      console.log('Sending newHeads subscription request to log server')
+      nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
+      const method = 'subscribe'
+      if (
+        !newHeadSubscriptionProvider_ConnectionStream ||
+        newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
+      ) {
+        console.log('Establishing new connection to log server for newHeads subscription')
+        setupNewHeadSubscriptionProviderConnectionStream()
+      }
+      newHeadSubscriptionProvider_ConnectionStream?.send(JSON.stringify({ method, params: payload }))
+    }
+  )
 }
 
 const constructRPCErrorRes = (
