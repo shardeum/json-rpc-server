@@ -275,9 +275,9 @@ export const CONFIG: Config = {
   enableBlacklistingIP: false, // do not set this to true if we are using the foundaition node filter.
   maxEntriesAllowed: 10000,
   foundationNodeFilter: {
-    enabled: false,
-    useEndpoint: false,
-    endpointUrl: '', // not used if useEndpoint is false
+    enabled: true,
+    useEndpoint: true,
+    endpointUrl: 'https://storage.googleapis.com/shardeum-info-and-counts/network/itn4/nodeInfo.json', // not used if useEndpoint is false
     filePath: './foundation-nodes.json',
     minFoundationNodesForInjectFilter: 50
   },
