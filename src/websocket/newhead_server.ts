@@ -16,15 +16,24 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     console.log('[NewHeads] Subscriptions are disabled, not setting up connection')
     return
   }
-  if (
-    newHeadSubscriptionProvider_ConnectionStream?.readyState === 1 ||
-    newHeadSubscriptionProvider_ConnectionStream?.readyState === 0
-  ) {
-    console.log(
-      '[NewHeads] Connection already exists or is connecting. State:',
-      newHeadSubscriptionProvider_ConnectionStream.readyState
-    )
+
+  // If there's an existing connection that's fully open, return
+  if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
+    console.log('[NewHeads] Connection already open and ready')
     return
+  }
+
+  // If we're already trying to connect, just wait
+  if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.CONNECTING) {
+    console.log('[NewHeads] Connection attempt already in progress')
+    return
+  }
+
+  // Close any existing connection that might be in a bad state
+  if (newHeadSubscriptionProvider_ConnectionStream) {
+    console.log('[NewHeads] Cleaning up existing connection')
+    newHeadSubscriptionProvider_ConnectionStream.close()
+    newHeadSubscriptionProvider_ConnectionStream = null
   }
 
   console.log('[NewHeads] Creating new WebSocket connection to:', log_server_ws_url + '/newHead_subscription')

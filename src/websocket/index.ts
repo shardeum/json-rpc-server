@@ -451,6 +451,8 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
       console.log('[NewHeads] Processing subscription request:', payload)
       nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
       const method = 'subscribe'
+
+      // If we don't have a connection or it's not open, set one up and wait for it
       if (
         !newHeadSubscriptionProvider_ConnectionStream ||
         newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
@@ -460,8 +462,23 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
           newHeadSubscriptionProvider_ConnectionStream?.readyState
         )
         console.log('[NewHeads] Establishing new connection to log server')
+
+        // Set up new connection
         setupNewHeadSubscriptionProviderConnectionStream()
+
+        // Wait for connection to be ready (up to 5 seconds)
+        for (let i = 0; i < 50; i++) {
+          if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
+            console.log('[NewHeads] Connection is now ready')
+            break
+          }
+          if (i === 49) {
+            console.log('[NewHeads] Connection timed out waiting to be ready')
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
       }
+
       console.log('[NewHeads] Sending subscription message')
       sendNewHeadsMessage({ method, params: payload })
     }
