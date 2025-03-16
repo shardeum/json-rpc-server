@@ -232,12 +232,15 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         request.params[10] = subscription_id
 
         if (request.params[0] === 'newHeads') {
+          console.log('[NewHeads] New subscription request received')
           blockSubscriptionList.set(subscription_id, { socket: socket, rpc_request_id: request.id })
+          console.log('[NewHeads] Added to blockSubscriptionList, ID:', subscription_id)
           // Emit event to establish connection with log server for newHeads
           subscriptionEventEmitter.emit('evm_newHead_subscribe', {
             subscription_id,
             ipport: `${ip}:${CONFIG.port}`,
           })
+          console.log('[NewHeads] Emitted evm_newHead_subscribe event')
           // Send success response for newHeads subscription
           callback(null, subscription_id)
           return
@@ -395,11 +398,15 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
 
   subscriptionEventEmitter.on('evm_newHead_received', (newblock) => {
     try {
+      console.log('[NewHeads] Broadcasting new block to subscribers')
+      console.log('[NewHeads] Number of active subscriptions:', blockSubscriptionList.size)
       for (let [key, value] of blockSubscriptionList) {
         if (value.socket.readyState === 2 || value.socket.readyState === 3) {
+          console.log('[NewHeads] Removing dead subscription:', key)
           blockSubscriptionList.delete(key)
           continue
         }
+        console.log('[NewHeads] Sending block to subscription:', key)
         // Update socket activity when sending newHeads data
         socketActivityMap.set(value.socket, Date.now())
         value.socket.send(
@@ -414,6 +421,7 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
         )
       }
     } catch (e) {
+      console.error('[NewHeads] Error broadcasting new block:', e)
       return
     }
   })
@@ -440,21 +448,27 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
   subscriptionEventEmitter.on(
     'evm_newHead_subscribe',
     async (payload: { subscription_id: string; ipport: string }) => {
-      console.log('Sending newHeads subscription request to log server')
+      console.log('[NewHeads] Processing subscription request:', payload)
       nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
       const method = 'subscribe'
       if (
         !newHeadSubscriptionProvider_ConnectionStream ||
         newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
       ) {
-        console.log('Establishing new connection to log server for newHeads subscription')
+        console.log(
+          '[NewHeads] Connection not ready, current state:',
+          newHeadSubscriptionProvider_ConnectionStream?.readyState
+        )
+        console.log('[NewHeads] Establishing new connection to log server')
         setupNewHeadSubscriptionProviderConnectionStream()
       }
+      console.log('[NewHeads] Sending subscription message')
       sendNewHeadsMessage({ method, params: payload })
     }
   )
 
   subscriptionEventEmitter.on('evm_newHead_unsubscribe', async (subscription_id: string) => {
+    console.log('[NewHeads] Processing unsubscribe request:', subscription_id)
     nestedCountersInstance.countEvent('websocket', 'evm_newHead_unsubscribe')
     const method = 'unsubscribe'
     sendNewHeadsMessage({ method, params: { subscription_id } })
