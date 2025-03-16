@@ -7,6 +7,13 @@ import { Utils } from '@shardeum-foundation/lib-types'
 export let newHeadSubscriptionProvider_ConnectionStream: WebSocket | null = null
 const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port}`
 
+// Add debugging for configuration
+console.log('[NewHeads] Log server configuration:', {
+  ip: CONFIG.log_server.ip,
+  port: CONFIG.log_server.port,
+  fullUrl: log_server_ws_url + '/newHead_subscription'
+})
+
 // Add a queue for pending subscription requests
 const pendingSubscriptions: Array<{ method: string; params: any }> = []
 
@@ -36,14 +43,16 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     newHeadSubscriptionProvider_ConnectionStream = null
   }
 
-  console.log('[NewHeads] Creating new WebSocket connection to:', log_server_ws_url + '/newHead_subscription')
-  newHeadSubscriptionProvider_ConnectionStream = new WebSocket.WebSocket(
-    log_server_ws_url + '/newHead_subscription'
-  )
+  const fullUrl = log_server_ws_url + '/newHead_subscription'
+  console.log('[NewHeads] Attempting connection to:', fullUrl)
+  console.log('[NewHeads] Using WebSocket implementation:', WebSocket.WebSocket.name)
+
+  newHeadSubscriptionProvider_ConnectionStream = new WebSocket.WebSocket(fullUrl)
 
   newHeadSubscriptionProvider_ConnectionStream.on('error', (error) => {
     console.error('[NewHeads] Connection error:', error.message)
     console.error('[NewHeads] Full error:', error)
+    console.error('[NewHeads] Failed connecting to:', fullUrl)
     newHeadSubscriptionProvider_ConnectionStream?.close()
   })
 
