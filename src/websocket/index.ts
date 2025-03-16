@@ -5,14 +5,15 @@ import { blockSubscriptionList, logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { evmLogProvider_ConnectionStream } from './log_server'
+import {
+  newHeadSubscriptionProvider_ConnectionStream,
+  setupNewHeadSubscriptionProviderConnectionStream,
+  sendNewHeadsMessage,
+} from './newhead_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
 import { checkRequest, requestersList } from '../middlewares/rateLimit'
-import {
-  newHeadSubscriptionProvider_ConnectionStream,
-  setupNewHeadSubscriptionProviderConnectionStream,
-} from './newhead_server'
 
 interface Params {
   address?: string | string[]
@@ -322,13 +323,24 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     }
     console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
     nestedCountersInstance.countEvent('websocket', 'close')
+
+    // Handle log subscriptions cleanup
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       })
       logSubscriptionList.removeBySocket(socket)
-      socket.close(code, reason)
     }
+
+    // Handle newHeads subscriptions cleanup
+    for (const [subscription_id, value] of blockSubscriptionList) {
+      if (value.socket === socket) {
+        subscriptionEventEmitter.emit('evm_newHead_unsubscribe', subscription_id)
+        blockSubscriptionList.delete(subscription_id)
+      }
+    }
+
+    socket.close(code, reason)
     if (CONFIG.verbose)
       console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll())
   })
@@ -438,9 +450,15 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
         console.log('Establishing new connection to log server for newHeads subscription')
         setupNewHeadSubscriptionProviderConnectionStream()
       }
-      newHeadSubscriptionProvider_ConnectionStream?.send(JSON.stringify({ method, params: payload }))
+      sendNewHeadsMessage({ method, params: payload })
     }
   )
+
+  subscriptionEventEmitter.on('evm_newHead_unsubscribe', async (subscription_id: string) => {
+    nestedCountersInstance.countEvent('websocket', 'evm_newHead_unsubscribe')
+    const method = 'unsubscribe'
+    sendNewHeadsMessage({ method, params: { subscription_id } })
+  })
 }
 
 const constructRPCErrorRes = (
