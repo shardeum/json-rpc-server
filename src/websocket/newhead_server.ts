@@ -7,14 +7,6 @@ import { Utils } from '@shardeum-foundation/lib-types'
 export let newHeadSubscriptionProvider_ConnectionStream: WebSocket | null = null
 const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port}`
 
-// Add debugging for configuration
-console.log('[NewHeads] Log server configuration:', {
-  ip: CONFIG.log_server.ip,
-  port: CONFIG.log_server.port,
-  fullUrl: log_server_ws_url + '/newHead_subscription'
-})
-
-// Add a queue for pending subscription requests
 const pendingSubscriptions: Array<{ method: string; params: any }> = []
 
 export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
@@ -24,7 +16,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     return
   }
 
-  // If there's an existing connection that's fully open, return
   if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
     console.log('[NewHeads] Connection already open and ready')
     return
@@ -36,7 +27,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     return
   }
 
-  // Close any existing connection that might be in a bad state
   if (newHeadSubscriptionProvider_ConnectionStream) {
     console.log('[NewHeads] Cleaning up existing connection')
     newHeadSubscriptionProvider_ConnectionStream.close()
@@ -44,26 +34,18 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
   }
 
   const fullUrl = log_server_ws_url + '/newHead_subscription'
-  console.log('[NewHeads] Attempting connection to:', fullUrl)
-  console.log('[NewHeads] Using WebSocket implementation:', WebSocket.WebSocket.name)
 
   newHeadSubscriptionProvider_ConnectionStream = new WebSocket.WebSocket(fullUrl)
 
   newHeadSubscriptionProvider_ConnectionStream.on('error', (error) => {
-    console.error('[NewHeads] Connection error:', error.message)
-    console.error('[NewHeads] Full error:', error)
-    console.error('[NewHeads] Failed connecting to:', fullUrl)
     newHeadSubscriptionProvider_ConnectionStream?.close()
   })
 
   newHeadSubscriptionProvider_ConnectionStream.on('open', function open() {
     console.log('[NewHeads] Connection established successfully')
-    // Process any pending subscriptions
-    console.log('[NewHeads] Pending subscriptions count:', pendingSubscriptions.length)
     while (pendingSubscriptions.length > 0) {
       const request = pendingSubscriptions.shift()
       if (request && newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
-        console.log('[NewHeads] Processing pending subscription:', request)
         newHeadSubscriptionProvider_ConnectionStream.send(JSON.stringify(request))
       }
     }
@@ -76,12 +58,9 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
 
   newHeadSubscriptionProvider_ConnectionStream.on('message', function message(data) {
     try {
-      console.log('[NewHeads] Received message:', data.toString())
       const message = Utils.safeJsonParse(data.toString())
       if (message.method === 'subscribe') {
-        console.log('[NewHeads] Processing subscribe response for ID:', message.subscription_id)
         if (!blockSubscriptionList.has(message.subscription_id)) {
-          console.log('[NewHeads] Subscription ID not found in blockSubscriptionList, unsubscribing')
           newHeadSubscriptionProvider_ConnectionStream?.send(
             JSON.stringify({
               method: 'unsubscribe',
@@ -91,7 +70,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
           return
         }
         if (message.success) {
-          console.log('[NewHeads] Subscription successful, sending confirmation to client')
           const subscription = blockSubscriptionList.get(message.subscription_id)
           subscription?.socket.send(
             Utils.safeStringify({
@@ -101,7 +79,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
             })
           )
         } else {
-          console.log('[NewHeads] Subscription failed:', message.error?.message)
           const subscription = blockSubscriptionList.get(message.subscription_id)
           subscription?.socket.send(
             Utils.safeStringify({
@@ -116,11 +93,9 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
         }
       }
       if (message.method === 'unsubscribe') {
-        console.log('[NewHeads] Processing unsubscribe response for ID:', message.subscription_id)
         if (message.success) {
           const subscription = blockSubscriptionList.get(message.subscription_id)
           try {
-            console.log('[NewHeads] Unsubscribe successful, sending confirmation to client')
             subscription?.socket.send(
               Utils.safeStringify({
                 jsonrpc: '2.0',
@@ -134,7 +109,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
           blockSubscriptionList.delete(message.subscription_id)
         } else {
           try {
-            console.log('[NewHeads] Unsubscribe failed')
             const subscription = blockSubscriptionList.get(message.subscription_id)
             subscription?.socket.send(
               Utils.safeStringify({
@@ -149,7 +123,6 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
         }
       }
       if (message.method === 'newBlock_produced') {
-        console.log('[NewHeads] New block received')
         try {
           const block = message.payload
           subscriptionEventEmitter.emit('evm_newHead_received', block)
@@ -165,26 +138,18 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
 
 // Add a helper function to send or queue messages
 export const sendNewHeadsMessage = (message: { method: string; params: any }): void => {
-  console.log('[NewHeads] Attempting to send message:', message)
   if (
     !newHeadSubscriptionProvider_ConnectionStream ||
     newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
   ) {
-    console.log('[NewHeads] Connection not ready, queuing message')
-    console.log(
-      '[NewHeads] Current connection state:',
-      newHeadSubscriptionProvider_ConnectionStream?.readyState
-    )
     pendingSubscriptions.push(message)
     if (
       !newHeadSubscriptionProvider_ConnectionStream ||
       newHeadSubscriptionProvider_ConnectionStream.readyState === WebSocket.CLOSED
     ) {
-      console.log('[NewHeads] Connection closed or not exists, initiating new connection')
       setupNewHeadSubscriptionProviderConnectionStream()
     }
   } else {
-    console.log('[NewHeads] Connection ready, sending message immediately')
     newHeadSubscriptionProvider_ConnectionStream.send(JSON.stringify(message))
   }
 }
