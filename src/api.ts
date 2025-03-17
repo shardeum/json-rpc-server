@@ -2005,7 +2005,7 @@ export const methods = {
         countSuccessResponse(api_name, 'success to set to 0x...0001 (default to 3M)', 'fallback')
         return
       }
-      if (!args[0]['data']) {
+      if (!args[0]['data'] || args[0]['data'] === '0x') {
         // Check if receiver is an EOA. If so, return 21000
         const res = await getCode(args[0]['to'])
         if (res.contractCode === '0x') {
