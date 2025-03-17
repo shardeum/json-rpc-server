@@ -394,10 +394,12 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
     try {
       for (let [key, value] of blockSubscriptionList) {
         if (value.socket.readyState === 2 || value.socket.readyState === 3) {
-          blockSubscriptionList.delete(key)
+        if (value.socket.readyState === WebSocket.CLOSED || value.socket.readyState === WebSocket.CLOSING) {
+          console.log('[NewHeads] Client socket closed, cleaning up subscription:', key)
           subscriptionEventEmitter.emit('evm_newHead_unsubscribe', key)
           continue
         }
+
         socketActivityMap.set(value.socket, Date.now())
         value.socket.send(
           JSON.stringify({
