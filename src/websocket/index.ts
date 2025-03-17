@@ -62,7 +62,6 @@ const getClientIP = (req: IncomingMessage): string | undefined => {
 export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMessage): Promise<void> => {
   const ip = getClientIP(req)
   if (!ip) {
-    console.log('[WebSocket] Connection rejected: Unable to determine IP address')
     socket.close(
       1008,
       'Connection closed: Unable to determine your IP address. Please check your network settings and try again.'
@@ -70,7 +69,6 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     return
   }
   if (requestersList.isIpBanned(ip)) {
-    console.log('[WebSocket] Connection rejected: IP banned')
     socket.close(1008, 'Connection closed: IP banned from opening new connections.')
     return
   }
@@ -79,7 +77,6 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
 
   // Check max connections per IP limit
   if (currentIPConnections.size >= CONFIG.websocket.maxConnectionsPerIP) {
-    console.log('[WebSocket] Connection rejected: Max connections per IP reached')
     socket.close(
       1008,
       `Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.`
@@ -88,12 +85,10 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
   }
   // Check max connections limit
   if (activeConnections >= CONFIG.websocket.maxConnections) {
-    console.log('[WebSocket] Connection rejected: Server busy')
     socket.close(1003, 'Server busy. Please try again later.')
     return
   }
   activeConnections++
-  console.log('[WebSocket] New connection accepted. Active connections:', activeConnections)
 
   // Track last activity time
   socketActivityMap.set(socket, Date.now())
@@ -102,27 +97,21 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
 
   // Set connection timeout
   const timeoutId = setTimeout(() => {
-    console.log('[WebSocket] Connection timeout reached')
     socket.close(1011, 'Connection timeout reached')
   }, CONFIG.websocket.connectionTimeoutMs)
 
   const eth_methods = Object.freeze(wrappedMethods)
 
   socket.on('message', async (message: string) => {
-    // Update last activity time on message received
-    socketActivityMap.set(socket, Date.now())
-    console.log('[WebSocket] Received message from client:', message.substring(0, 100) + '...')
-
     if (CONFIG.rateLimit) {
       let request
       try {
         request = JSON.parse(message)
       } catch (e) {
-        console.error('[WebSocket] Failed to parse message:', e)
         try {
           socket.send('Invalid message format')
         } catch (error) {
-          console.error('[WebSocket] Failed to send error message:', error)
+          console.error('Failed to send message on WebSocket:', error)
         }
         return
       }
@@ -131,7 +120,6 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         const isRequestOkay = await checkRequest(ip, request)
 
         if (!isRequestOkay) {
-          console.log('[WebSocket] Rate limit exceeded, closing connection')
           socket.close(
             1008,
             JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
@@ -139,12 +127,16 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
           return
         }
       } catch (error) {
-        console.error('[WebSocket] Rate limiting error:', error)
+        console.error('Rate limiting error:', error)
         socket.close(1008, 'Internal server error')
         return
       }
     }
 
+    // Update last activity time on message received
+    socketActivityMap.set(socket, Date.now())
+
+    if (CONFIG.verbose) console.log(`Received message: ${message}`)
     nestedCountersInstance.countEvent('websocket', 'message-received')
     let request: Request = {
       jsonrpc: '',
@@ -159,9 +151,9 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     } catch (e: unknown) {
       nestedCountersInstance.countEvent('websocket', 'message-received-error')
       if (e instanceof Error) {
-        console.log("[WebSocket] Couldn't parse websocket message", e.message)
+        console.log("Couldn't parse websocket message", e.message)
       } else {
-        console.log("[WebSocket] Couldn't parse websocket message", e)
+        console.log("Couldn't parse websocket message", e)
       }
       socket.close()
     }
@@ -313,16 +305,12 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
   })
 
   socket.on('close', (code, reason) => {
-    console.log(`[WebSocket] Connection closed with code: ${code} and reason: ${reason}`)
-    console.log('[WebSocket] Socket state before cleanup:', socket.readyState)
-
     // Clean up
     socketActivityMap.delete(socket)
     clearTimeout(timeoutId)
 
     // Decrement connection counter
     activeConnections--
-    console.log('[WebSocket] Active connections after cleanup:', activeConnections)
 
     const currentIPConnections = connectionsByIP.get(ip)
     if (currentIPConnections) {
@@ -331,10 +319,11 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         connectionsByIP.delete(ip)
       }
     }
+    console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
+    nestedCountersInstance.countEvent('websocket', 'close')
 
     // Handle log subscriptions cleanup
     if (logSubscriptionList.getBySocket(socket)) {
-      console.log('[WebSocket] Cleaning up log subscriptions for closed socket')
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       })
@@ -344,18 +333,13 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     // Handle newHeads subscriptions cleanup
     for (const [subscription_id, value] of blockSubscriptionList) {
       if (value.socket === socket) {
-        console.log('[WebSocket] Cleaning up newHeads subscription:', subscription_id)
         subscriptionEventEmitter.emit('evm_newHead_unsubscribe', subscription_id)
       }
     }
 
+    socket.close(code, reason)
     if (CONFIG.verbose)
-      console.log('[WebSocket] Current subscriptions after cleanup:', logSubscriptionList.getAll())
-  })
-
-  socket.on('error', (error) => {
-    console.error('[WebSocket] Socket error:', error)
-    console.log('[WebSocket] Socket state on error:', socket.readyState)
+      console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll())
   })
 }
 
