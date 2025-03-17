@@ -111,7 +111,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
   socket.on('message', async (message: string) => {
     // Update last activity time on message received
     socketActivityMap.set(socket, Date.now())
-    console.log('[WebSocket] Received message from client:', JSON.parse(message))
+    console.log('[WebSocket] Received message from client:', message)
 
     if (CONFIG.rateLimit) {
       let request
