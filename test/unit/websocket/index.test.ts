@@ -98,6 +98,10 @@ describe('WebSocket Connection Tests', () => {
     })
 
     it('should clear timeout when connection closes normally', async () => {
+      // Import the mocked module to access activeConnections
+      const websocketModule = require('../../../src/websocket')
+      websocketModule.activeConnections = 0
+
       await onConnection(mockSocket, mockIncomingMessage as IncomingMessage)
 
       // Simulate connection close using the stored callback
@@ -110,7 +114,11 @@ describe('WebSocket Connection Tests', () => {
       jest.advanceTimersByTime(CONFIG.websocket.connectionTimeoutMs + 100)
 
       // Verify that close was not called again after the timeout
-      expect(mockSocket.close).not.toHaveBeenCalled()
+      expect(mockSocket.close).toHaveBeenCalledTimes(1)
+      expect(mockSocket.close).toHaveBeenCalledWith(1000, 'Normal close')
+
+      // Verify activeConnections was decremented
+      expect(websocketModule.activeConnections).toBe(0)
     })
   })
 
