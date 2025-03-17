@@ -46,7 +46,7 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     while (pendingSubscriptions.length > 0) {
       const request = pendingSubscriptions.shift()
       if (request && newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
-        newHeadSubscriptionProvider_ConnectionStream.send(JSON.stringify(request))
+        newHeadSubscriptionProvider_ConnectionStream.send(Utils.safeStringify(request))
       }
     }
   })
@@ -62,7 +62,7 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
       if (message.method === 'subscribe') {
         if (!blockSubscriptionList.has(message.subscription_id)) {
           newHeadSubscriptionProvider_ConnectionStream?.send(
-            JSON.stringify({
+            Utils.safeStringify({
               method: 'unsubscribe',
               params: { subscription_id: message.subscription_id },
             })
@@ -150,6 +150,6 @@ export const sendNewHeadsMessage = (message: { method: string; params: any }): v
       setupNewHeadSubscriptionProviderConnectionStream()
     }
   } else {
-    newHeadSubscriptionProvider_ConnectionStream.send(JSON.stringify(message))
+    newHeadSubscriptionProvider_ConnectionStream.send(Utils.safeStringify(message))
   }
 }
