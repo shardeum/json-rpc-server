@@ -334,7 +334,6 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     for (const [subscription_id, value] of blockSubscriptionList) {
       if (value.socket === socket) {
         subscriptionEventEmitter.emit('evm_newHead_unsubscribe', subscription_id)
-        blockSubscriptionList.delete(subscription_id)
       }
     }
 
@@ -396,6 +395,7 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
       for (let [key, value] of blockSubscriptionList) {
         if (value.socket.readyState === 2 || value.socket.readyState === 3) {
           blockSubscriptionList.delete(key)
+          subscriptionEventEmitter.emit('evm_newHead_unsubscribe', key)
           continue
         }
         socketActivityMap.set(value.socket, Date.now())

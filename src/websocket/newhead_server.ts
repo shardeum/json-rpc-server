@@ -60,37 +60,17 @@ export const setupNewHeadSubscriptionProviderConnectionStream = (): void => {
     try {
       const message = Utils.safeJsonParse(data.toString())
       if (message.method === 'subscribe') {
-        if (!blockSubscriptionList.has(message.subscription_id)) {
-          newHeadSubscriptionProvider_ConnectionStream?.send(
-            Utils.safeStringify({
-              method: 'unsubscribe',
-              params: { subscription_id: message.subscription_id },
-            })
-          )
-          return
-        }
-        if (message.success) {
-          const subscription = blockSubscriptionList.get(message.subscription_id)
-          subscription?.socket.send(
-            Utils.safeStringify({
-              jsonrpc: '2.0',
-              id: subscription.rpc_request_id,
-              result: message.subscription_id,
-            })
-          )
-        } else {
-          const subscription = blockSubscriptionList.get(message.subscription_id)
-          subscription?.socket.send(
-            Utils.safeStringify({
-              jsonrpc: '2.0',
-              error: {
-                message: message.error?.message || 'Subscription failed',
-                code: -1,
-              },
-            })
-          )
-          blockSubscriptionList.delete(message.subscription_id)
-        }
+        setTimeout(() => {
+          if (!blockSubscriptionList.has(message.subscription_id)) {
+            newHeadSubscriptionProvider_ConnectionStream?.send(
+              Utils.safeStringify({
+                method: 'unsubscribe',
+                params: { subscription_id: message.subscription_id },
+              })
+            )
+          }
+        }, 100)
+        return
       }
       if (message.method === 'unsubscribe') {
         if (message.success) {

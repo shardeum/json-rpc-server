@@ -4156,6 +4156,7 @@ export const methods = {
           throw new Error('Subscription not found')
         }
         blockSubscriptionList.delete(subscription_id)
+        subscriptionEventEmitter.emit('evm_newHead_unsubscribe', subscription_id)
         found = true
       }
 
@@ -4168,7 +4169,6 @@ export const methods = {
     } catch (e: unknown) {
       callback({ message: (e as Error).message } as JSONRPCError, null)
       countFailedResponse(api_name, (e as Error).message)
-      // subscription failed, will not be tracking it
     }
   },
 }
