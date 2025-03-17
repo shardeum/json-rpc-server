@@ -167,7 +167,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     }
 
     if (request.jsonrpc !== '2.0') socket.close(1002, 'Invalid rpc socket frame')
-    if (request.id == null) {
+    if (request.id == null && request.method !== 'net_version') {
       socket.close(1002, 'Invalid rpc socket frame')
     }
     if (!request.method) socket.send('Method is not specified')
