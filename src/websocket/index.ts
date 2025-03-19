@@ -5,6 +5,11 @@ import { blockSubscriptionList, logSubscriptionList } from './clients'
 import * as crypto from 'crypto'
 import { CONFIG } from '../config'
 import { evmLogProvider_ConnectionStream } from './log_server'
+import {
+  newHeadSubscriptionProvider_ConnectionStream,
+  setupNewHeadSubscriptionProviderConnectionStream,
+  sendNewHeadsMessage,
+} from './newhead_server'
 import { SubscriptionDetails } from './clients'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { IncomingMessage } from 'http'
@@ -154,7 +159,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     }
 
     if (request.jsonrpc !== '2.0') socket.close(1002, 'Invalid rpc socket frame')
-    if (request.id == null) {
+    if (request.id == null && request.method !== 'net_version') {
       socket.close(1002, 'Invalid rpc socket frame')
     }
     if (!request.method) socket.send('Method is not specified')
@@ -222,13 +227,18 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
       try {
         nestedCountersInstance.countEvent('websocket', 'eth_subscribe')
         let subscription_id = crypto.randomBytes(32).toString('hex')
-        subscription_id =
-          '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
+        subscription_id = '0x' + crypto.createHash('sha256').update(subscription_id).digest().toString('hex')
         subscription_id = subscription_id.substring(0, 46)
         request.params[10] = subscription_id
 
         if (request.params[0] === 'newHeads') {
           blockSubscriptionList.set(subscription_id, { socket: socket, rpc_request_id: request.id })
+          subscriptionEventEmitter.emit('evm_newHead_subscribe', {
+            subscription_id,
+            ipport: `${ip}:${CONFIG.port}`,
+          })
+          callback(null, subscription_id)
+          return
         }
 
         if (
@@ -311,13 +321,23 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     }
     console.log(`WebSocket connection closed with code: ${code} and reason: ${reason}`)
     nestedCountersInstance.countEvent('websocket', 'close')
+
+    // Handle log subscriptions cleanup
     if (logSubscriptionList.getBySocket(socket)) {
       logSubscriptionList.getBySocket(socket)?.forEach((subscription_id) => {
         subscriptionEventEmitter.emit('evm_log_unsubscribe', subscription_id)
       })
       logSubscriptionList.removeBySocket(socket)
-      socket.close(code, reason)
     }
+
+    // Handle newHeads subscriptions cleanup
+    for (const [subscription_id, value] of blockSubscriptionList) {
+      if (value.socket === socket) {
+        subscriptionEventEmitter.emit('evm_newHead_unsubscribe', subscription_id)
+      }
+    }
+
+    socket.close(code, reason)
     if (CONFIG.verbose)
       console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll())
   })
@@ -373,10 +393,7 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
   subscriptionEventEmitter.on('evm_newHead_received', (newblock) => {
     try {
       for (let [key, value] of blockSubscriptionList) {
-        if (value.socket.readyState === 2 || value.socket.readyState === 3) {
-          blockSubscriptionList.delete(key)
-          continue
-        }
+        socketActivityMap.set(value.socket, Date.now())
         value.socket.send(
           JSON.stringify({
             jsonrpc: '2.0',
@@ -389,7 +406,8 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
         )
       }
     } catch (e) {
-      return;
+      console.error('[NewHeads] Error broadcasting new block:', e)
+      return
     }
   })
 
@@ -412,6 +430,39 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: { subscription_id } }))
   })
 
+  subscriptionEventEmitter.on(
+    'evm_newHead_subscribe',
+    async (payload: { subscription_id: string; ipport: string }) => {
+      nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
+      const method = 'subscribe'
+
+      if (
+        !newHeadSubscriptionProvider_ConnectionStream ||
+        newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
+      ) {
+        setupNewHeadSubscriptionProviderConnectionStream()
+
+        // Wait for connection to be ready (up to 5 seconds)
+        for (let i = 0; i < 50; i++) {
+          if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
+            console.log('[NewHeads] Connection is now ready')
+            break
+          }
+          if (i === 49) {
+            console.log('[NewHeads] Connection timed out waiting to be ready')
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+      }
+      sendNewHeadsMessage({ method, params: payload })
+    }
+  )
+
+  subscriptionEventEmitter.on('evm_newHead_unsubscribe', async (subscription_id: string) => {
+    nestedCountersInstance.countEvent('websocket', 'evm_newHead_unsubscribe')
+    const method = 'unsubscribe'
+    sendNewHeadsMessage({ method, params: { subscription_id } })
+  })
 }
 
 const constructRPCErrorRes = (

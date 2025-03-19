@@ -24,7 +24,7 @@ import { CONFIG, CONFIG as config } from './config'
 import path from 'path'
 import { onConnection, setupSubscriptionEventHandlers } from './websocket'
 import rejectSubscription from './middlewares/rejectSubscription'
-import { setupEvmLogProviderConnectionStream, setupNewHeadSubscriptionProviderConnectionStream } from './websocket/log_server'
+import { setupEvmLogProviderConnectionStream } from './websocket/log_server'
 import { setupArchiverDiscovery } from '@shardeum-foundation/lib-archiver-discovery'
 import { setDefaultResultOrder } from 'dns'
 import { nestedCountersInstance } from './utils/nestedCounters'
@@ -34,6 +34,7 @@ import { isIPv4 } from 'net'
 import { rateLimitMiddleware } from './middlewares/rateLimit'
 import requestLogger from './middlewares/requestLogger'
 import { loadFoundationNodes } from './utils/foundationNodes'
+import { setupNewHeadSubscriptionProviderConnectionStream } from './websocket/newhead_server'
 
 setDefaultResultOrder('ipv4first')
 
