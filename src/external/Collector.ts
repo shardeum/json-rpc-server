@@ -311,10 +311,12 @@ class Collector extends BaseExternal {
       }
       /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
 
-      const response = await axios.get(blockQuery, {
-        maxContentLength: MAX_RESPONSE_LENGTH, //10MB limit
-        timeout: MAX_RESPONSE_TIME //5 min timeout
-      }).then((response) => response.data)
+      const response = await axios
+        .get(blockQuery, {
+          maxContentLength: MAX_RESPONSE_LENGTH, //10MB limit
+          timeout: MAX_RESPONSE_TIME, //5 min timeout
+        })
+        .then((response) => response.data)
 
       if (!response.success) return null
 
@@ -342,7 +344,7 @@ class Collector extends BaseExternal {
       try {
         const txResponse = await axios.get(txQuery, {
           maxContentLength: MAX_RESPONSE_LENGTH, //10MB limit
-          timeout: MAX_RESPONSE_TIME //5 min timeout
+          timeout: MAX_RESPONSE_TIME, //5 min timeout
         })
 
         if (txResponse.data.success && txResponse.data.transactions) {
@@ -596,8 +598,7 @@ class Collector extends BaseExternal {
       const res = await axiosWithRetry<{ success: boolean; cycles: any[] }>(requestConfig)
       if (!res.data.success || !res.data.cycles || res.data.cycles.length === 0) {
         console.log(
-          `No cycles found in the response ${cycleNumber ? `for cycleNumber: ${cycleNumber}` : 'for latest cycle'
-          }`
+          `No cycles found in the response ${cycleNumber ? `for cycleNumber: ${cycleNumber}` : 'for latest cycle'}`
         )
         return null
       }
@@ -692,9 +693,6 @@ type readableEIP1559Transaction = readableEIP2930Transaction & {
   maxFeePerGas: string
 }
 
-export type readableTransaction =
-  | readableLegacyTransaction
-  | readableEIP2930Transaction
-  | readableEIP1559Transaction
+export type readableTransaction = readableLegacyTransaction | readableEIP2930Transaction | readableEIP1559Transaction
 
 export const collectorAPI = new Collector(CONFIG.collectorSourcing.collectorApiServerUrl)

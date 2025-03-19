@@ -43,12 +43,7 @@ class LogSubscriptionList {
     return this.indexedBySocket.get(socket) ?? null
   }
 
-  set(
-    id: string,
-    socket: WebSocket.WebSocket,
-    subscription_data: SubscriptionDetails,
-    rpc_request_id: number
-  ): void {
+  set(id: string, socket: WebSocket.WebSocket, subscription_data: SubscriptionDetails, rpc_request_id: number): void {
     this.requestIdBySubscriptionId.set(id, rpc_request_id)
     this.list.set(id, { socket, subscription_data })
     if (this.indexedBySocket.has(socket)) {
@@ -81,8 +76,6 @@ class LogSubscriptionList {
   }
 }
 
-
 export const logSubscriptionList = new LogSubscriptionList()
 
-
-export const blockSubscriptionList = new Map<string, {socket: WebSocket.WebSocket, rpc_request_id: number}>()
+export const blockSubscriptionList = new Map<string, { socket: WebSocket.WebSocket; rpc_request_id: number }>()

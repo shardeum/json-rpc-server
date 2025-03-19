@@ -104,9 +104,7 @@ app.use(function (req, res, next) {
 
 if (config.dashboard.enabled && config.dashboard.dist_path) {
   const clientDirectory =
-    config.dashboard.dist_path[0] === '/'
-      ? config.dashboard.dist_path
-      : path.resolve(config.dashboard.dist_path)
+    config.dashboard.dist_path[0] === '/' ? config.dashboard.dist_path : path.resolve(config.dashboard.dist_path)
   const staticDirectory = path.join(clientDirectory, 'static')
   console.log(path.join(clientDirectory, 'index.html'))
   app.set('views', clientDirectory)
@@ -219,13 +217,15 @@ setupArchiverDiscovery({
 
 // Use foundation nodes if enabled
 if (config.foundationNodeFilter.enabled) {
-  loadFoundationNodes().then(enabled => {
-    if (enabled) {
-      console.log('Foundation node filtering is enabled')
-    } else {
-      console.log('Foundation node filtering is disabled')
-    }
-  }).catch(err => {
-    console.error('Error initializing foundation node filtering:', err)
-  })
+  loadFoundationNodes()
+    .then((enabled) => {
+      if (enabled) {
+        console.log('Foundation node filtering is enabled')
+      } else {
+        console.log('Foundation node filtering is disabled')
+      }
+    })
+    .catch((err) => {
+      console.error('Error initializing foundation node filtering:', err)
+    })
 }
