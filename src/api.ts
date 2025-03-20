@@ -1023,7 +1023,7 @@ export const methods = {
       .digest('hex')
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_accounts', args) }
-    const result = ['0x407d73d8a49eeb85d32cf465507dd71d507100c1']
+    const result: string[] = []
 
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     callback(null, result)
