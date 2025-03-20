@@ -1,11 +1,11 @@
-import { buildGetTransactionByBlockHashAndIndex } from '../../../src/eth-handlers/eth_getTransactionByBlockHashAndIndex';
-import axios from 'axios';
-import { completeReadableReceipt } from '../../../src/external/Collector';
-import { RequestParamsLike } from 'jayson';
+import { buildGetTransactionByBlockHashAndIndex } from '../../../src/eth-handlers/eth_getTransactionByBlockHashAndIndex'
+import axios from 'axios'
+import { completeReadableReceipt } from '../../../src/external/Collector'
+import { RequestParamsLike } from 'jayson'
 
 // Mock dependencies
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+jest.mock('axios')
+const mockedAxios = axios as jest.Mocked<typeof axios>
 
 // Mock crypto for the ticket generation
 jest.mock('crypto', () => ({
@@ -14,50 +14,50 @@ jest.mock('crypto', () => ({
       digest: jest.fn().mockReturnValue('test-ticket-hash'),
     }),
   }),
-}));
+}))
 
 describe('eth_getTransactionByBlockHashAndIndex handler', () => {
   // Common test values
-  const blockHash = '0x1234567890abcdef';
-  const txIndex = '0x1';
-  
+  const blockHash = '0x1234567890abcdef'
+  const txIndex = '0x1'
+
   // Declare mocks
-  let mockNestedCountersInstance: any;
-  let mockEnsureArrayArgs: jest.Mock;
-  let mockCountFailedResponse: jest.Mock;
-  let mockLogEventEmitter: any;
-  let mockCollectorAPI: any;
-  let mockExtractTransactionObject: jest.Mock;
-  let mockCountSuccessResponse: jest.Mock;
-  let mockConfig: any;
-  let mockCallback: jest.Mock;
-  let eth_getTransactionByBlockHashAndIndex: any;
+  let mockNestedCountersInstance: any
+  let mockEnsureArrayArgs: jest.Mock
+  let mockCountFailedResponse: jest.Mock
+  let mockLogEventEmitter: any
+  let mockCollectorAPI: any
+  let mockExtractTransactionObject: jest.Mock
+  let mockCountSuccessResponse: jest.Mock
+  let mockConfig: any
+  let mockCallback: jest.Mock
+  let eth_getTransactionByBlockHashAndIndex: any
 
   // Initialize all mocks before each test
   beforeEach(() => {
     // Create fresh mocks for all dependencies
     mockNestedCountersInstance = {
       countEvent: jest.fn(),
-    };
-    mockEnsureArrayArgs = jest.fn();
-    mockCountFailedResponse = jest.fn();
+    }
+    mockEnsureArrayArgs = jest.fn()
+    mockCountFailedResponse = jest.fn()
     mockLogEventEmitter = {
       emit: jest.fn(),
-    };
+    }
     mockCollectorAPI = {
       getBlock: jest.fn(),
-    };
-    mockExtractTransactionObject = jest.fn();
-    mockCountSuccessResponse = jest.fn();
+    }
+    mockExtractTransactionObject = jest.fn()
+    mockCountSuccessResponse = jest.fn()
     mockConfig = {
       queryFromValidator: true,
       queryFromExplorer: true,
-      explorerUrl: 'https://explorer.example.com'
-    };
-    mockCallback = jest.fn();
+      explorerUrl: 'https://explorer.example.com',
+    }
+    mockCallback = jest.fn()
 
     // Reset axios mock
-    mockedAxios.get.mockReset();
+    mockedAxios.get.mockReset()
 
     // Build the handler function with fresh mocks
     eth_getTransactionByBlockHashAndIndex = buildGetTransactionByBlockHashAndIndex({
@@ -72,216 +72,230 @@ describe('eth_getTransactionByBlockHashAndIndex handler', () => {
       config: mockConfig,
       verbose: false,
       errorBusy: { code: -32005, message: 'Server busy' },
-    });
-  });
+    })
+  })
 
   describe('Input validation', () => {
     beforeEach(() => {
       // Setup ensureArrayArgs to return false for this specific test group
-      mockEnsureArrayArgs.mockReturnValue(false);
-    });
+      mockEnsureArrayArgs.mockReturnValue(false)
+    })
 
     it('should reject non-array arguments', async () => {
       // Call the function with non-array args
-      await eth_getTransactionByBlockHashAndIndex({ invalid: true } as RequestParamsLike, mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex({ invalid: true } as RequestParamsLike, mockCallback)
+
       // Verify behavior
-      expect(mockNestedCountersInstance.countEvent).toHaveBeenCalledWith('endpoint', 'eth_getTransactionByBlockHashAndIndex');
-      expect(mockEnsureArrayArgs).toHaveBeenCalledWith({ invalid: true }, mockCallback);
-      expect(mockCountFailedResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'Invalid params: non-array args');
-      expect(mockCallback).not.toHaveBeenCalled();
-    });
-  });
+      expect(mockNestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'endpoint',
+        'eth_getTransactionByBlockHashAndIndex'
+      )
+      expect(mockEnsureArrayArgs).toHaveBeenCalledWith({ invalid: true }, mockCallback)
+      expect(mockCountFailedResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'Invalid params: non-array args'
+      )
+      expect(mockCallback).not.toHaveBeenCalled()
+    })
+  })
 
   describe('Collector API path', () => {
     beforeEach(() => {
       // Setup ensureArrayArgs to return true for this test group
-      mockEnsureArrayArgs.mockReturnValue(true);
-    });
+      mockEnsureArrayArgs.mockReturnValue(true)
+    })
 
     it('should return transaction from collector when available', async () => {
       const mockTransaction: Partial<completeReadableReceipt> = {
         blockHash: blockHash,
         transactionIndex: '0x1',
-      };
-      
+      }
+
       // Mock the collectorAPI.getBlock response
       mockCollectorAPI.getBlock.mockResolvedValue({
-        transactions: [mockTransaction, mockTransaction]
-      });
-      
+        transactions: [mockTransaction, mockTransaction],
+      })
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true);
-      expect(mockCallback).toHaveBeenCalledWith(null, mockTransaction);
-      expect(mockCountSuccessResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'success', 'collector');
-    });
+      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true)
+      expect(mockCallback).toHaveBeenCalledWith(null, mockTransaction)
+      expect(mockCountSuccessResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'success',
+        'collector'
+      )
+    })
 
     it('should adjust transactionIndex to match the input index', async () => {
       const mockTransaction: Partial<completeReadableReceipt> = {
         blockHash: blockHash,
         transactionIndex: '0x0', // Intentionally different from input index
-      };
-      
+      }
+
       // Mock the collectorAPI.getBlock response
       mockCollectorAPI.getBlock.mockResolvedValue({
-        transactions: [mockTransaction, mockTransaction]
-      });
-      
+        transactions: [mockTransaction, mockTransaction],
+      })
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true);
+      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true)
       // The transaction object should be returned with transactionIndex adjusted
       expect(mockCallback).toHaveBeenCalledWith(null, {
         ...mockTransaction,
-        transactionIndex: '0x1' // Should match the input index
-      });
-    });
+        transactionIndex: '0x1', // Should match the input index
+      })
+    })
 
     it('should handle exception from collector API', async () => {
       // Mock the collectorAPI.getBlock to throw an error
-      mockCollectorAPI.getBlock.mockRejectedValue(new Error('Collector API error'));
-      
+      mockCollectorAPI.getBlock.mockRejectedValue(new Error('Collector API error'))
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true);
-      expect(mockCallback).toHaveBeenCalledWith({ code: -32005, message: 'Server busy' });
-      expect(mockCountFailedResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'exception in collectorAPI.getBlock');
-    });
-  });
+      expect(mockCollectorAPI.getBlock).toHaveBeenCalledWith(blockHash, 'hash', true)
+      expect(mockCallback).toHaveBeenCalledWith({ code: -32005, message: 'Server busy' })
+      expect(mockCountFailedResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'exception in collectorAPI.getBlock'
+      )
+    })
+  })
 
   describe('Explorer API path', () => {
     beforeEach(() => {
       // Setup ensureArrayArgs to return true for this test group
-      mockEnsureArrayArgs.mockReturnValue(true);
-      
+      mockEnsureArrayArgs.mockReturnValue(true)
+
       // Setup collector API to return empty results for the Explorer path tests
       mockCollectorAPI.getBlock.mockResolvedValue({
-        transactions: []
-      });
-    });
+        transactions: [],
+      })
+    })
 
     it('should fetch transaction from explorer when collector API has no result', async () => {
       // Setup mock explorer response
       const mockExplorerResponse = {
         data: {
           success: true,
-          transactions: [
-            { id: 'tx1' },
-            { id: 'tx2' }
-          ]
-        }
-      };
-      mockedAxios.get.mockResolvedValue(mockExplorerResponse);
-      
+          transactions: [{ id: 'tx1' }, { id: 'tx2' }],
+        },
+      }
+      mockedAxios.get.mockResolvedValue(mockExplorerResponse)
+
       // Setup extractTransactionObject to return a mock transaction
-      const mockExtractedTx = { hash: '0xabc', blockHash };
-      mockExtractTransactionObject.mockReturnValue(mockExtractedTx);
-      
+      const mockExtractedTx = { hash: '0xabc', blockHash }
+      mockExtractTransactionObject.mockReturnValue(mockExtractedTx)
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`);
-      expect(mockExtractTransactionObject).toHaveBeenCalledWith(mockExplorerResponse.data.transactions[1], 1);
-      expect(mockCallback).toHaveBeenCalledWith(null, mockExtractedTx);
-      expect(mockCountSuccessResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'success', 'explorer');
-    });
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`)
+      expect(mockExtractTransactionObject).toHaveBeenCalledWith(mockExplorerResponse.data.transactions[1], 1)
+      expect(mockCallback).toHaveBeenCalledWith(null, mockExtractedTx)
+      expect(mockCountSuccessResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'success',
+        'explorer'
+      )
+    })
 
     it('should handle explorer API errors', async () => {
       // Setup mock explorer to throw an error
-      mockedAxios.get.mockRejectedValue(new Error('Explorer API error'));
-      
+      mockedAxios.get.mockRejectedValue(new Error('Explorer API error'))
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`);
-      expect(mockCallback).toHaveBeenCalledWith(null, null);
-      expect(mockCountFailedResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'exception in axios.get');
-    });
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`)
+      expect(mockCallback).toHaveBeenCalledWith(null, null)
+      expect(mockCountFailedResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'exception in axios.get'
+      )
+    })
 
     it('should handle invalid index gracefully', async () => {
-      const outOfBoundsIndex = '0x5'; // Index that's out of bounds
-      
+      const outOfBoundsIndex = '0x5' // Index that's out of bounds
+
       // Setup mock explorer response with fewer transactions than the index
       const mockExplorerResponse = {
         data: {
           success: true,
-          transactions: [
-            { id: 'tx1' },
-            { id: 'tx2' }
-          ]
-        }
-      };
-      mockedAxios.get.mockResolvedValue(mockExplorerResponse);
-      
+          transactions: [{ id: 'tx1' }, { id: 'tx2' }],
+        },
+      }
+      mockedAxios.get.mockResolvedValue(mockExplorerResponse)
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, outOfBoundsIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, outOfBoundsIndex], mockCallback)
+
       // Verify behavior
-      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`);
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`)
       // extractTransactionObject shouldn't be called since index is invalid
-      expect(mockExtractTransactionObject).not.toHaveBeenCalled();
-      
+      expect(mockExtractTransactionObject).not.toHaveBeenCalled()
+
       // The implementation calls callback twice:
       // First in the explorer path with null (no result)
-      expect(mockCallback).toHaveBeenNthCalledWith(1, null, undefined);
+      expect(mockCallback).toHaveBeenNthCalledWith(1, null, undefined)
       // Then again at the end of the function with the original result variable (still undefined)
-      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined);
-      expect(mockCallback).toHaveBeenCalledTimes(2);
-    });
+      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined)
+      expect(mockCallback).toHaveBeenCalledTimes(2)
+    })
 
     it('should handle explorer unsuccessful response', async () => {
       // Setup mock explorer response with success: false
       const mockExplorerResponse = {
         data: {
           success: false,
-          transactions: []
-        }
-      };
-      mockedAxios.get.mockResolvedValue(mockExplorerResponse);
-      
+          transactions: [],
+        },
+      }
+      mockedAxios.get.mockResolvedValue(mockExplorerResponse)
+
       // Call the function
-      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback);
-      
+      await eth_getTransactionByBlockHashAndIndex([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`);
-      
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${mockConfig.explorerUrl}/api/transaction?blockHash=${blockHash}`)
+
       // The implementation calls callback twice:
       // First in the explorer path with null (unsuccessful response)
-      expect(mockCallback).toHaveBeenNthCalledWith(1, null, null);
+      expect(mockCallback).toHaveBeenNthCalledWith(1, null, null)
       // Then again at the end of the function with the original result variable (undefined in the refactored test)
-      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined);
-      expect(mockCallback).toHaveBeenCalledTimes(2);
-    });
-  });
+      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined)
+      expect(mockCallback).toHaveBeenCalledTimes(2)
+    })
+  })
 
   describe('Configuration state handling', () => {
     beforeEach(() => {
       // Setup ensureArrayArgs to return true for this test group
-      mockEnsureArrayArgs.mockReturnValue(true);
-      
+      mockEnsureArrayArgs.mockReturnValue(true)
+
       // Setup collector API to return null
       mockCollectorAPI.getBlock.mockResolvedValue({
-        transactions: []
-      });
-    });
+        transactions: [],
+      })
+    })
 
     it('should handle disabled queryFromValidator and queryFromExplorer', async () => {
       // Disable both config options
       const disabledConfig = {
         ...mockConfig,
         queryFromValidator: false,
-        queryFromExplorer: false
-      };
-      
+        queryFromExplorer: false,
+      }
+
       // Rebuild handler with disabled config
       const handlerWithDisabledConfig = buildGetTransactionByBlockHashAndIndex({
         nestedCountersInstance: mockNestedCountersInstance,
@@ -295,14 +309,17 @@ describe('eth_getTransactionByBlockHashAndIndex handler', () => {
         config: disabledConfig,
         verbose: false,
         errorBusy: { code: -32005, message: 'Server busy' },
-      });
-      
+      })
+
       // Call the function
-      await handlerWithDisabledConfig([blockHash, txIndex], mockCallback);
-      
+      await handlerWithDisabledConfig([blockHash, txIndex], mockCallback)
+
       // Verify behavior
-      expect(mockCallback).toHaveBeenCalledWith(null, null);
-      expect(mockCountFailedResponse).toHaveBeenCalledWith('eth_getTransactionByBlockHashAndIndex', 'queryFromValidator and/or queryFromExplorer turned off');
-    });
-  });
-}); 
+      expect(mockCallback).toHaveBeenCalledWith(null, null)
+      expect(mockCountFailedResponse).toHaveBeenCalledWith(
+        'eth_getTransactionByBlockHashAndIndex',
+        'queryFromValidator and/or queryFromExplorer turned off'
+      )
+    })
+  })
+})

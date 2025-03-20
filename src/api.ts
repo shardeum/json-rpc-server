@@ -2394,7 +2394,7 @@ export const methods = {
     countSuccessResponse,
     config,
     verbose,
-    errorBusy
+    errorBusy,
   }),
   eth_getTransactionByBlockNumberAndIndex: buildGetTransactionByBlockNumberAndIndex({
     nestedCountersInstance,
@@ -2407,7 +2407,7 @@ export const methods = {
     countSuccessResponse,
     config,
     verbose,
-    errorBusy
+    errorBusy,
   }),
   eth_getTransactionReceipt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionReceipt'
