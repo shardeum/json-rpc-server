@@ -4,7 +4,7 @@ import createLogger from '../../../src/utils/logger'
 describe('Logger', () => {
   const testLogFile = 'test-logs.log'
   let stdoutSpy: jest.SpyInstance
-  
+
   beforeEach(() => {
     stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
   })
@@ -20,12 +20,12 @@ describe('Logger', () => {
     const logger = createLogger({
       enableConsole: true,
       enableFile: false,
-      filename: testLogFile
+      filename: testLogFile,
     })
-    
+
     logger.info('Test message')
     expect(stdoutSpy).toHaveBeenCalled()
-    const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const output = stdoutSpy.mock.calls.map((call) => call[0].toString()).join('')
     const logObject = JSON.parse(output)
     expect(logObject.level).toBe('INFO')
     expect(logObject.msg).toBe('Test message')
@@ -36,14 +36,14 @@ describe('Logger', () => {
     const logger = createLogger({
       enableConsole: false,
       enableFile: true,
-      filename: testLogFile
+      filename: testLogFile,
     })
-    
+
     logger.info('Test message')
-    
+
     // Wait for file write
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
     expect(existsSync(testLogFile)).toBe(true)
     const fileContent = readFileSync(testLogFile, 'utf8')
     const logObject = JSON.parse(fileContent)
@@ -56,22 +56,22 @@ describe('Logger', () => {
     const logger = createLogger({
       enableConsole: true,
       enableFile: true,
-      filename: testLogFile
+      filename: testLogFile,
     })
-    
+
     logger.info('Test message')
-    
+
     // Wait for file write
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
     // Check console output
     expect(stdoutSpy).toHaveBeenCalled()
-    const consoleOutput = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const consoleOutput = stdoutSpy.mock.calls.map((call) => call[0].toString()).join('')
     const consoleLogObject = JSON.parse(consoleOutput)
     expect(consoleLogObject.level).toBe('INFO')
     expect(consoleLogObject.msg).toBe('Test message')
     expect(consoleLogObject.time).toBeDefined()
-    
+
     // Check file output
     expect(existsSync(testLogFile)).toBe(true)
     const fileContent = readFileSync(testLogFile, 'utf8')
@@ -83,10 +83,10 @@ describe('Logger', () => {
 
   it('should use default options when none are provided', () => {
     const logger = createLogger({} as any)
-    
+
     logger.info('Test message')
     expect(stdoutSpy).toHaveBeenCalled()
-    const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const output = stdoutSpy.mock.calls.map((call) => call[0].toString()).join('')
     const logObject = JSON.parse(output)
     expect(logObject.level).toBe('INFO')
     expect(logObject.msg).toBe('Test message')
@@ -97,14 +97,14 @@ describe('Logger', () => {
     const logger = createLogger({
       enableConsole: true,
       enableFile: false,
-      filename: testLogFile
+      filename: testLogFile,
     })
 
     const testObject = { key: 'value', nested: { prop: 'test' } }
     logger.info({ message: 'Test message', ...testObject })
-    
+
     expect(stdoutSpy).toHaveBeenCalled()
-    const output = stdoutSpy.mock.calls.map(call => call[0].toString()).join('')
+    const output = stdoutSpy.mock.calls.map((call) => call[0].toString()).join('')
     const logObject = JSON.parse(output)
     expect(logObject.level).toBe('INFO')
     expect(logObject.message).toBe('Test message')
@@ -118,22 +118,22 @@ describe('Logger', () => {
     const logger = createLogger({
       enableConsole: true,
       enableFile: false,
-      filename: 'logs/test.log'
+      filename: 'logs/test.log',
     })
 
     // Mock the log data
     const logData = {
       message: 'test message',
       time: Date.now(),
-      otherField: 'value'
+      otherField: 'value',
     }
 
     // Get the formatter function from the source code
     const formatter = (log: any) => {
-      const { time, ...rest} = log
+      const { time, ...rest } = log
       return {
         ...rest,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     }
 
@@ -142,11 +142,11 @@ describe('Logger', () => {
 
     // Should have timestamp in ISO format
     expect(formattedLog.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/)
-    
+
     // Should not have time field
     expect(formattedLog.time).toBeUndefined()
-    
+
     // Should preserve other fields
     expect(formattedLog.otherField).toBe('value')
   })
-}) 
+})

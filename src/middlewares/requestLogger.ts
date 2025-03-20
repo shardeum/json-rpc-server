@@ -6,12 +6,12 @@ import crypto from 'crypto'
 // default to true if not set
 const enableConsole = process.env.SHARDEUM_JSONRPC_CONSOLE_LOGGING === 'true'
 
-let enableFile: boolean = true;
+let enableFile: boolean = true
 if (process.env.SHARDEUM_JSONRPC_FILE_LOGGING === 'false') {
-  enableFile = false;
-} 
+  enableFile = false
+}
 
-const logDir = process.env.SHARDEUM_JSONRPC_LOGGING_DIR || 'logs';
+const logDir = process.env.SHARDEUM_JSONRPC_LOGGING_DIR || 'logs'
 
 const logger = createLogger({
   enableConsole,

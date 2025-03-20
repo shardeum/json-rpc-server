@@ -14,7 +14,7 @@ const defaultOptions: LoggerOptions = {
 
 const createLogger = (options: LoggerOptions) => {
   const { enableConsole, enableFile, filename } = { ...defaultOptions, ...options }
-  
+
   const baseOptions: pino.LoggerOptions = {
     formatters: {
       level: (label: string) => {
@@ -25,25 +25,22 @@ const createLogger = (options: LoggerOptions) => {
   }
 
   const streams = []
-  
+
   if (enableConsole) {
     streams.push({ stream: process.stdout })
   }
-  
+
   if (enableFile) {
-    streams.push({ 
-      stream: pino.destination({ 
+    streams.push({
+      stream: pino.destination({
         dest: filename,
         sync: false,
-        mkdir: true
-      })
+        mkdir: true,
+      }),
     })
   }
 
-  return pino(
-    baseOptions,
-    pino.multistream(streams)
-  )
+  return pino(baseOptions, pino.multistream(streams))
 }
 
 export default createLogger

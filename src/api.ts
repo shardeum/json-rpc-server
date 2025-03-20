@@ -105,12 +105,7 @@ export type DetailedTxStatus = {
   to: string
   from: string
   injected: boolean
-  accepted:
-    | TxStatusCode.BAD_TX
-    | TxStatusCode.SUCCESS
-    | TxStatusCode.BUSY
-    | TxStatusCode.OTHER_FAILURE
-    | boolean
+  accepted: TxStatusCode.BAD_TX | TxStatusCode.SUCCESS | TxStatusCode.BUSY | TxStatusCode.OTHER_FAILURE | boolean
   reason: string
   timestamp: string
   nodeUrl?: string
@@ -208,19 +203,14 @@ type TxParam =
       }
     }
 
-function extractTransactionObject(
-  bigTransaction: TxParam,
-  transactionIndexArg?: number
-): readableTransaction | null {
+function extractTransactionObject(bigTransaction: TxParam, transactionIndexArg?: number): readableTransaction | null {
   if (bigTransaction) {
     const tx = 'wrappedEVMAccount' in bigTransaction ? bigTransaction.wrappedEVMAccount : bigTransaction
     return {
       blockHash: tx.readableReceipt.blockHash,
       blockNumber: tx.readableReceipt.blockNumber,
       from: tx.readableReceipt.from,
-      gas:
-        '0x' +
-        (hexToBN(tx.readableReceipt.gasUsed).add(hexToBN(tx.readableReceipt.gasRefund)).toString(16)),
+      gas: '0x' + hexToBN(tx.readableReceipt.gasUsed).add(hexToBN(tx.readableReceipt.gasRefund)).toString(16),
       gasPrice: tx.readableReceipt.gasPrice,
       maxFeePerGas: undefined,
       maxPriorityFeePerGas: undefined,
@@ -301,10 +291,7 @@ interface ReceiptObject {
   type?: string
 }
 
-function extractTransactionReceiptObject(
-  bigTransaction: TxParam,
-  transactionIndexArg?: number
-): ReceiptObject | null {
+function extractTransactionReceiptObject(bigTransaction: TxParam, transactionIndexArg?: number): ReceiptObject | null {
   if (bigTransaction) {
     const tx = 'wrappedEVMAccount' in bigTransaction ? bigTransaction.wrappedEVMAccount : bigTransaction
 
@@ -490,9 +477,7 @@ async function getExplorerPendingTransactions(): Promise<string[]> {
 
   while (hasMorePages && currentPage <= 100) {
     try {
-      const response = await axios.get(
-        `${explorerURL}/api/originalTx?pending=true&decode=true&page=${currentPage}`
-      )
+      const response = await axios.get(`${explorerURL}/api/originalTx?pending=true&decode=true&page=${currentPage}`)
       if (response.data.success) {
         response.data.originalTxs.forEach((tx: { txHash: string }) => {
           txHashes.push(tx.txHash)
@@ -605,7 +590,7 @@ async function injectAndRecordTx(
         }
         if (config.verbose)
           console.log('The IP address blacklisted is', nodeIpPort)
-            // Reassign nodeIpPort and baseUrl to find a new pair
+          // Reassign nodeIpPort and baseUrl to find a new pair
         ;({ nodeIpPort, baseUrl } = getBaseUrl())
       }
     } while (entry !== undefined)
@@ -1201,10 +1186,7 @@ export const methods = {
         // Convert to 32 bytes hex string
         position = '0x' + '0'.repeat(66 - position.length) + position.slice(2)
       }
-      const storageAccountId = calculateContractStorageAccountId(
-        contractAddress.toLowerCase(),
-        position.toLowerCase()
-      )
+      const storageAccountId = calculateContractStorageAccountId(contractAddress.toLowerCase(), position.toLowerCase())
       if (CONFIG.collectorSourcing.enabled) {
         const res = await collectorAPI.fetchAccount(storageAccountId)
         if (res?.data?.accounts?.[0]?.account?.value) {
@@ -1339,10 +1321,7 @@ export const methods = {
       countFailedResponse(api_name, 'exception getting transaction count from validator')
     }
   },
-  eth_getBlockTransactionCountByHash: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getBlockTransactionCountByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockTransactionCountByHash'
     nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
@@ -1404,10 +1383,7 @@ export const methods = {
     countSuccessResponse(api_name, 'success no result', 'fallback')
     logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
-  eth_getBlockTransactionCountByNumber: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getBlockTransactionCountByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getBlockTransactionCountByNumber'
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
@@ -1427,13 +1403,9 @@ export const methods = {
       console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
 
     if (config.collectorSourcing.enabled || config.queryFromExplorer) {
-      if (blockNumber !== 'latest' && blockNumber !== 'earliest')
-        blockNumber = parseInt(blockNumber, 16).toString()
+      if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16).toString()
       if (blockNumber === 'latest' || blockNumber === 'earliest') {
-        const res = await requestWithRetry(
-          RequestMethod.Get,
-          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
-        )
+        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
         if (res.data.block) blockNumber = res.data.block.number
       }
     }
@@ -1497,10 +1469,7 @@ export const methods = {
     callback(null, result)
     countSuccessResponse(api_name, 'success')
   },
-  eth_getUncleCountByBlockNumber: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getUncleCountByBlockNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleCountByBlockNumber'
     nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
@@ -1678,10 +1647,7 @@ export const methods = {
             )
             callback(
               {
-                ...serializeError(
-                  { status: res.status },
-                  { fallbackError: { message: res.reason, code: 101 } }
-                ),
+                ...serializeError({ status: res.status }, { fallbackError: { message: res.reason, code: 101 } }),
                 data: {},
               },
               null
@@ -2172,10 +2138,7 @@ export const methods = {
     if (config.collectorSourcing.enabled || config.queryFromExplorer) {
       if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16)
       if (blockNumber === 'latest') {
-        const res = await requestWithRetry(
-          RequestMethod.Get,
-          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
-        )
+        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
         if (res.data.block) blockNumber = res.data.block.number
       }
       if (blockNumber === 'earliest') blockNumber = 0
@@ -2271,10 +2234,7 @@ export const methods = {
           blockCount = 1
         }
         if (newestBlock === 'latest' || newestBlock === 'earliest') {
-          const res = await requestWithRetry(
-            RequestMethod.Get,
-            `/eth_getBlockByNumber?blockNumber=${newestBlock}`
-          )
+          const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${newestBlock}`)
           if (res.data.block) newestBlock = res.data.block.number
         }
         for (let i = 0; i < blockCount; i++) {
@@ -2358,9 +2318,7 @@ export const methods = {
           }
         } catch (e) {
           if (verbose)
-            console.log(
-              'try to get transactionIndex using collector but fail. Return default transactionIndex'
-            )
+            console.log('try to get transactionIndex using collector but fail. Return default transactionIndex')
           logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
           callback(null, result)
           countSuccessResponse(api_name, 'success', 'collector')
@@ -2395,12 +2353,7 @@ export const methods = {
           const explorerUrl = config.explorerUrl
           res = await axios.get(`${explorerUrl}/api/transaction?txHash=${txHash}`)
           if (verbose)
-            console.log(
-              'url',
-              `${explorerUrl}/api/transaction?txHash=${txHash}`,
-              'res',
-              JSON.stringify(res.data)
-            )
+            console.log('url', `${explorerUrl}/api/transaction?txHash=${txHash}`, 'res', JSON.stringify(res.data))
           result = res.data.transactions ? res.data.transactions[0] : null
         }
         if (result === null) {
@@ -2428,10 +2381,7 @@ export const methods = {
     callback(null, result)
     countSuccessResponse(api_name, 'success', 'TBD')
   },
-  eth_getTransactionByBlockHashAndIndex: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getTransactionByBlockHashAndIndex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
@@ -2637,9 +2587,7 @@ export const methods = {
             }
           } catch (e) {
             if (verbose)
-              console.log(
-                'try to get transactionIndex using collector but fail. Return default transactionIndex'
-              )
+              console.log('try to get transactionIndex using collector but fail. Return default transactionIndex')
             logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
             callback(null, result)
             countSuccessResponse(api_name, 'success', 'collector')
@@ -2687,10 +2635,7 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
     }
   },
-  eth_getUncleByBlockHashAndIndex: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getUncleByBlockHashAndIndex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleByBlockHashAndIndex'
     nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
@@ -2704,10 +2649,7 @@ export const methods = {
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
-  eth_getUncleByBlockNumberAndIndex: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_getUncleByBlockNumberAndIndex: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleByBlockNumberAndIndex'
     nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
@@ -2810,10 +2752,7 @@ export const methods = {
     countSuccessResponse(api_name, 'success', 'TBD')
     logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   },
-  eth_newPendingTransactionFilter: async function (
-    args: RequestParamsLike,
-    callback: JSONRPCCallbackTypePlain
-  ) {
+  eth_newPendingTransactionFilter: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_newPendingTransactionFilter'
     nestedCountersInstance.countEvent('endpoint', api_name)
     const ticket = crypto
@@ -3045,11 +2984,7 @@ export const methods = {
     }
 
     if (config.verbose)
-      console.log(
-        `eth_getFilterChanges: filterId: ${filterId}, updates: ${updates.length}`,
-        internalFilter,
-        updates
-      )
+      console.log(`eth_getFilterChanges: filterId: ${filterId}, updates: ${updates.length}`, internalFilter, updates)
 
     callback(null, updates)
     countSuccessResponse(api_name, 'success', 'TBD')
@@ -3444,10 +3379,7 @@ export const methods = {
       //fetch block info
       let blockResult = await collectorAPI.getBlock(args[0], 'hex_num', args[1])
       if (!blockResult) {
-        const res = await requestWithRetry(
-          RequestMethod.Get,
-          `/eth_getBlockByNumber?blockNumber=${blockNumber}`
-        )
+        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
         blockResult = res.data.block
       }
       if (verbose) console.log('BLOCK DETAIL', blockResult)
@@ -3506,17 +3438,7 @@ export const methods = {
       .update(api_name + Math.random() + Date.now())
       .digest('hex')
 
-    logEventEmitter.emit(
-      'fn_start',
-      ticket,
-      api_name,
-      performance.now(),
-      args[0],
-      args[1],
-      args[2],
-      args[3],
-      args[4]
-    )
+    logEventEmitter.emit('fn_start', ticket, api_name, performance.now(), args[0], args[1], args[2], args[3], args[4])
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running debug_storageRangeAt', args) }
 
     // Fetch blockNumber by using eth_getBlockByHash
@@ -3845,8 +3767,7 @@ export const methods = {
         countFailedResponse(api_name, 'no accessList')
         return
       }
-      if (verbose)
-        console.log('predicted accessList from', res.data.nodeUrl, JSON.stringify(res.data.accessList))
+      if (verbose) console.log('predicted accessList from', res.data.nodeUrl, JSON.stringify(res.data.accessList))
       logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
       callback(null, res.data.accessList)
       countSuccessResponse(api_name, 'success', 'TBD')
@@ -3913,12 +3834,11 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, nodeListResult)
       countSuccessResponse(api_name, 'success', 'archiver')
-
     } catch (error: any) {
       const errorMessage = error?.message || 'Internal server error'
       const errorResponse = {
         code: -32603,
-        message: errorMessage
+        message: errorMessage,
       }
       logEventEmitter.emit('fn_end', ticket, { success: false, error: errorMessage }, performance.now())
       callback(errorResponse, null)
@@ -4001,7 +3921,11 @@ export const methods = {
 
     try {
       // Validate input parameters
-      if (!Array.isArray(args) || args.length > 1 || (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)) {
+      if (
+        !Array.isArray(args) ||
+        args.length > 1 ||
+        (args.length === 1 && typeof args[0] !== 'number' && args[0] !== null)
+      ) {
         const error = { code: -32602, message: 'Invalid params: Expected a single number or null.' }
         logEventEmitter.emit('fn_end', ticket, { success: false, error: error.message }, performance.now())
         callback(error, null)
@@ -4044,13 +3968,12 @@ export const methods = {
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
       callback(null, response)
       countSuccessResponse(api_name, 'success', 'collector')
-
     } catch (error: any) {
       const errorMessage = error?.message || 'Internal server error'
       const errorResponse = {
         code: -32000,
         message: 'Failed to fetch cycle info',
-        data: errorMessage
+        data: errorMessage,
       }
       logEventEmitter.emit('fn_end', ticket, { success: false, error: errorMessage }, performance.now())
       callback(errorResponse, null)

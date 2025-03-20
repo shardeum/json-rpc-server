@@ -3,7 +3,7 @@ import { rateLimitMiddleware, requestersList } from '../../../src/middlewares/ra
 import { RequestersList } from '../../../src/middlewares/rateLimit/RequestersList'
 import { CONFIG } from '../../../src/config'
 import { jest } from '@jest/globals'
-import * as fs from 'fs';
+import * as fs from 'fs'
 import { getTransactionObj } from '../../../src/middlewares/rateLimit/utils'
 
 // Default config values - keep them outside tests for reuse
@@ -16,14 +16,14 @@ const DEFAULT_CONFIG = {
     banIpAddress: true,
     banSpammerAddress: true,
     releaseFromBlacklistInterval: 60,
-    spammerCheckInterval: 5
+    spammerCheckInterval: 5,
   },
   verbose: false,
   recordTxStatus: true,
   debugEndpointRateLimiting: {
     window: 60000,
-    limit: 10
-  }
+    limit: 10,
+  },
 }
 
 // Test helpers
@@ -38,57 +38,54 @@ function createMockRequest({
   ip = '127.0.0.1',
   method = 'eth_sendRawTransaction',
   params = [mockRawTx],
-  isBatch = false
+  isBatch = false,
 }: MockRequestOptions = {}): Request {
-  const body = isBatch 
-    ? [{ method, params }, { method, params }]
+  const body = isBatch
+    ? [
+        { method, params },
+        { method, params },
+      ]
     : { method, params }
-  
+
   return {
     ip,
-    body
+    body,
   } as Request
 }
 
 function createMockResponse(): Response {
   return {
     status: jest.fn().mockReturnThis(),
-    send: jest.fn()
+    send: jest.fn(),
   } as unknown as Response
 }
 
-async function makeParallelRequests(
-  count: number,
-  req: Request,
-  res: Response,
-  next = jest.fn()
-): Promise<void> {
-  const promises = Array.from(
-    { length: count },
-    () => rateLimitMiddleware(req, res, next)
-  )
+async function makeParallelRequests(count: number, req: Request, res: Response, next = jest.fn()): Promise<void> {
+  const promises = Array.from({ length: count }, () => rateLimitMiddleware(req, res, next))
   await Promise.all(promises)
 }
 
 // Mock config with minimal required properties
 jest.mock('../../../src/config', () => ({
-  CONFIG: { ...DEFAULT_CONFIG }
+  CONFIG: { ...DEFAULT_CONFIG },
 }))
 
 // Mock the sleep function to resolve immediately
 jest.mock('../../../src/middlewares/rateLimit/utils', () => {
-  const actual = jest.requireActual<typeof import('../../../src/middlewares/rateLimit/utils')>('../../../src/middlewares/rateLimit/utils')
+  const actual = jest.requireActual<typeof import('../../../src/middlewares/rateLimit/utils')>(
+    '../../../src/middlewares/rateLimit/utils'
+  )
   return {
     ...actual,
-    sleep: (ms: number) => Promise.resolve()
+    sleep: (ms: number) => Promise.resolve(),
   }
 })
 
 // Mock the fs module
 jest.mock('fs', () => ({
   readFileSync: jest.fn(),
-  writeFileSync: jest.fn()
-}));
+  writeFileSync: jest.fn(),
+}))
 
 // mock whitelist
 jest.mock('../../../whitelist.json', () => [])
@@ -97,16 +94,17 @@ jest.mock('../../../whitelist.json', () => [])
 jest.mock('../../../blacklist.json', () => [])
 
 // Valid raw transaction data (legacy transaction format)
-const mockRawTx = '0xf86c098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a76400008025a028ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276a067cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d83'
+const mockRawTx =
+  '0xf86c098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a76400008025a028ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276a067cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d83'
 
 describe('Rate Limiting', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
     // Reset CONFIG to default values
-    Object.assign(CONFIG, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+    Object.assign(CONFIG, JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
     // Reset mock return values
-    (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify([]));
+    ;(fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify([]))
     requestersList.cleanUp()
   })
 
@@ -136,10 +134,10 @@ describe('Rate Limiting', () => {
   })
 
   it('should allow valid batch requests', async () => {
-    const mockReq = createMockRequest({ 
+    const mockReq = createMockRequest({
       method: 'eth_call',
       params: [],
-      isBatch: true
+      isBatch: true,
     })
     const mockRes = createMockResponse()
     const mockNext = jest.fn()
@@ -158,7 +156,7 @@ describe('Rate Limiting', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(429)
     expect(mockRes.send).toHaveBeenCalledWith('Rejected by rate-limiting')
-    
+
     // Verify blacklist write
     expect(fs.writeFileSync).toHaveBeenCalled()
     const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0]
@@ -176,7 +174,7 @@ describe('Rate Limiting', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(503)
     expect(mockRes.send).toHaveBeenCalledWith('Network is currently busy. Please try again later.')
-    
+
     // Verify blacklist write
     expect(fs.writeFileSync).toHaveBeenCalled()
     const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0]
@@ -191,7 +189,7 @@ describe('Rate Limiting', () => {
 
       await makeParallelRequests(11, mockReq, mockRes)
       jest.advanceTimersByTime(DEFAULT_CONFIG.rateLimitOption.releaseFromBlacklistInterval * 60 * 1000)
-      
+
       expect(fs.writeFileSync).toHaveBeenCalled()
     })
 
@@ -199,13 +197,9 @@ describe('Rate Limiting', () => {
       const mockReq = createMockRequest()
       const mockRes = createMockResponse()
 
-      await makeParallelRequests(
-        DEFAULT_CONFIG.rateLimitOption.allowedTxCountInCheckInterval + 1,
-        mockReq,
-        mockRes
-      )
+      await makeParallelRequests(DEFAULT_CONFIG.rateLimitOption.allowedTxCountInCheckInterval + 1, mockReq, mockRes)
       jest.advanceTimersByTime(DEFAULT_CONFIG.rateLimitOption.spammerCheckInterval * 60 * 1000)
-      
+
       expect(fs.writeFileSync).toHaveBeenCalled()
     })
   })
@@ -241,17 +235,17 @@ describe('Rate Limiting', () => {
   describe('Blacklist Management', () => {
     it('should not add duplicate IPs to blacklist', async () => {
       // Add IP directly to the blacklist
-      const blacklistWrites = () => (fs.writeFileSync as jest.Mock).mock.calls
-        .filter(call => (call[0] as string).includes('blacklist.json'))
-        .length;
+      const blacklistWrites = () =>
+        (fs.writeFileSync as jest.Mock).mock.calls.filter((call) => (call[0] as string).includes('blacklist.json'))
+          .length
 
       expect(blacklistWrites()).toBe(0)
-      requestersList.addToBlacklist('127.0.0.1');
-      
-      expect(blacklistWrites()).toBe(1);
+      requestersList.addToBlacklist('127.0.0.1')
+
+      expect(blacklistWrites()).toBe(1)
 
       // Mock that reading the blacklist now returns the IP
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(['127.0.0.1']))
+      ;(fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(['127.0.0.1']))
 
       // Verify IP is already in blacklist
       expect(requestersList.isIpBanned('127.0.0.1')).toBe(true)
@@ -269,23 +263,19 @@ describe('Rate Limiting', () => {
       const mockReq = createMockRequest()
       const mockRes = createMockResponse()
 
-      await makeParallelRequests(
-        DEFAULT_CONFIG.rateLimitOption.allowedTxCountInCheckInterval + 1,
-        mockReq,
-        mockRes
-      )
+      await makeParallelRequests(DEFAULT_CONFIG.rateLimitOption.allowedTxCountInCheckInterval + 1, mockReq, mockRes)
       await rateLimitMiddleware(mockReq, mockRes, jest.fn())
-      
+
       expect(mockRes.status).toHaveBeenCalled()
     })
 
     it('should not blacklist IPs that are whitelisted', async () => {
       // Clean up the existing instance
       requestersList.cleanUp()
-      
+
       // Create a new instance with the whitelisted IP
       const newRequestersList = new RequestersList([], [], ['127.0.0.1'])
-      
+
       // Replace the global instance with our new one
       Object.assign(requestersList, newRequestersList)
 
@@ -303,22 +293,23 @@ describe('Rate Limiting', () => {
 
       // Verify the IP was not blacklisted
       expect(requestersList.isIpBanned('127.0.0.1')).toBe(false)
-      
+
       // Verify next() was called instead of sending error response
       expect(mockNext).toHaveBeenCalled()
       expect(mockRes.status).not.toHaveBeenCalled()
       expect(mockRes.send).not.toHaveBeenCalled()
 
       // Verify IP was not written to blacklist file
-      const blacklistWrites = (fs.writeFileSync as jest.Mock).mock.calls
-        .filter(call => (call[0] as string).includes('blacklist.json'))
+      const blacklistWrites = (fs.writeFileSync as jest.Mock).mock.calls.filter((call) =>
+        (call[0] as string).includes('blacklist.json')
+      )
       expect(blacklistWrites.length).toBe(0)
     })
   })
 
   describe('Initialization', () => {
     let originalSetInterval: typeof setInterval
-    
+
     beforeEach(() => {
       // Clear any existing instances
       requestersList.cleanUp()
@@ -362,7 +353,7 @@ describe('Rate Limiting', () => {
 
       CONFIG.rateLimit = false
       new RequestersList()
-      
+
       expect(mockSetInterval).not.toHaveBeenCalled()
     })
 
@@ -372,10 +363,10 @@ describe('Rate Limiting', () => {
 
       CONFIG.rateLimit = true
       new RequestersList()
-      
+
       // Should set up two intervals - one for cleanup and one for spammer check
       expect(mockSetInterval).toHaveBeenCalledTimes(2)
-      
+
       // Verify intervals are set with correct timing
       const calls = mockSetInterval.mock.calls
       expect(calls[0][1]).toBe(DEFAULT_CONFIG.rateLimitOption.releaseFromBlacklistInterval * 60 * 1000) // First interval for cleanup
@@ -391,12 +382,12 @@ describe('Rate Limiting', () => {
       CONFIG.rateLimitOption = { ...configCopy }
       delete (CONFIG.rateLimitOption as Partial<typeof configCopy>).releaseFromBlacklistInterval
       delete (CONFIG.rateLimitOption as Partial<typeof configCopy>).spammerCheckInterval
-      
+
       expect(() => new RequestersList()).toThrow('Rate limit options are not set correctly')
     })
     it('should use default intervals when not configured', () => {
-      (CONFIG.rateLimitOption as any).releaseFromBlacklistInterval = "abc";
-      (CONFIG.rateLimitOption as any).spammerCheckInterval = "abc";
+      ;(CONFIG.rateLimitOption as any).releaseFromBlacklistInterval = 'abc'
+      ;(CONFIG.rateLimitOption as any).spammerCheckInterval = 'abc'
       expect(() => new RequestersList()).toThrow('Rate limit options are not set correctly: must be numbers')
     })
   })
@@ -405,8 +396,8 @@ describe('Rate Limiting', () => {
     beforeEach(() => {
       jest.clearAllMocks()
       jest.useFakeTimers()
-      Object.assign(CONFIG, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify([]));
+      Object.assign(CONFIG, JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
+      ;(fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify([]))
       requestersList.cleanUp()
     })
 
@@ -454,7 +445,9 @@ describe('Rate Limiting', () => {
 
       // Verify blacklist file was updated
       expect(fs.writeFileSync).toHaveBeenCalled()
-      const lastWriteCall = (fs.writeFileSync as jest.Mock).mock.calls[(fs.writeFileSync as jest.Mock).mock.calls.length - 1]
+      const lastWriteCall = (fs.writeFileSync as jest.Mock).mock.calls[
+        (fs.writeFileSync as jest.Mock).mock.calls.length - 1
+      ]
       expect(lastWriteCall).toBeDefined()
       expect(JSON.parse(lastWriteCall[1] as string)).toEqual([])
     })
@@ -466,11 +459,11 @@ describe('Rate Limiting', () => {
 
       // Make 5 requests at t=0
       await makeParallelRequests(5, mockReq, mockRes)
-      
+
       // Get the address from the mock transaction
       const tx = getTransactionObj({ raw: mockRawTx })
       const address = tx.getSenderAddress().toString()
-      
+
       const initialHeavyAddresses = requestersList.heavyAddresses.get(address)?.length
       expect(initialHeavyAddresses).toBe(5)
 
@@ -491,9 +484,9 @@ describe('Rate Limiting', () => {
     it('should handle clearing empty lists without errors', () => {
       // Create a new instance with empty lists
       const instance = new RequestersList()
-      
+
       // Should not throw when clearing empty lists
       expect(() => instance.clearOldIps()).not.toThrow()
     })
   })
-}) 
+})

@@ -39,7 +39,7 @@ jest.mock('../../../src/websocket/log_server', () => ({
 }))
 
 interface MockWebSocket extends jest.Mocked<WebSocket> {
-  closeCallback: (code: number, reason: string) => void;
+  closeCallback: (code: number, reason: string) => void
 }
 
 describe('WebSocket Connection Tests', () => {
@@ -52,7 +52,7 @@ describe('WebSocket Connection Tests', () => {
       on: jest.fn((event, callback) => {
         // Store the callback for 'close' event
         if (event === 'close') {
-          mockSocket.closeCallback = callback;
+          mockSocket.closeCallback = callback
         }
       }),
       send: jest.fn(),
@@ -65,8 +65,8 @@ describe('WebSocket Connection Tests', () => {
     // Mock IncomingMessage with a valid IP address
     mockIncomingMessage = {
       socket: {
-        remoteAddress: '127.0.0.1'
-      }
+        remoteAddress: '127.0.0.1',
+      },
     } as Partial<IncomingMessage>
   })
 
@@ -135,7 +135,10 @@ describe('WebSocket Connection Tests', () => {
       }
 
       await onConnection(mockSocket, mockIncomingMessage as IncomingMessage)
-      expect(mockSocket.close).toHaveBeenCalledWith(1008, 'Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.')
+      expect(mockSocket.close).toHaveBeenCalledWith(
+        1008,
+        'Connection closed: Your IP address has reached the maximum allowed connections. Please close an existing connection or try again later.'
+      )
     })
   })
 

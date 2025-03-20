@@ -269,6 +269,6 @@ export const CONFIG: Config = {
     useEndpoint: false,
     endpointUrl: '', // not used if useEndpoint is false
     filePath: './foundation-nodes.json',
-    minFoundationNodesForInjectFilter: 50
+    minFoundationNodesForInjectFilter: 50,
   },
 }

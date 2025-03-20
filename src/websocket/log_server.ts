@@ -9,8 +9,7 @@ const log_server_ws_url = `ws://${CONFIG.log_server.ip}:${CONFIG.log_server.port
 
 export const setupEvmLogProviderConnectionStream = (): void => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
-  if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0)
-    return
+  if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0) return
 
   evmLogProvider_ConnectionStream = new WebSocket.WebSocket(log_server_ws_url + '/evm_log_subscription')
   evmLogProvider_ConnectionStream.on('error', () => {
@@ -125,4 +124,3 @@ export const setupEvmLogProviderConnectionStream = (): void => {
     }
   })
 }
-

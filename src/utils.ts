@@ -184,8 +184,7 @@ export async function updateNodeList(tryInfinite = false): Promise<void> {
       //const results = await Promise.all(promises)
       const activeNodes = nodes.filter((_, index) => results[index])
       nodeList = activeNodes
-      if (verbose)
-        console.log(`Nodelist is updated. All nodes ${nodes.length}, online nodes ${activeNodes.length}`)
+      if (verbose) console.log(`Nodelist is updated. All nodes ${nodes.length}, online nodes ${activeNodes.length}`)
     } else {
       for (const node of nodes) {
         nodeListMap.set(`${node.ip}:${node.port}`, node)
@@ -275,7 +274,8 @@ async function getArchiverStats(): Promise<ArchiverStat[]> {
       return { url: `http://${url.ip}:${url.port}`, cycle_value: res?.data?.cycleInfo[0].counter }
     } catch (error: unknown) {
       console.error(
-        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${(error as NodeJSError).errno} => ${(error as NodeJSError).code
+        `Unreachable Archiver @ ${url.ip}:${url.port} | Error-code: ${(error as NodeJSError).errno} => ${
+          (error as NodeJSError).code
         }`
       )
       return { url: `http://${url.ip}:${url.port}`, cycle_value: null }
@@ -493,18 +493,18 @@ function rotateConsensorNode(): void {
       ? getNextConsensorNode()
       : getRandomConsensorNode()
 
-    if (!consensor) continue;
+    if (!consensor) continue
 
     const ipPort = `${consensor.ip}:${consensor.port}`
     // Skip if node is in bad nodes map
-    if (badNodesMap.has(ipPort)) continue;
+    if (badNodesMap.has(ipPort)) continue
 
     // Skip if foundation node filtering is enabled and this is not a foundation node
     if (foundationFilterEnabled && !isFoundationNode(ipPort)) {
       // decrement count so skipping this non foundation node doesn't count as a retry
       count--
       continue
-    } 
+    }
 
     let nodeIp = consensor.ip
     //Sometimes the external IPs returned will be local IPs.  This happens with pm2 hosting multpile nodes on one server.
@@ -519,7 +519,7 @@ function rotateConsensorNode(): void {
   // If we couldn't find a foundation node after max retries, fall back to any node
   if (!success && foundationFilterEnabled) {
     console.log('Could not find a suitable foundation node after max retries, falling back to any node')
-    rotateConsensorNodeWithoutFilter();
+    rotateConsensorNodeWithoutFilter()
   }
 }
 
@@ -536,12 +536,12 @@ function rotateConsensorNodeWithoutFilter(): void {
       ? getNextConsensorNode()
       : getRandomConsensorNode()
 
-    if (!consensor) continue;
+    if (!consensor) continue
 
     const ipPort = `${consensor.ip}:${consensor.port}`
 
     // Skip if node is in bad nodes map
-    if (badNodesMap.has(ipPort)) continue;
+    if (badNodesMap.has(ipPort)) continue
 
     let nodeIp = consensor.ip
     if (config.useConfigNodeIp === true) {
@@ -616,20 +616,11 @@ export function sleep(ms: number): Promise<boolean> {
   })
 }
 
-export async function getAccountFromValidator(
-  addressStr: string
-): Promise<{ account?: Account2; nodeUrl?: string }> {
+export async function getAccountFromValidator(addressStr: string): Promise<{ account?: Account2; nodeUrl?: string }> {
   function responseCheck(data: any): boolean {
     return data.account != null
   }
-  const res = await requestWithRetry(
-    RequestMethod.Get,
-    `/account/${addressStr}`,
-    {},
-    8,
-    undefined,
-    responseCheck
-  )
+  const res = await requestWithRetry(RequestMethod.Get, `/account/${addressStr}`, {}, 8, undefined, responseCheck)
   return res.data
 }
 
@@ -815,8 +806,8 @@ async function fetchAccountFromExplorer(
 
 function isContractAccount(account: AccountTypesData): boolean {
   const eoaCodeHash = [
-    197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39,
-    59, 123, 250, 216, 4, 93, 133, 164, 112,
+    197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123,
+    250, 216, 4, 93, 133, 164, 112,
   ]
 
   // Compare the code hash of the account to the EOA code hash
@@ -830,13 +821,7 @@ async function fetchAccountFromArchiver(
   key: string,
   timestamp: number
 ): Promise<{ accountId: string; data: AccountTypesData } | undefined> {
-  const res = await requestWithRetry(
-    RequestMethod.Get,
-    `${getArchiverUrl().url}/account?accountId=${key}`,
-    {},
-    0,
-    true
-  )
+  const res = await requestWithRetry(RequestMethod.Get, `${getArchiverUrl().url}/account?accountId=${key}`, {}, 0, true)
   // TODO: Fix bug where timestamp are same. Latest transaction is being replayed.
   if (!res.data.accounts) {
     return undefined
@@ -863,15 +848,15 @@ async function fetchAccountFromArchiver(
         stateRoot: {
           type: 'Buffer',
           data: [
-            86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153,
-            108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33,
+            86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153, 108, 173,
+            192, 1, 98, 47, 181, 227, 99, 180, 33,
           ],
         },
         codeHash: {
           type: 'Buffer',
           data: [
-            197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202,
-            130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+            197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59,
+            123, 250, 216, 4, 93, 133, 164, 112,
           ],
         },
       },
@@ -894,13 +879,7 @@ async function fetchLatestAccount(
   type: number
 ): Promise<{ accountId: string; data: AccountTypesData } | undefined> {
   console.log('Fetching latest account', key)
-  const res = await requestWithRetry(
-    RequestMethod.Get,
-    `${getArchiverUrl().url}/account?accountId=${key}`,
-    {},
-    3,
-    true
-  )
+  const res = await requestWithRetry(RequestMethod.Get, `${getArchiverUrl().url}/account?accountId=${key}`, {}, 3, true)
 
   if (!res.data.accounts) {
     if (type === 0) {
@@ -913,15 +892,15 @@ async function fetchLatestAccount(
           stateRoot: {
             type: 'Buffer',
             data: [
-              86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153,
-              108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33,
+              86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153, 108, 173,
+              192, 1, 98, 47, 181, 227, 99, 180, 33,
             ],
           },
           codeHash: {
             type: 'Buffer',
             data: [
-              197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202,
-              130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112,
+              197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39,
+              59, 123, 250, 216, 4, 93, 133, 164, 112,
             ],
           },
         },
@@ -1278,9 +1257,7 @@ export async function replayTransaction(txHash: string, flag: string): Promise<a
 
 export function parseAndValidateStringInput(input: string): Buffer {
   if (input.slice(0, 2).toLowerCase() !== '0x') {
-    throw new Error(
-      `Cannot wrap string value "${input}" as a json-rpc type; strings must be prefixed with "0x".`
-    )
+    throw new Error(`Cannot wrap string value "${input}" as a json-rpc type; strings must be prefixed with "0x".`)
   }
 
   let hexValue = input.slice(2)
@@ -1378,10 +1355,7 @@ export enum TxStatusCode {
 export function getReasonEnumCode(reason: string): TxStatusCode {
   const _REASONS = new Map()
   _REASONS.set('Maximum load exceeded.'.toLowerCase(), TxStatusCode.BUSY)
-  _REASONS.set(
-    'Not ready to accept transactions, shard calculations pending'.toLowerCase(),
-    TxStatusCode.BUSY
-  )
+  _REASONS.set('Not ready to accept transactions, shard calculations pending'.toLowerCase(), TxStatusCode.BUSY)
   _REASONS.set('Network conditions to allow transactions are not met.'.toLowerCase(), TxStatusCode.BUSY)
   _REASONS.set('Network conditions to allow app init via set'.toLowerCase(), TxStatusCode.BUSY)
 

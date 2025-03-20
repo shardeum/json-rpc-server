@@ -120,10 +120,7 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
         const isRequestOkay = await checkRequest(ip, request)
 
         if (!isRequestOkay) {
-          socket.close(
-            1008,
-            JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } })
-          )
+          socket.close(1008, JSON.stringify({ jsonrpc: '2.0', error: { code: -1, message: 'Rate limit exceeded' } }))
           return
         }
       } catch (error) {
@@ -430,33 +427,30 @@ export const setupSubscriptionEventHandlers = (ipport: string): void => {
     evmLogProvider_ConnectionStream?.send(JSON.stringify({ method, params: { subscription_id } }))
   })
 
-  subscriptionEventEmitter.on(
-    'evm_newHead_subscribe',
-    async (payload: { subscription_id: string; ipport: string }) => {
-      nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
-      const method = 'subscribe'
+  subscriptionEventEmitter.on('evm_newHead_subscribe', async (payload: { subscription_id: string; ipport: string }) => {
+    nestedCountersInstance.countEvent('websocket', 'evm_newHead_subscribe')
+    const method = 'subscribe'
 
-      if (
-        !newHeadSubscriptionProvider_ConnectionStream ||
-        newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
-      ) {
-        setupNewHeadSubscriptionProviderConnectionStream()
+    if (
+      !newHeadSubscriptionProvider_ConnectionStream ||
+      newHeadSubscriptionProvider_ConnectionStream.readyState !== WebSocket.OPEN
+    ) {
+      setupNewHeadSubscriptionProviderConnectionStream()
 
-        // Wait for connection to be ready (up to 5 seconds)
-        for (let i = 0; i < 50; i++) {
-          if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
-            console.log('[NewHeads] Connection is now ready')
-            break
-          }
-          if (i === 49) {
-            console.log('[NewHeads] Connection timed out waiting to be ready')
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100))
+      // Wait for connection to be ready (up to 5 seconds)
+      for (let i = 0; i < 50; i++) {
+        if (newHeadSubscriptionProvider_ConnectionStream?.readyState === WebSocket.OPEN) {
+          console.log('[NewHeads] Connection is now ready')
+          break
         }
+        if (i === 49) {
+          console.log('[NewHeads] Connection timed out waiting to be ready')
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
-      sendNewHeadsMessage({ method, params: payload })
     }
-  )
+    sendNewHeadsMessage({ method, params: payload })
+  })
 
   subscriptionEventEmitter.on('evm_newHead_unsubscribe', async (subscription_id: string) => {
     nestedCountersInstance.countEvent('websocket', 'evm_newHead_unsubscribe')

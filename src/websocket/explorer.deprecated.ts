@@ -9,8 +9,7 @@ const explorer_ws_url = CONFIG.explorerUrl.replace('http', 'ws')
 
 export const setupEvmLogProviderConnectionStream = (): void => {
   if ((CONFIG.websocket.enabled && CONFIG.websocket.serveSubscriptions) !== true) return
-  if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0)
-    return
+  if (evmLogProvider_ConnectionStream?.readyState === 1 || evmLogProvider_ConnectionStream?.readyState === 0) return
 
   evmLogProvider_ConnectionStream = new WebSocket.WebSocket(explorer_ws_url + '/evm_log_subscription')
   evmLogProvider_ConnectionStream.on('error', () => {

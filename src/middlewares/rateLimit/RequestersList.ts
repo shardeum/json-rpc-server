@@ -34,10 +34,7 @@ export class RequestersList {
 
     if (config.rateLimit) {
       // ensure configs are set and are numbers
-      if (
-        !config.rateLimitOption.releaseFromBlacklistInterval ||
-        !config.rateLimitOption.spammerCheckInterval
-      ) {
+      if (!config.rateLimitOption.releaseFromBlacklistInterval || !config.rateLimitOption.spammerCheckInterval) {
         throw new Error('Rate limit options are not set correctly')
       }
 
@@ -147,8 +144,7 @@ export class RequestersList {
     // log and clean all requests
     let allRecords = Object.values(this.allRequestTracker)
     allRecords = allRecords.sort((a: IpData, b: IpData) => b.count - a.count)
-    if (config.verbose)
-      console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
+    if (config.verbose) console.log('10 most frequent all IPs (rejected + successful):', allRecords.slice(0, 10))
 
     // log total injected tx by ip
     let txRecords = Object.values(this.totalTxTracker)
@@ -177,34 +173,24 @@ export class RequestersList {
       )
       for (const caller of sortedCallers) {
         if (config.verbose) console.log(`    ${caller.from}, count: ${caller.count}`)
-        const sortedIps: IpData[] = Object.values(caller.ips).sort(
-          (a: IpData, b: IpData) => b.count - a.count
-        )
+        const sortedIps: IpData[] = Object.values(caller.ips).sort((a: IpData, b: IpData) => b.count - a.count)
         for (const ip of sortedIps) {
           if (config.verbose) console.log(`             ${ip.ip}, count: ${ip.count}`)
         }
         if (this.isTooManyTx(caller.count) && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
           this.addSenderToBacklist(caller.from)
           if (config.verbose)
-            console.log(
-              `Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`
-            )
+            console.log(`Caller ${caller.from} is added to spammer list due to sending spam txs to ${abusedData.to}`)
         }
       }
     }
 
     // ban most abuse sender addresses
-    const mostAbusedSendersSorted: { address: string; count: number }[] = Object.values(
-      this.abusedSenders
-    ).sort(
+    const mostAbusedSendersSorted: { address: string; count: number }[] = Object.values(this.abusedSenders).sort(
       (a: { address: string; count: number }, b: { address: string; count: number }) => b.count - a.count
     )
     for (const spammerInfo of mostAbusedSendersSorted) {
-      if (
-        this.isTooManyTx(spammerInfo.count) &&
-        config.rateLimit &&
-        config.rateLimitOption.banSpammerAddress
-      ) {
+      if (this.isTooManyTx(spammerInfo.count) && config.rateLimit && config.rateLimitOption.banSpammerAddress) {
         this.addSenderToBacklist(spammerInfo.address)
       }
     }
@@ -395,7 +381,7 @@ export class RequestersList {
       // record this heavy request before checking
       this.addHeavyRequest(ip)
     }
-    
+
     const heavyReqHistory = this.heavyRequests.get(ip)
 
     if (heavyReqHistory && heavyReqHistory.length >= config.rateLimitOption.allowedHeavyRequestPerMin + 1) {
@@ -476,8 +462,7 @@ export class RequestersList {
           if (toAddressHistory && toAddressHistory.length >= 10) {
             if (now - toAddressHistory[toAddressHistory.length - 10] < oneMinute) {
               this.addAbusedAddress(readableTx.to, readableTx.from as string, ip)
-              if (config.verbose)
-                console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
+              if (config.verbose) console.log(`Last tx TO this contract address ${readableTx.to} is less than 60s ago`)
 
               if (config.rateLimitOption.allowFaucetAccount) {
                 const isFaucetAccount = await this.checkFaucetAccount(
@@ -485,9 +470,7 @@ export class RequestersList {
                   'discord'
                 )
                 if (isFaucetAccount) {
-                  console.log(
-                    `Allow address ${readableTx.from} to an abused contract because it is a faucet account`
-                  )
+                  console.log(`Allow address ${readableTx.from} to an abused contract because it is a faucet account`)
                   return true
                 }
               }
