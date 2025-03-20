@@ -2403,7 +2403,10 @@ export const methods = {
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
         if (typeof result === 'object' && result.transactionIndex && args[1] !== undefined) {
-          result.transactionIndex = '0x' + parseInt(args[1], 16).toString(16)
+          const transactionIndex = parseInt(args[1], 16);
+          if (!isNaN(transactionIndex)) {
+            result.transactionIndex = '0x' + transactionIndex.toString(16);
+          }
         }
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')
@@ -2483,7 +2486,10 @@ export const methods = {
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
         if (typeof result === 'object' && result.transactionIndex && args[1] !== undefined) {
-          result.transactionIndex = '0x' + parseInt(args[1], 16).toString(16)
+          const transactionIndex = parseInt(args[1], 16);
+          if (!isNaN(transactionIndex)) {
+            result.transactionIndex = '0x' + transactionIndex.toString(16);
+          }
         }
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')
