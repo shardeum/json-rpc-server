@@ -29,8 +29,14 @@ export const buildGetTransactionByBlockHashAndIndex = ({
   config,
   verbose,
   errorBusy,
-}: BuildGetTransactionByBlockHashAndIndex) => {
-  const eth_getTransactionByBlockHashAndIndex = async (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) => {
+}: BuildGetTransactionByBlockHashAndIndex): ((
+  args: RequestParamsLike,
+  callback: JSONRPCCallbackTypePlain
+) => Promise<void>) => {
+  const eth_getTransactionByBlockHashAndIndex = async (
+    args: RequestParamsLike,
+    callback: JSONRPCCallbackTypePlain
+  ): Promise<void> => {
     const api_name = 'eth_getTransactionByBlockHashAndIndex'
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {

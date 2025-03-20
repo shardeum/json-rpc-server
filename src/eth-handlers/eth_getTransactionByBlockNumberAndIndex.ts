@@ -31,11 +31,14 @@ export const buildGetTransactionByBlockNumberAndIndex = ({
   config,
   verbose,
   errorBusy,
-}: BuildGetTransactionByBlockNumberAndIndex) => {
+}: BuildGetTransactionByBlockNumberAndIndex): ((
+  args: RequestParamsLike,
+  callback: JSONRPCCallbackTypePlain
+) => Promise<void>) => {
   const eth_getTransactionByBlockNumberAndIndex = async (
     args: RequestParamsLike,
     callback: JSONRPCCallbackTypePlain
-  ) => {
+  ): Promise<void> => {
     const api_name = 'eth_getTransactionByBlockNumberAndIndex'
     nestedCountersInstance.countEvent('endpoint', api_name)
     if (!ensureArrayArgs(args, callback)) {
