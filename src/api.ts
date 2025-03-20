@@ -2402,6 +2402,10 @@ export const methods = {
       const blockResp = await collectorAPI.getBlock(args[0], 'hash', true)
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
+        // Fix the transactionIndex to match the requested index
+        if (typeof result === 'object' && result.transactionIndex) {
+          result.transactionIndex = '0x' + parseInt(args[1], 16).toString(16)
+        }
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
@@ -2479,6 +2483,10 @@ export const methods = {
       const blockResp = await collectorAPI.getBlock(args[0], 'hex_num', true)
       result = blockResp?.transactions[Number(args[1])]
       if (result) {
+        // Fix the transactionIndex to match the requested index
+        if (typeof result === 'object' && result.transactionIndex) {
+          result.transactionIndex = '0x' + parseInt(args[1], 16).toString(16)
+        }
         callback(null, result)
         countSuccessResponse(api_name, 'success', 'collector')
         logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
