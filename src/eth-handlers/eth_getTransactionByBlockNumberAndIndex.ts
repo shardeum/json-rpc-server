@@ -4,19 +4,20 @@ import crypto from 'crypto'
 import { completeReadableReceipt } from '../external/Collector'
 import { JSONRPCCallbackTypePlain } from 'jayson'
 import axios from 'axios'
+import NestedCounters from '../utils/nestedCounters'
 
 interface BuildGetTransactionByBlockNumberAndIndex {
-  nestedCountersInstance: any
-  ensureArrayArgs: any
-  countFailedResponse: any
+  nestedCountersInstance: NestedCounters
+  ensureArrayArgs: (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) => boolean
+  countFailedResponse: (api: string, reason: string) => void
   logEventEmitter: any
-  firstLineLogs: any
+  firstLineLogs: boolean
   collectorAPI: any
   extractTransactionObject: any
   countSuccessResponse: any
   config: any
-  verbose: any
-  errorBusy: any
+  verbose: boolean
+  errorBusy: { code: number; message: string }
 }
 
 export const buildGetTransactionByBlockNumberAndIndex = ({
