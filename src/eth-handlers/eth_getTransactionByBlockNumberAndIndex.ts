@@ -72,7 +72,9 @@ export const buildGetTransactionByBlockNumberAndIndex = ({
       callback(errorBusy)
       countFailedResponse(api_name, 'exception in collectorAPI.getBlock')
       logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+      return
     }
+
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getTransactionByBlockNumberAndIndex', args) }
     let blockNumber = (args as any)[0]
     const index = parseInt((args as any)[1], 16)
@@ -105,21 +107,21 @@ export const buildGetTransactionByBlockNumberAndIndex = ({
           { nodeUrl, success: res.data.transactions.length ? true : false },
           performance.now()
         )
+        return
       } catch (error) {
         /* prettier-ignore */ if (verbose) console.log('Error: eth_getTransactionByBlockNumberAndIndex', (error as AxiosError).message)
         callback(null, null)
         countFailedResponse(api_name, 'exception in axios.get')
         logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
+        return
       }
     } else {
       console.log('queryFromExplorer turned off. Could not process request')
       callback(null, null)
       countFailedResponse(api_name, 'queryFromExplorer turned off')
       logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      return
     }
-    callback(null, result)
-    countSuccessResponse(api_name, 'success', 'fallback')
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
   }
 
   return eth_getTransactionByBlockNumberAndIndex

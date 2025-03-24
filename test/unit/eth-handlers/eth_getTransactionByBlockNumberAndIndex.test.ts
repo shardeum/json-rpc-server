@@ -312,9 +312,7 @@ describe('eth_getTransactionByBlockNumberAndIndex handler', () => {
       // The implementation calls callback twice:
       // First in the explorer path with null (no result)
       expect(mockCallback).toHaveBeenNthCalledWith(1, null, undefined)
-      // Then again at the end of the function with the original result variable (still undefined)
-      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined)
-      expect(mockCallback).toHaveBeenCalledTimes(2)
+      expect(mockCallback).toHaveBeenCalledTimes(1)
     })
 
     it('should handle explorer unsuccessful response', async () => {
@@ -339,9 +337,7 @@ describe('eth_getTransactionByBlockNumberAndIndex handler', () => {
       // The implementation calls callback twice:
       // First in the explorer path with null (unsuccessful response)
       expect(mockCallback).toHaveBeenNthCalledWith(1, null, null)
-      // Then again at the end of the function with the original result variable (undefined in the refactored test)
-      expect(mockCallback).toHaveBeenNthCalledWith(2, null, undefined)
-      expect(mockCallback).toHaveBeenCalledTimes(2)
+      expect(mockCallback).toHaveBeenCalledTimes(1)
     })
 
     it('should handle "earliest" block tag correctly', async () => {
