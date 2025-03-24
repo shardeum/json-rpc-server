@@ -18,6 +18,8 @@ import { sleep } from '../utils'
 import { BaseTrie } from 'merkle-patricia-tree'
 import * as RLP from 'rlp'
 import { BigNumber } from '@ethersproject/bignumber'
+import { calculateBlockGasUsed } from '../utils/gasCalculator'
+
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
 
@@ -349,21 +351,7 @@ class Collector extends BaseExternal {
 
         if (txResponse.data.success && txResponse.data.transactions) {
           resultBlock.transactions = txResponse.data.transactions.map((tx: any) => this.decodeTransaction(tx))
-          // Calculate block gas used with proper hex value handling
-          let blockGasUsed = BigNumber.from(0)
-          txResponse.data.transactions.forEach((tx: any) => {
-            const gasUsedHex = tx.wrappedEVMAccount?.readableReceipt?.gasUsed
-            if (gasUsedHex && gasUsedHex !== '0x' && gasUsedHex !== '0x0') {
-              try {
-                // Normalize if necessary before converting to BigNumber
-                const gasUsed = BigNumber.from(gasUsedHex)
-                blockGasUsed = blockGasUsed.add(gasUsed)
-              } catch (gasError) {
-                console.warn('Invalid gas value in transaction:', tx.hash, gasUsedHex)
-              }
-            }
-          })
-          resultBlock.gasUsed = blockGasUsed.toHexString()
+          resultBlock.gasUsed = calculateBlockGasUsed(txResponse.data.transactions)
 
           // Extract transaction hash array
           const transactionHashes = resultBlock.transactions.map((tx: any) => tx.hash)
