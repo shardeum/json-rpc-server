@@ -4374,7 +4374,7 @@ export const methods = {
     }
   },
   ots_getTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'ots_searchTransactionsBefore'
+    const api_name = 'ots_getTransactions'
     nestedCountersInstance.countEvent('endpoint', api_name)
 
     if (!CONFIG.otterscanMethods.enabled) {
@@ -4388,9 +4388,83 @@ export const methods = {
       return
     }
 
-    const [address, pageNumber = 1, pageSize = 10] = args
+    // Make address optional - if not provided, get all transactions
+    const [address = '', pageNumber = 1, pageSize = 10] = args
     try {
-      const result = await collectorAPI.searchTransactions(address, {
+      const result = await collectorAPI.searchTransactions(
+        // Convert null/undefined to empty string
+        address === null ? '' : address, 
+        {
+          page: pageNumber,
+          pageSize: pageSize,
+        }
+      )
+
+      if (!result) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, result)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+
+  // Get latest transactions TODO: Unify this method with ots_getTransactions
+  ots_getLatestTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getLatestTransactions'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    const [pageSize = 20] = args
+    try {
+      const result = await collectorAPI.getLatestTransactions(pageSize)
+
+      if (!result) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, result)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getLatestTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getAllTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getAllTransactions'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    const [pageNumber = 1, pageSize = 10] = args
+    try {
+      const result = await collectorAPI.searchTransactions('', {
         page: pageNumber,
         pageSize: pageSize,
       })
@@ -4403,7 +4477,7 @@ export const methods = {
       callback(null, result)
       countSuccessResponse(api_name, 'success')
     } catch (e) {
-      console.error(`Error in ots_searchTransactionsBefore:`, e)
+      console.error(`Error in ots_getAllTransactions:`, e)
       callback(errorBusy)
       countFailedResponse(api_name, 'exception')
     }

@@ -632,11 +632,15 @@ class Collector extends BaseExternal {
     if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
     try {
       const params = new URLSearchParams({
-        address: address.toLowerCase(),
         page: (options.page || 1).toString(),
         pageSize: (options.pageSize || 10).toString(),
       })
-  
+
+      // Only add address param if it's not empty
+      if (address) {
+        params.append('address', address.toLowerCase())
+      }
+
       const requestConfig: AxiosRequestConfig = {
         method: 'get',
         url: `${this.baseUrl}/api/transaction?${params.toString()}`,
@@ -876,6 +880,86 @@ class Collector extends BaseExternal {
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getBlockByHash-error')
       console.error('Collector: Error getting block by hash', error)
+      return null
+    }
+  }
+  async getLatestTransactions(pageSize: number = 20): Promise<TransactionSearchResponse | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    try {
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: pageSize.toString()
+      })
+
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/transaction?${params.toString()}`,
+        headers: this.defaultHeaders,
+      }
+
+      const response = await axiosWithRetry<{
+        success: boolean;
+        transactions: TransactionFromExplorer[];
+        totalTransactions: number;
+      }>(requestConfig)
+
+      if (!response.data.success) return null
+
+      const txs = await Promise.all(
+        response.data.transactions.map(async (tx) => {
+          const wrappedEVM = this.parseWrappedEVMAccount(tx.wrappedEVMAccount)
+          if (!wrappedEVM) return null
+
+          const receipt = await this.getTransactionReceipt(tx.txHash)
+          
+          return {
+            transaction: {
+              hash: tx.txHash,
+              type: tx.transactionType.toString(),
+              blockHash: tx.blockHash,
+              blockNumber: tx.blockNumber.toString(),
+              transactionIndex: wrappedEVM.readableReceipt?.transactionIndex || '0x0',
+              from: tx.txFrom,
+              to: tx.txTo,
+              value: wrappedEVM.readableReceipt?.value || '0x0',
+              gasPrice: wrappedEVM.readableReceipt?.gasPrice || '0x0',
+              gas: wrappedEVM.readableReceipt?.gasLimit || '0x0',
+              input: wrappedEVM.readableReceipt?.data || '0x',
+              nonce: wrappedEVM.readableReceipt?.nonce || '0x0',
+              chainId: wrappedEVM.readableReceipt?.chainId || CONFIG.chainId.toString(16),
+              v: wrappedEVM.readableReceipt?.v || '0x0',
+              r: wrappedEVM.readableReceipt?.r || '0x0',
+              s: wrappedEVM.readableReceipt?.s || '0x0',
+              timestamp: tx.timestamp.toString(),
+            },
+            receipt: receipt ? {
+              blockHash: receipt.blockHash,
+              blockNumber: receipt.blockNumber,
+              transactionHash: receipt.transactionHash,
+              transactionIndex: receipt.transactionIndex,
+              from: receipt.from || tx.txFrom,
+              to: receipt.to || tx.txTo,
+              gasUsed: receipt.gasUsed,
+              status: receipt.status,
+              logs: receipt.logs || [],
+              timestamp: tx.timestamp.toString(),
+            } : null
+          }
+        })
+      )
+
+      const validTxs = txs.filter((tx): tx is NonNullable<typeof tx> => tx !== null)
+
+      return {
+        txs: validTxs.map(tx => tx.transaction),
+        receipts: validTxs.map(tx => tx.receipt).filter((r): r is NonNullable<typeof r> => r !== null),
+        firstPage: true,
+        lastPage: true,
+        totalPages: 1,
+        totalTransactions: response.data.totalTransactions
+      }
+    } catch (error) {
+      console.error('Collector: Error getting latest transactions', error)
       return null
     }
   }
