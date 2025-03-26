@@ -123,6 +123,9 @@ type Config = {
     filePath: string
     minFoundationNodesForInjectFilter: number
   }
+  otterscanMethods: {
+    enabled: boolean
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -210,8 +213,8 @@ export const CONFIG: Config = {
   isRemoteLocalNetwork: false,
   nodeExternalIpForRemoteLocalNetwork: '127.0.0.1',
   collectorSourcing: {
-    enabled: false,
-    collectorApiServerUrl: 'http://0.0.0.0:6001',
+    enabled: true,
+    collectorApiServerUrl: 'http://0.0.0.0:6101',
   },
   serviceValidatorSourcing: {
     enabled: false,
@@ -270,5 +273,8 @@ export const CONFIG: Config = {
     endpointUrl: '', // not used if useEndpoint is false
     filePath: './foundation-nodes.json',
     minFoundationNodesForInjectFilter: 50,
+  },
+  otterscanMethods: {
+    enabled: true,
   },
 }

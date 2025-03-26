@@ -3966,6 +3966,320 @@ export const methods = {
       countFailedResponse(api_name, (e as Error).message)
     }
   },
+  ots_getApiLevel: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getApiLevel'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    try {
+      callback(null, 10)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getApiLevel:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_hasCode: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_hasCode'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [address, blockTag] = args
+    try {
+      const code = await getCode(address, blockTag)
+      // Return true if address has code, false otherwise
+      callback(null, code.contractCode !== '0x')
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_hasCode:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getInternalOperations: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getInternalOperations'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [txHash] = args
+    try {
+      const operations = await collectorAPI.getInternalOperations(txHash)
+      if (!operations) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, operations)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getInternalOperations:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getBlockDetails: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getBlockDetails'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [blockNumber] = args
+    try {
+      const blockDetails = await collectorAPI.getBlockDetails(blockNumber)
+      if (!blockDetails) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, blockDetails)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getBlockDetails:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getBlockDetailsByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getBlockDetailsByHash'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [blockHash] = args
+    try {
+      const blockDetails = await collectorAPI.getBlockDetailsByHash(blockHash)
+      if (!blockDetails) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, blockDetails)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getBlockDetailsByHash:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  erigon_getHeaderByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'erigon_getHeaderByNumber'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    const [blockNumber] = args
+    try {
+      // Convert number to hex string
+      const blockNumberHex = typeof blockNumber === 'number' ? '0x' + blockNumber.toString(16) : blockNumber
+
+      const block = await collectorAPI.getBlock(blockNumberHex, 'hex_num', true)
+      if (!block) {
+        callback(null, null)
+        return
+      }
+
+      // Return block header info
+      callback(null, {
+        hash: block.hash,
+        parentHash: block.parentHash,
+        number: block.number,
+        timestamp: block.timestamp,
+      })
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in erigon_getHeaderByNumber:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getContractCreator: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getContractCreator'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [contractAddress] = args
+    try {
+      // Get contract creation transaction from collector
+      const tx = await collectorAPI.getContractCreator(contractAddress)
+      if (!tx) {
+        callback(null, null)
+        return
+      }
+      callback(null, tx)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getContractCreator:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getTransactions'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    // Make address optional - if not provided, get all transactions
+    const [address = '', pageNumber = 1, pageSize = 10] = args
+    try {
+      const result = await collectorAPI.searchTransactions(
+        // Convert null/undefined to empty string
+        address === null ? '' : address,
+        {
+          page: pageNumber,
+          pageSize: pageSize,
+        }
+      )
+
+      if (!result) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, result)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+
+  // Get latest transactions TODO: Unify this method with ots_getTransactions
+  ots_getLatestTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getLatestTransactions'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    const [pageSize = 20] = args
+    try {
+      const result = await collectorAPI.getLatestTransactions(pageSize)
+
+      if (!result) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, result)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getLatestTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
+  ots_getAllTransactions: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    const api_name = 'ots_getAllTransactions'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+
+    const [pageNumber = 1, pageSize = 10] = args
+    try {
+      const result = await collectorAPI.searchTransactions('', {
+        page: pageNumber,
+        pageSize: pageSize,
+      })
+
+      if (!result) {
+        callback(null, null)
+        return
+      }
+
+      callback(null, result)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getAllTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
 }
 
 const wrapMethod = (method: Function) => {
