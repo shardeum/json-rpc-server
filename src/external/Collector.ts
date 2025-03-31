@@ -773,42 +773,31 @@ class Collector extends BaseExternal {
       return null
     }
   }
-  private formatBlockDetails(block: readableBlock): BlockDetailsResponse {
-    // Parse readableBlock if it's a string
-    const blockData = typeof block === 'string' ? JSON.parse(block) : block
+  async getTransactionsByBlockNumber(blockNumber: string): Promise<any[] | null> {
+    if (!CONFIG.collectorSourcing.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getTransactionsByBlockNumber')
 
-    const transactionCount = Array.isArray(blockData.transactions) ? blockData.transactions.length : 0
+    try {
+      const requestConfig: AxiosRequestConfig = {
+        method: 'get',
+        url: `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`,
+        headers: this.defaultHeaders,
+      }
 
-    return {
-      block: {
-        hash: blockData.hash,
-        parentHash: blockData.parentHash,
-        number: blockData.number,
-        timestamp: blockData.timestamp,
-        nonce: blockData.nonce || '0x0',
-        difficulty: blockData.difficulty || '0x0',
-        gasLimit: blockData.gasLimit,
-        gasUsed: blockData.gasUsed,
-        miner: blockData.miner,
-        extraData: blockData.extraData || '0x',
-        stateRoot: blockData.stateRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
-        transactionsRoot:
-          blockData.transactionsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
-        receiptsRoot: blockData.receiptsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
-        mixHash: blockData.mixHash || '0x0',
-        totalDifficulty: blockData.totalDifficulty || '0x0',
-        size: '0x0',
-        transactionCount,
-      },
-      issuance: {
-        blockReward: '0x0',
-        uncleReward: '0x0',
-        issuance: '0x0',
-      },
-      totalFees: '0x0',
-      gasUsedDepositTx: '0x0',
+      const response = await axiosWithRetry<{
+        success: boolean
+        transactions: any[]
+      }>(requestConfig)
+
+      if (!response.data.success) return null
+      return response.data.transactions
+    } catch (error) {
+      nestedCountersInstance.countEvent('collector', 'getTransactionsByBlockNumber-error')
+      console.error('Collector: Error getting transactions by block number', error)
+      return null
     }
   }
+
   async getBlockDetails(blockNumber: string): Promise<BlockDetailsResponse | null> {
     if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getBlockDetails')
@@ -826,7 +815,20 @@ class Collector extends BaseExternal {
       }>(requestConfig)
 
       if (!response.data.success) return null
-      return this.formatBlockDetails(response.data.readableBlock)
+
+      // Get transactions for this block
+      const transactions = await this.getTransactionsByBlockNumber(blockNumber)
+      
+      // Format block details
+      const blockDetails = this.formatBlockDetails(response.data.readableBlock)
+      
+      // Add transactions to the response
+      if (transactions) {
+        blockDetails.block.transactions = transactions
+        blockDetails.block.transactionCount = transactions.length
+      }
+
+      return blockDetails
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getBlockDetails-error')
       console.error('Collector: Error getting block details', error)
@@ -871,6 +873,36 @@ class Collector extends BaseExternal {
       nestedCountersInstance.countEvent('collector', 'getBlockByHash-error')
       console.error('Collector: Error getting block by hash', error)
       return null
+    }
+  }
+  async getBlockTransactions(blockNumber: number): Promise<readableTransaction[] | null> {
+    if (!CONFIG.collectorSourcing.enabled || !CONFIG.otterscanMethods.enabled) return null
+    nestedCountersInstance.countEvent('collector', 'getBlockTransactions')
+
+    try {
+        // Convert the block number to hex format
+        const blockNumberHex = typeof blockNumber === 'number' 
+            ? '0x' + blockNumber.toString(16)
+            : blockNumber
+
+        const requestConfig: AxiosRequestConfig = {
+            method: 'get',
+            url: `${this.baseUrl}/api/transaction?blockNumber=${blockNumberHex}`,
+            headers: this.defaultHeaders,
+        }
+
+        const response = await axiosWithRetry<{
+            success: boolean
+            transactions: readableTransaction[]
+        }>(requestConfig)
+
+        if (!response.data.success) return null
+
+        return response.data.transactions
+    } catch (error) {
+        nestedCountersInstance.countEvent('collector', 'getBlockTransactions-error')
+        console.error('Collector: Error getting block transactions', error)
+        return null
     }
   }
   async getLatestTransactions(pageSize: number = 20): Promise<TransactionSearchResponse | null> {
@@ -957,6 +989,44 @@ class Collector extends BaseExternal {
       return null
     }
   }
+
+  private formatBlockDetails(block: readableBlock): BlockDetailsResponse {
+    // Parse readableBlock if it's a string
+    const blockData = typeof block === 'string' ? JSON.parse(block) : block
+
+    const transactionCount = Array.isArray(blockData.transactions) ? blockData.transactions.length : 0
+
+    return {
+      block: {
+        hash: blockData.hash,
+        parentHash: blockData.parentHash,
+        number: blockData.number,
+        timestamp: blockData.timestamp,
+        nonce: blockData.nonce || '0x0',
+        difficulty: blockData.difficulty || '0x0',
+        gasLimit: blockData.gasLimit,
+        gasUsed: blockData.gasUsed,
+        miner: blockData.miner,
+        extraData: blockData.extraData || '0x',
+        stateRoot: blockData.stateRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        transactionsRoot:
+          blockData.transactionsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        receiptsRoot: blockData.receiptsRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+        mixHash: blockData.mixHash || '0x0',
+        totalDifficulty: blockData.totalDifficulty || '0x0',
+        size: '0x0',
+        transactionCount,
+        transactions: blockData.transactions || [],
+      },
+      issuance: {
+        blockReward: '0x0',
+        uncleReward: '0x0',
+        issuance: '0x0',
+      },
+      totalFees: '0x0',
+      gasUsedDepositTx: '0x0',
+    }
+  }
 }
 
 interface InternalOperation {
@@ -1012,6 +1082,7 @@ interface BlockDetailsResponse {
     receiptsRoot: string
     mixHash: string
     totalDifficulty: string
+    transactions: any[]
   }
   issuance: {
     blockReward: string

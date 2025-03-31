@@ -4071,6 +4071,43 @@ export const methods = {
       countFailedResponse(api_name, 'exception')
     }
   },
+  ots_getBlockTransaction: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
+    
+
+    const api_name = 'ots_getBlockTransaction'
+    nestedCountersInstance.countEvent('endpoint', api_name)
+
+    if (!CONFIG.otterscanMethods.enabled) {
+      callback({ code: -32000, message: 'Otterscan methods disabled' }, null)
+      countFailedResponse(api_name, 'Otterscan methods disabled')
+      return
+    }
+
+    if (!ensureArrayArgs(args, callback)) {
+      countFailedResponse(api_name, 'Invalid params: non-array args')
+      return
+    }
+    const [blockNumber] = args
+  
+      // Convert number to hex string
+      const blockNumberHex = typeof blockNumber === 'number' ? '0x' + blockNumber.toString(16) : blockNumber
+    try {
+      const blockTransactions = await collectorAPI.getBlockTransactions(blockNumberHex)
+      console.log('blockTransactions', blockTransactions)
+      if (!blockTransactions) {
+        callback(null, null)
+        return
+      }
+
+      console.log('blockTransactions', blockTransactions)
+      callback(null, blockTransactions)
+      countSuccessResponse(api_name, 'success')
+    } catch (e) {
+      console.error(`Error in ots_getBlockTransactions:`, e)
+      callback(errorBusy)
+      countFailedResponse(api_name, 'exception')
+    }
+  },
   ots_getBlockDetailsByHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'ots_getBlockDetailsByHash'
     nestedCountersInstance.countEvent('endpoint', api_name)
