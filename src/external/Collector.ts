@@ -543,6 +543,7 @@ class Collector extends BaseExternal {
       v: '0x' + txObj.v?.toString('hex'),
       r: '0x' + txObj.r?.toString('hex'),
       s: '0x' + txObj.s?.toString('hex'),
+      timestamp: tx.timestamp?.toString() || undefined,
     } as readableLegacyTransaction
 
     // EIP-2930 Transaction
@@ -1159,6 +1160,7 @@ type readableLegacyTransaction = {
   r: string
   s: string
   transactionIndex: string
+  timestamp?: string
 }
 
 type readableEIP2930Transaction = readableLegacyTransaction & {
