@@ -520,6 +520,7 @@ class Collector extends BaseExternal {
         v: '0x',
         r: '0x',
         s: '0x',
+        timestamp: tx.timestamp?.toString() || undefined,
       } as readableLegacyTransaction
     }
 
