@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import fs from 'fs'
+import logger from '../config/logger'
 
 export let db: Database.Database
 
@@ -11,7 +12,7 @@ async function init(): Promise<void> {
   }
   db = new Database(`${dir}/log.sqlite3`)
   await db.pragma('journal_mode = WAL')
-  console.log('Database initialized.')
+  logger.info('Database initialized.')
   /* eslint-enable security/detect-non-literal-fs-filename */
 }
 
@@ -39,7 +40,7 @@ export function checkDatabaseHealth(): boolean {
     db.prepare('SELECT 1').get()
     return true
   } catch (error) {
-    console.error('Database health check failed:', error)
+    logger.error('Database health check failed', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
     return false
   }
 }

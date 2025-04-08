@@ -3,6 +3,7 @@ import axios from 'axios'
 import { CONFIG } from '../config'
 import { sanitizeIpAndPort } from '../utils'
 import { Utils } from '@shardeum-foundation/lib-types'
+import logger from '../config/logger'
 
 // Set to store foundation node IP:PORT combinations
 const foundationNodesSet = new Set<string>()
@@ -19,7 +20,7 @@ async function loadFoundationNodesFromFile(): Promise<boolean> {
   try {
     const filePath = CONFIG.foundationNodeFilter.filePath
     if (!fs.existsSync(filePath)) {
-      console.error(`Foundation nodes file not found: ${filePath}`)
+      logger.error('Foundation nodes file not found', { filePath })
       return false
     }
 
@@ -41,14 +42,14 @@ async function loadFoundationNodesFromFile(): Promise<boolean> {
         }
       })
     } else {
-      console.error('Foundation nodes file has invalid format')
+      logger.error('Foundation nodes file has invalid format')
       return false
     }
 
     foundationNodesCount = foundationNodesSet.size
     return true
   } catch (error) {
-    console.error(`Error loading foundation nodes from file: ${error}`)
+    logger.error('Error loading foundation nodes from file', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
     return false
   }
 }
@@ -60,7 +61,7 @@ async function loadFoundationNodesFromEndpoint(): Promise<boolean> {
   try {
     const endpointUrl = CONFIG.foundationNodeFilter.endpointUrl
     if (!endpointUrl) {
-      console.error('Foundation nodes endpoint URL is not configured')
+      logger.error('Foundation nodes endpoint URL is not configured')
       return false
     }
 
@@ -80,14 +81,14 @@ async function loadFoundationNodesFromEndpoint(): Promise<boolean> {
         }
       })
     } else {
-      console.error('Foundation nodes endpoint returned invalid format')
+      logger.error('Foundation nodes endpoint returned invalid format')
       return false
     }
 
     foundationNodesCount = foundationNodesSet.size
     return true
   } catch (error) {
-    console.error(`Error loading foundation nodes from endpoint: ${error}`)
+    logger.error('Error loading foundation nodes from endpoint', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
     return false
   }
 }
@@ -115,9 +116,12 @@ export async function loadFoundationNodes(): Promise<boolean> {
     isFeatureEnabled = true
   } else {
     if (success) {
-      console.error(
-        `Not enough foundation nodes (${foundationNodesCount}) to enable filtering. ` +
-          `Minimum required: ${CONFIG.foundationNodeFilter.minFoundationNodesForInjectFilter}`
+      logger.warn(
+        'Not enough foundation nodes to enable filtering',
+        { 
+          currentCount: foundationNodesCount, 
+          minimumRequired: CONFIG.foundationNodeFilter.minFoundationNodesForInjectFilter 
+        }
       )
     }
     isFeatureEnabled = false

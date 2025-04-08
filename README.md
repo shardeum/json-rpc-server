@@ -10,6 +10,8 @@ For developers deploying to production environments, simply use `docker compose`
 
 env `NO_OF_RPC_SERVERS` creates replicas of rpc servers using pm2. default is 1. Default port is 8080, port for each replicas will increment by 1 on default port. i.e 8081, 8082, 8083, etc.
 
+env `LOG_LEVEL` sets the logging level for the application. Valid values are: critical, error, warn, notice, info, debug. Default is 'info'.
+
 ### Start json-rpc-server
 
 ```shell

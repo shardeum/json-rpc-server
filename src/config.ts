@@ -60,6 +60,7 @@ type Config = {
     softReject: boolean
   }
   statLog: boolean
+  logLevel: string // Log level for the application (critical, error, warn, notice, info, debug)
 
   blockCacheSettings: {
     lastNBlocksSize: number
@@ -196,6 +197,7 @@ export const CONFIG: Config = {
   verboseRequestWithRetry: false,
   verboseAALG: false,
   firstLineLogs: true, // default is true and turn off for prod for perf
+  logLevel: process.env.LOG_LEVEL || 'info',
 
   blockCacheSettings: {
     lastNBlocksSize: Number(process.env.LAST_N_BLOCKS_SIZE) || 100,

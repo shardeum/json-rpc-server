@@ -8,8 +8,9 @@ services:
       context: .
     network_mode: host
     restart: unless-stopped
-    # environment:
-    #   - NO_OF_RPC_SERVERS=1
+    environment:
+      - NO_OF_RPC_SERVERS=1
+      - LOG_LEVEL=info
     # volumes:
     # - ./entrypoint.sh:/app/entrypoint.sh
     # - ./src/config.ts:/app/src/config.ts

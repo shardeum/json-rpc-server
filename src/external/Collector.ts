@@ -19,6 +19,7 @@ import { BaseTrie } from 'merkle-patricia-tree'
 import * as RLP from 'rlp'
 import { BigNumber } from '@ethersproject/bignumber'
 import { calculateBlockGasUsed } from '../utils/gasCalculator'
+import logger from '../config/logger'
 
 class Collector extends BaseExternal {
   private blockCacheManager: BlockCacheManager
@@ -39,10 +40,10 @@ class Collector extends BaseExternal {
   async getLogsByFilter(request: LogQueryRequest): Promise<any[] | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getLogsByFilter')
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getLogsByFilter call for request: ${JSON.stringify(request)}`)
+    if (firstLineLogs) logger.debug('Collector: getLogsByFilter call', { request })
     try {
       const url = this.buildLogAPIUrl(request, this.baseUrl)
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getLogsByFilter built log API URL: ${url}`)
+      if (verbose) logger.debug('Collector: getLogsByFilter built log API URL', { url })
 
       const res = await axios.get(url)
 
@@ -52,7 +53,7 @@ class Collector extends BaseExternal {
       return logs
     } catch (e) {
       nestedCountersInstance.countEvent('collector', 'getLogsByFilter-error')
-      console.error('An error occurred for Collector.getLogsByFilter:', e)
+      logger.error('An error occurred for Collector.getLogsByFilter', { error: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined })
       return null
     }
   }
@@ -60,7 +61,7 @@ class Collector extends BaseExternal {
   async getTransactionByHash(txHash: string): Promise<readableTransaction | Err | null> {
     if (!CONFIG.collectorSourcing.enabled) return NewErr('Collector sourcing is not enabled')
     nestedCountersInstance.countEvent('collector', 'getTransactionByHash')
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTransactionByHash call for txHash: ${txHash}`)
+    if (firstLineLogs) logger.debug('Collector: getTransactionByHash call', { txHash })
     const requestConfig: AxiosRequestConfig = {
       method: 'get',
       url: `${this.baseUrl}/api/transaction?txHash=${txHash}`,
@@ -68,20 +69,20 @@ class Collector extends BaseExternal {
     }
 
     try {
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash requestConfig: ${JSON.stringify(requestConfig)}`)
+      if (verbose) logger.debug('Collector: getTransactionByHash requestConfig', { requestConfig })
       const res = await axiosWithRetry<{ success: boolean; transactions: any }>(requestConfig)
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash res: ${JSON.stringify(res.data)}`)
+      if (verbose) logger.debug('Collector: getTransactionByHash response', { data: res.data })
       if (!res.data.success) return null
 
       const tx = res.data.transactions && res.data.transactions[0] ? res.data.transactions[0] : null
 
       const result = tx ? this.decodeTransaction(tx) : null
 
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByHash result: ${JSON.stringify(result)}`)
+      if (verbose) logger.debug('Collector: getTransactionByHash result', { result })
       return result
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getTransactionByHash-error')
-      console.error('Collector: Error getting transaction by hash', error)
+      logger.error('Collector: Error getting transaction by hash', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       return NewInternalErr('Collector: Error getting transaction by hash')
     }
   }
@@ -97,16 +98,16 @@ class Collector extends BaseExternal {
     }
     try {
       const res = await axiosWithRetry<{ success: boolean; transactions: any }>(requestConfig)
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionReceipt res: ${JSON.stringify(res.data)}`)
+      if (verbose) logger.debug('Collector: getTransactionReceipt response', { data: res.data })
       if (!res.data.success) return null
 
       const result = res.data.transactions ? res.data.transactions[0] : null
 
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionReceipt result: ${JSON.stringify(result)}`)
+      if (verbose) logger.debug('Collector: getTransactionReceipt result', { result })
       return result
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getTransactionReceipt-error')
-      console.error('Collector: Error getting transaction receipt', error)
+      logger.error('Collector: Error getting transaction receipt', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       return NewInternalErr('Collector: Error getting transaction receipt')
     }
   }
@@ -114,7 +115,7 @@ class Collector extends BaseExternal {
   async getTxReceiptDetails(txHash: string): Promise<any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
     nestedCountersInstance.countEvent('collector', 'getTxReceiptDetails')
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTxReceiptDetails call for txHash: ${txHash}`)
+    if (firstLineLogs) logger.debug('Collector: getTxReceiptDetails call', { txHash })
     try {
       const apiQuery = `${this.baseUrl}/api/transaction?txHash=${txHash}`
       const response = await axios.get(apiQuery).then((response) => {
@@ -122,7 +123,7 @@ class Collector extends BaseExternal {
           throw new Error('Failed to fetch transaction')
         } else return response
       })
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTxReceiptDetails /api/transaction response: ${JSON.stringify(response.data)}`)
+      if (verbose) logger.debug('Collector: getTxReceiptDetails /api/transaction response', { data: response.data })
 
       const txId = response.data.transactions[0].txId
       const receiptQuery = `${this.baseUrl}/api/receipt?txId=${txId}`
@@ -130,7 +131,7 @@ class Collector extends BaseExternal {
       return receipt
     } catch (error) {
       nestedCountersInstance.countEvent('collector', 'getTxReceiptDetails-error')
-      console.error('Collector: Error getting transaction receipt details', error)
+      logger.error('Collector: Error getting transaction receipt details', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       return null
     }
   }
@@ -166,22 +167,22 @@ class Collector extends BaseExternal {
       headers: this.defaultHeaders,
     }
 
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getLatestBlockNumber call`)
+    if (firstLineLogs) logger.debug('Collector: getLatestBlockNumber call')
     try {
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber requestConfig: ${JSON.stringify(requestConfig)}`)
+      if (verbose) logger.debug('Collector: getLatestBlockNumber requestConfig', { requestConfig })
       const res = await axiosWithRetry<{
         success: boolean
         number: bigint
         hash: string
         timestamp: bigint
       }>(requestConfig)
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getLatestBlockNumber res: ${JSON.stringify(res.data)}`)
+      if (verbose) logger.debug('Collector: getLatestBlockNumber response', { data: res.data })
       if (!res.data.success) return null
 
       return res.data
     } catch (e) {
       nestedCountersInstance.countEvent('collector', 'getLatestBlockNumber-error')
-      console.error('Collector: Error getting latest block number', e)
+      logger.error('Collector: Error getting latest block number', { error: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined })
       return null
     }
   }
@@ -189,7 +190,7 @@ class Collector extends BaseExternal {
   async getTransactionByBlock(request: TxByBlockRequest): Promise<number | any | null> {
     if (!CONFIG.collectorSourcing.enabled) return null
 
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getTransactionByBlock call -> ${JSON.stringify(request)}`)
+    if (firstLineLogs) logger.debug('Collector: getTransactionByBlock call', { request })
     let url = `${this.baseUrl}/api/transaction?`
     if (request.blockNumber) {
       url += `blockNumber=${request.blockNumber}`
@@ -205,11 +206,11 @@ class Collector extends BaseExternal {
     }
 
     try {
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock requestConfig: ${JSON.stringify(requestConfig)}`)
+      if (verbose) logger.debug('Collector: getTransactionByBlock requestConfig', { requestConfig })
       const res = await axiosWithRetry<{ success: boolean; totalTransactions?: number; transactions: any }>(
         requestConfig
       )
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock res: ${JSON.stringify(res.data)}`)
+      if (verbose) logger.debug('Collector: getTransactionByBlock res', { data: res.data })
       if (!res.data.success) return null
 
       let result: number | any
@@ -217,10 +218,10 @@ class Collector extends BaseExternal {
         result = res.data.totalTransactions
       } else result = res.data.transactions
 
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getTransactionByBlock result: ${JSON.stringify(result)}`)
+      if (verbose) logger.debug('Collector: getTransactionByBlock result', { result })
       return result
     } catch (error) {
-      console.error('Collector: Error getting transaction by block', error)
+      logger.error('Collector: Error getting transaction by block', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       return null
     }
   }
@@ -277,12 +278,12 @@ class Collector extends BaseExternal {
 
     // Validate input size
     if (Buffer.from(blockSearchValue).length > MAX_BLOCK_SIZE) {
-      console.error('Block search value exceeds size limit')
+      logger.error('Block search value exceeds size limit')
       return null
     }
 
     nestedCountersInstance.countEvent('collector', 'getBlock')
-    /* prettier-ignore */ if (firstLineLogs) console.log(`Collector: getBlock call for block: ${blockSearchValue}`)
+    if (firstLineLogs) logger.debug('Collector: getBlock call', { blockSearchValue })
 
     nestedCountersInstance.countEvent('blockcache', `details ${details}`)
     //Need to to not create the cache key here.  Instead we can search cache by block number, hash, or by 'earliest'
@@ -311,7 +312,7 @@ class Collector extends BaseExternal {
       } else {
         blockQuery = `${this.baseUrl}/api/blocks?hash=${blockSearchValue}`
       }
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock blockQuery: ${blockQuery}`)
+      if (verbose) logger.debug('Collector: getBlock blockQuery', { blockQuery })
 
       const response = await axios
         .get(blockQuery, {
@@ -341,7 +342,7 @@ class Collector extends BaseExternal {
       }
 
       const txQuery = `${this.baseUrl}/api/transaction?blockNumber=${blockNumber}`
-      /* prettier-ignore */ if (verbose) console.log(`Collector: getBlock txQuery: ${txQuery}`)
+      if (verbose) logger.debug('Collector: getBlock txQuery', { txQuery })
 
       try {
         const txResponse = await axios.get(txQuery, {
@@ -362,7 +363,7 @@ class Collector extends BaseExternal {
           resultBlock.gasUsed = '0x0'
         }
       } catch (txError) {
-        console.error('Error fetching block transactions:', txError)
+        logger.error('Error fetching block transactions:', { error: txError })
         resultBlock.transactions = []
         resultBlock.gasUsed = '0x0'
       }
@@ -380,7 +381,7 @@ class Collector extends BaseExternal {
     } catch (e) {
       const er = e as Error
       nestedCountersInstance.countEvent('collector', `getBlock-error ${er.message}`)
-      console.error('An error occurred for Collector.getBlock:', e)
+      logger.error('An error occurred for Collector.getBlock:', { error: e })
       return null
     }
   }

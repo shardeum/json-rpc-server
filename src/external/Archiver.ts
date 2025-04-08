@@ -1,4 +1,5 @@
 import { getNodeList, getNetworkAccount } from '../utils'
+import logger from '../config/logger'
 
 export class Archiver {
   /**
@@ -8,7 +9,7 @@ export class Archiver {
     try {
       return getNodeList(page, limit)
     } catch (error) {
-      console.error('Error fetching paginated node list:', error)
+      logger.error('Error fetching paginated node list', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       throw error
     }
   }
@@ -16,7 +17,7 @@ export class Archiver {
     try {
       return getNetworkAccount()
     } catch (error) {
-      console.error('Error fetching network account:', error)
+      logger.error('Error fetching network account', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined })
       throw error
     }
   }

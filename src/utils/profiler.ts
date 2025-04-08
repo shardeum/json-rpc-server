@@ -1,4 +1,5 @@
 import { nestedCountersInstance } from './nestedCounters'
+import logger from '../config/logger'
 
 const cDefaultMin = 1e12
 const cDefaultMinBig = BigInt(cDefaultMin)
@@ -73,7 +74,7 @@ class Profiler {
   netExternalStackHeight: number
 
   constructor() {
-    console.log('profiler constructor')
+    logger.debug('Profiler constructor')
     this.sectionTimes = {}
     this.scopedSectionTimes = {}
     this.eventCounters = new Map()
@@ -81,7 +82,7 @@ class Profiler {
     this.netInternalStackHeight = 0
     this.netExternalStackHeight = 0
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    console.log('profiler constructor end')
+    logger.debug('Profiler constructor end')
   }
 
   profileSectionStart(sectionName: string, internal = false): void {
@@ -101,19 +102,26 @@ class Profiler {
       this.sectionTimes[sectionName] = section
     }
 
-    section.start = process.hrtime.bigint()
     section.started = true
-    section.c++
+    section.start = process.hrtime.bigint()
+    section.reentryCount = 0
+    section.reentryCountEver = 0
+    section.req = { total: 0, max: 0, min: cDefaultMin, avg: 0, c: 0 }
+    section.resp = { total: 0, max: 0, min: cDefaultMin, avg: 0, c: 0 }
+    section.total = BigInt(0)
+    section.max = BigInt(0)
+    section.min = cDefaultMinBig
+    section.avg = BigInt(0)
+    section.c = 0
+    section.end = BigInt(0)
 
-    if (internal === false) {
-      nestedCountersInstance.countEvent('profiler', sectionName)
-
-      this.stackHeight++
-      if (this.stackHeight === 1) {
-        this.profileSectionStart('_totalBusy', true)
-        this.profileSectionStart('_internal_totalBusy', true)
-      }
+    if (internal) {
+      this.netInternalStackHeight++
+    } else {
+      this.netExternalStackHeight++
     }
+    this.stackHeight++
+    logger.debug('Section started', { sectionName })
   }
 
   profileSectionEnd(sectionName: string, internal = false): void {
@@ -149,7 +157,7 @@ class Profiler {
       return
     }
 
-    console.log('section started', sectionName)
+    logger.debug('Section started', { sectionName })
     if (section == null) {
       const t = BigInt(0)
       const max = BigInt(0)
@@ -200,7 +208,6 @@ class Profiler {
     section.start = process.hrtime.bigint()
     section.started = true
     section.c++
-    console.log('section end', sectionName)
   }
 
   scopedProfileSectionEnd(sectionName: string, messageSize: number = cNoSizeTrack): void {

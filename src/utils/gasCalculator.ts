@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import logger from '../config/logger'
 
 /**
  * Calculates the total gas used from an array of transactions
@@ -14,7 +15,7 @@ export function calculateBlockGasUsed(transactions: any[]): string {
         const gasValue = BigNumber.from(gasUsedHex)
         blockGasUsed = blockGasUsed.add(gasValue)
       } catch (gasError) {
-        console.warn('Invalid gas value in transaction:', tx.hash, gasUsedHex)
+        logger.warn('Invalid gas value in transaction', { txHash: tx.hash, gasUsedHex })
       }
     }
   })

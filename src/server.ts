@@ -35,8 +35,12 @@ import { rateLimitMiddleware } from './middlewares/rateLimit'
 import requestLogger from './middlewares/requestLogger'
 import { loadFoundationNodes } from './utils/foundationNodes'
 import { setupNewHeadSubscriptionProviderConnectionStream } from './websocket/newhead_server'
+import logger from './config/logger'
 
 setDefaultResultOrder('ipv4first')
+
+// Log the configured log level
+logger.info(`Server starting with log level: ${CONFIG.logLevel}`)
 
 // const path = require('path');
 // var whitelist = ['http://example1.com', 'http://example2.com']
@@ -74,16 +78,16 @@ const myArgs = process.argv.slice(2)
 if (myArgs.length > 0) {
   port = parseInt(myArgs[0])
   config.port = port
-  console.log(`json-rpc-server port console override to:${port}`)
+  logger.info(`JSON RPC Server port override to: ${port}`)
 }
 
 export const ipport = CONFIG.ip + '__' + CONFIG.port
 //maybe catch unhandled exceptions?
-process.on('uncaughtException', (err) => {
-  console.log('uncaughtException:' + err)
+process.on('uncaughtException', (err: Error) => {
+  logger.error('Uncaught exception', { error: err.message, stack: err.stack })
 })
-process.on('unhandledRejection', (err) => {
-  console.log('unhandledRejection:' + err)
+process.on('unhandledRejection', (err: Error) => {
+  logger.error('Unhandled rejection', { error: err.message, stack: err.stack })
 })
 
 app.set('trust proxy', config.trustProxy)
@@ -106,7 +110,7 @@ if (config.dashboard.enabled && config.dashboard.dist_path) {
   const clientDirectory =
     config.dashboard.dist_path[0] === '/' ? config.dashboard.dist_path : path.resolve(config.dashboard.dist_path)
   const staticDirectory = path.join(clientDirectory, 'static')
-  console.log(path.join(clientDirectory, 'index.html'))
+  logger.info(`Serving dashboard from: ${path.join(clientDirectory, 'index.html')}`)
   app.set('views', clientDirectory)
   app.use('/static', express.static(staticDirectory))
   // app.set('views', clientDirectory);
@@ -116,19 +120,19 @@ app.get('/api/subscribe', rateLimitedDebugAuth(isDebugModeMiddlewareLow), (req: 
   nestedCountersInstance.countEvent('api', 'subscribe')
   const query = req.query
   if (!query || !query.ip || !query.port) {
-    if (verbose) console.log('IP or port not provided')
+    if (verbose) logger.debug('IP or port not provided')
     return res.status(400).send('IP or port not provided')
   }
   const ip = query.ip.toString().trim()
   const port = parseInt(query.port.toString().trim())
 
   if (!isIPv4(ip)) {
-    if (verbose) console.log('Invalid IP address')
+    if (verbose) logger.debug('Invalid IP address')
     return res.status(400).send('Invalid IP address')
   }
 
   if (isNaN(port) || port <= 0 || port > 65535) {
-    if (verbose) console.log('Invalid port')
+    if (verbose) logger.debug('Invalid port')
     return res.status(400).send('Invalid port')
   }
 
@@ -192,7 +196,7 @@ app.use(server.middleware())
 setupArchiverDiscovery({
   customConfigPath: 'archiverConfig.json',
 }).then(() => {
-  console.log('Finished setting up archiver discovery!')
+  logger.info('Finished setting up archiver discovery!')
   updateNodeList(true).then(() => {
     debug_info.interfaceRecordingStartTime = config.statLog ? Date.now() : 0
     debug_info.txRecordingStartTime = config.recordTxStatus ? Date.now() : 0
@@ -205,7 +209,7 @@ setupArchiverDiscovery({
     setInterval(cleanBadNodes, 60000)
     setInterval(updateEdgeNodeConfig, 60000 * 5)
     extendedServer.listen(port, function () {
-      console.log(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
+      logger.info(`JSON RPC Server listening on port ${port} and chainId is ${chainId}.`)
       setupDatabase()
       setupLogEvents()
       setupSubscriptionEventHandlers(ipport)
@@ -220,12 +224,12 @@ if (config.foundationNodeFilter.enabled) {
   loadFoundationNodes()
     .then((enabled) => {
       if (enabled) {
-        console.log('Foundation node filtering is enabled')
+        logger.info('Foundation node filtering is enabled')
       } else {
-        console.log('Foundation node filtering is disabled')
+        logger.info('Foundation node filtering is disabled')
       }
     })
     .catch((err) => {
-      console.error('Error initializing foundation node filtering:', err)
+      logger.error('Error initializing foundation node filtering', { error: err.message, stack: err.stack })
     })
 }

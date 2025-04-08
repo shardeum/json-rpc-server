@@ -9,6 +9,7 @@ SHELL [ "/bin/sh", "-cex" ]
 
 ## ENVs
 ENV NODE_ENV=${NODE_ENV}
+ENV LOG_LEVEL=info
 
 WORKDIR /app
 
