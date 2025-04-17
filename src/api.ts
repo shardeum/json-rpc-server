@@ -53,6 +53,7 @@ import { archiverAPI } from './external/Archiver'
 import { TTLMap } from './utils/TTLMap'
 import { buildGetTransactionByBlockHashAndIndex } from './eth-handlers/eth_getTransactionByBlockHashAndIndex'
 import { buildGetTransactionByBlockNumberAndIndex } from './eth-handlers/eth_getTransactionByBlockNumberAndIndex'
+import { buildGetBlockTransactionCountByNumber } from './eth-handlers/eth_getBlockTransactionCountByNumber'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -1385,76 +1386,17 @@ export const methods = {
     countSuccessResponse(api_name, 'success no result', 'fallback')
     logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
   },
-  eth_getBlockTransactionCountByNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_getBlockTransactionCountByNumber'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) {
-      countFailedResponse(api_name, 'Invalid params: non-array args')
-      return
-    }
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBlockTransactionCountByNumber', args) }
-
-    let blockNumber = args[0]
-
-    if (!config.collectorSourcing.enabled && !config.queryFromExplorer)
-      console.log('Both collectorSourcing and queryFromExplorer turned off. Could not process request')
-
-    if (config.collectorSourcing.enabled || config.queryFromExplorer) {
-      if (blockNumber !== 'latest' && blockNumber !== 'earliest') blockNumber = parseInt(blockNumber, 16).toString()
-      if (blockNumber === 'latest' || blockNumber === 'earliest') {
-        const res = await requestWithRetry(RequestMethod.Get, `/eth_getBlockByNumber?blockNumber=${blockNumber}`)
-        if (res.data.block) blockNumber = res.data.block.number
-      }
-    }
-
-    if (CONFIG.collectorSourcing.enabled) {
-      const res = await collectorAPI.getTransactionByBlock({ blockNumber, countOnly: true })
-      if (res !== null) {
-        const result = '0x' + (res as number).toString(16)
-        if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-        callback(null, result)
-        countSuccessResponse(api_name, 'success', 'collector')
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-        return
-      }
-    }
-    if (config.queryFromExplorer) {
-      const explorerUrl = config.explorerUrl
-      try {
-        const url = `${explorerUrl}/api/transaction?blockNumber=${blockNumber}&countOnly=true`
-        const res = await axios.get(url)
-        if (verbose) {
-          console.log('url', url)
-          console.log('res', JSON.stringify(res.data))
-        }
-        if (res.data.error) console.log('error', res.data.error)
-        if (res.data.totalTransactions || res.data.totalTransactions === 0) {
-          const result = '0x' + res.data.totalTransactions.toString(16)
-
-          const nodeUrl = config.explorerUrl
-          if (verbose) console.log('BLOCK TRANSACTIONS COUNT DETAIL', result)
-          callback(null, result)
-          countSuccessResponse(api_name, 'success', 'explorer')
-          logEventEmitter.emit(
-            'fn_end',
-            ticket,
-            { nodeUrl, success: res.data.totalTransactions ? true : false },
-            performance.now()
-          )
-          return
-        }
-      } catch (e) {
-        if (verbose) console.log((e as AxiosError).message)
-      }
-    }
-    callback(null, null)
-    logEventEmitter.emit('fn_end', ticket, { success: false }, performance.now())
-  },
+  eth_getBlockTransactionCountByNumber: buildGetBlockTransactionCountByNumber({
+    nestedCountersInstance,
+    ensureArrayArgs,
+    countFailedResponse,
+    logEventEmitter,
+    firstLineLogs,
+    collectorAPI,
+    countSuccessResponse,
+    config,
+    verbose,
+  }),
   eth_getUncleCountByBlockHash: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getUncleCountByBlockHash'
     nestedCountersInstance.countEvent('endpoint', api_name)
