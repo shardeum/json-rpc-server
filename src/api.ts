@@ -53,7 +53,6 @@ import { archiverAPI } from './external/Archiver'
 import { TTLMap } from './utils/TTLMap'
 import { buildGetTransactionByBlockHashAndIndex } from './eth-handlers/eth_getTransactionByBlockHashAndIndex'
 import { buildGetTransactionByBlockNumberAndIndex } from './eth-handlers/eth_getTransactionByBlockNumberAndIndex'
-import { performance } from 'perf_hooks'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
