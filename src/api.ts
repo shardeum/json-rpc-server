@@ -832,10 +832,15 @@ async function validateBlockNumberInput(blockNumberInput: string | undefined) {
   return blockNumberInput
 }
 
-
-type HandlerMeta = { nodeUrl?: string; source?: string };
+/**
+ * - Call `cb(null, data)` on success ONCE, then `return` optional metadata
+ * - Do not call `cb()` on failure, use `throw { code(optional), message }`
+ *    - the wrapper will catch the error, call `cb(error, null)`,
+ *      call `countFailedResponse()`, and mark fn_end as `success: false`
+ */
+type HandlerMeta = { nodeUrl?: string; source?: string }
 type WrappedHandler<T extends any[]> =
-  (ticket: string, args: T, cb: JSONRPCCallbackTypePlain) => Promise<HandlerMeta | void>;
+  (ticket: string, args: T, cb: JSONRPCCallbackTypePlain) => Promise<HandlerMeta | void>
 
 export function wrapApiMethod<T extends any[]>(
   methodName: string,
@@ -844,39 +849,39 @@ export function wrapApiMethod<T extends any[]>(
 ) {
   return async (requestArgs: RequestParamsLike, cb: JSONRPCCallbackTypePlain) => {
     // pre‑flight
-    nestedCountersInstance.countEvent('endpoint', methodName);
+    nestedCountersInstance.countEvent('endpoint', methodName)
 
     // Treat “no params” as an empty list so zero‑arg methods succeed.
-    const args = (requestArgs ?? []) as T;
+    const args = (requestArgs ?? []) as T
 
     if (!ensureArrayArgs(args, cb)) {               // still rejects if params isn’t an array
-      countFailedResponse(methodName, 'Invalid params: non‑array args');
+      countFailedResponse(methodName, 'Invalid params: non‑array args')
       return;
     }
-    if (validateArgs && !validateArgs(args, cb)) return;
+    if (validateArgs && !validateArgs(args, cb)) return
 
     // tracing start
     const ticket = crypto.createHash('sha1')
                          .update(methodName + Math.random() + Date.now())
-                         .digest('hex');
-    const t0 = performance.now();
-    logEventEmitter.emit('fn_start', ticket, methodName, t0);
-    /* prettier‑ignore */ if (firstLineLogs) { console.log(`Running ${methodName}`, args); }
+                         .digest('hex')
+    const t0 = performance.now()
+    logEventEmitter.emit('fn_start', ticket, methodName, t0)
+    /* prettier‑ignore */ if (firstLineLogs) { console.log(`Running ${methodName}`, args) }
 
     // execute
-    let meta: HandlerMeta | undefined;
-    let failed = false;
-    let failMsg = '';
+    let meta: HandlerMeta | undefined
+    let failed = false
+    let failMsg = ''
 
     try {
-      meta = await handler(ticket, args, cb) ?? undefined;
-      countSuccessResponse(methodName, 'success', meta?.source ?? 'handler');
+      meta = await handler(ticket, args, cb) ?? undefined
+      countSuccessResponse(methodName, 'success', meta?.source ?? 'handler')
     } catch (err: any) {
-      failed  = true;
-      failMsg = err?.message ?? 'Internal error';
+      failed  = true
+      failMsg = err?.message ?? 'Internal error'
 
-      countFailedResponse(methodName, failMsg);
-      cb({ code: err?.code ?? -32603, message: failMsg }, null);
+      countFailedResponse(methodName, failMsg)
+      cb({ code: err?.code ?? -32603, message: failMsg }, null)
     } finally {
       logEventEmitter.emit(
         'fn_end',
@@ -890,8 +895,9 @@ export function wrapApiMethod<T extends any[]>(
 
 
 export const methods = {
+  // Some example usage of WrapApiMethod()
   web3_clientVersion: wrapApiMethod(
-    'web3_clientVersion',
+    'web3_clientVersion ' + 'and getCurrentBlockInfo',
     async (_ticket, _args, cb) => {
       cb(null, 'Mist/v0.9.3/darwin/go1.4.1')
     }
@@ -960,7 +966,7 @@ export const methods = {
         return { source: 'serviceValidator' };
       }
   
-      //  fallback RPC 
+      //  fallback
       try {
         const { result } = await getGasPrice();
         cb(null, result);
@@ -983,21 +989,27 @@ export const methods = {
   ),
   eth_blockNumber: wrapApiMethod(
     'eth_blockNumber',
+  
     async (_t, _args, cb) => {
-      // collector
+      // collector 
       const latest = await collectorAPI.getLatestBlockNumber();
       if (latest) {
         cb(null, '0x' + latest.number.toString(16));
         return { source: 'collector' };
       }
   
-      // validator fallback
+      // validator fallback 
       const { blockNumber, nodeUrl } = await getCurrentBlockInfo();
-      const value = blockNumber ?? '0x0';          // keep original behaviour
-      cb(null, value);
-      return { nodeUrl, source: 'validator', note: blockNumber ? 'success' : 'null‑fallback' };
+  
+      if (blockNumber == null) {
+        throw { message: 'blockNumber is null'};
+      }
+  
+      cb(null, blockNumber);
+      return { nodeUrl, source: 'validator' };
     }
   ),
+  
   eth_getBalance: wrapApiMethod(
     'eth_getBalance',
   
