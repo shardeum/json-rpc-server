@@ -36,7 +36,7 @@
     "@ethersproject/bignumber": "5.7.0",
     "@hapi/sntp": "4.0.0",
     "axios": "1.6.1",
-    "better-sqlite3": "7.6.2",
+    "better-sqlite3": "^9.0.0",
     "body-parser": "1.19.0",
     "connect": "3.7.0",
     "cookie-parser": "1.4.6",

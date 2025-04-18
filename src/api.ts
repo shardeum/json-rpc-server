@@ -53,6 +53,7 @@ import { archiverAPI } from './external/Archiver'
 import { TTLMap } from './utils/TTLMap'
 import { buildGetTransactionByBlockHashAndIndex } from './eth-handlers/eth_getTransactionByBlockHashAndIndex'
 import { buildGetTransactionByBlockNumberAndIndex } from './eth-handlers/eth_getTransactionByBlockNumberAndIndex'
+import { performance } from 'perf_hooks'
 
 export const verbose = config.verbose
 export const firstLineLogs = config.firstLineLogs
@@ -813,7 +814,11 @@ function trimInjectRejection(message: string): string {
     return 'ECONNREFUSED'
   } else return message
 }
-async function validateBlockNumberInput(blockNumberInput: string) {
+async function validateBlockNumberInput(blockNumberInput: string | undefined) {
+  // Handle undefined input first
+  if (blockNumberInput === undefined) {
+    return undefined
+  }
   // If the block number is 'latest', return undefined, so that it will get latest balance
   if (blockNumberInput === 'latest') {
     return undefined
@@ -826,6 +831,73 @@ async function validateBlockNumberInput(blockNumberInput: string) {
     return undefined
   }
   return blockNumberInput
+}
+
+/**
+ * Wraps an API method handler with common logic for:
+ * - Creating a unique ticket ID for tracking.
+ * - Counting the endpoint event.
+ * - Emitting start and end log events.
+ * - Basic argument validation (checking if args is an array).
+ * - Basic error handling framework.
+ *
+ * @param methodName - The name of the API method (e.g., 'eth_getBalance').
+ * @param handler - The core async function implementing the method's specific logic.
+ *                  It receives the validated arguments (as an array) and the JSON RPC callback.
+ * @param validateArgs - Optional function to perform specific argument validation.
+ *                       Should return true if args are valid, false otherwise.
+ *                       If it returns false, it's responsible for calling the callback with an error.
+ */
+function wrapApiMethod<TArgs extends any[]>(
+  methodName: string,
+  handler: (ticket: string, args: TArgs, callback: JSONRPCCallbackTypePlain) => Promise<void>,
+  validateArgs?: (args: TArgs, callback: JSONRPCCallbackTypePlain) => boolean
+) {
+  return async (requestArgs: RequestParamsLike, callback: JSONRPCCallbackTypePlain): Promise<void> => {
+    nestedCountersInstance.countEvent('endpoint', methodName);
+
+    if (!ensureArrayArgs(requestArgs, callback)) {
+      countFailedResponse(methodName, 'Invalid params: non-array args');
+      return;
+    }
+    
+    const args = requestArgs as TArgs; // Cast after validation
+
+    // Perform custom validation if provided
+    if (validateArgs && !validateArgs(args, callback)) {
+      // The validator is responsible for calling callback with error and counting failure
+      // logEventEmitter emission for fn_end should ideally happen within the validator on error
+      return;
+    }
+
+    const ticket = crypto
+      .createHash('sha1')
+      .update(methodName + Math.random() + Date.now())
+      .digest('hex');
+
+    logEventEmitter.emit('fn_start', ticket, methodName, performance.now());
+    /* prettier-ignore */ if (firstLineLogs) { console.log(`Running ${methodName}`, args); }
+
+    try {
+      await handler(ticket, args, callback);
+      // Assuming the handler calls callback on success and emits fn_end appropriately
+      // If the handler throws, the catch block will handle it.
+    } catch (error: any) {
+      console.error(`Error in ${methodName}:`, error);
+      const nodeUrl = error?.nodeUrl // Attempt to extract nodeUrl if available in error
+      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false, error: error.message || 'Unknown error' }, performance.now());
+      // Use a generic error structure if the specific handler didn't provide one
+      const jsonError: JSONRPCError = {
+        code: error.code || -32603, // Internal error
+        message: error.message || `Internal error executing ${methodName}`,
+      };
+      callback(jsonError, null);
+      countFailedResponse(methodName, `Exception: ${error.message || 'Unknown error'}`);
+    }
+    // Note: fn_end for successful cases should be emitted within the specific handler
+    // before calling the callback, as the success state and potential metadata (like nodeUrl)
+    // are only known there. The finally block here might be too late or lack context.
+  };
 }
 
 export const methods = {
@@ -1059,95 +1131,97 @@ export const methods = {
       countSuccessResponse(api_name, 'success', 'validator')
     }
   },
-  eth_getBalance: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_getBalance'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) {
-      countFailedResponse(api_name, 'Invalid params: non-array args')
-      return
-    }
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBalance', args) }
-
-    let address
-    let blockNumber
-    try {
-      address = args[0]
-      blockNumber = args[1] || undefined
-    } catch (e) {
-      if (verbose) console.log('Unable to get address', e)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: -32000, message: 'Unable to get address' }, null)
-      countFailedResponse(api_name, 'Unable to get address')
-      return
-    }
-    if (!isValidAddress(address)) {
-      if (verbose) console.log('Invalid address', address)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: -32000, message: 'Invalid address' }, null)
-      countFailedResponse(api_name, 'Invalid address')
-      return
-    }
-    // validate input blockNumber that support text such 'latest', 'earliest' ...
-    blockNumber = await validateBlockNumberInput(blockNumber)
-    let balance
-    try {
-      balance = await serviceValidator.getBalance(address, blockNumber)
-      if (balance) {
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-        callback(null, intStringToHex(balance))
-        countSuccessResponse(api_name, 'success', 'serviceValidator')
-        return
+  eth_getBalance: wrapApiMethod(
+    'eth_getBalance',
+    async (ticket, args, callback) => {
+      let address: string;
+      let blockNumberInput: string | undefined;
+      try {
+        address = args[0];
+        blockNumberInput = args[1]; // Already validated as array, args[1] might be undefined
+      } catch (e) {
+        // This catch might be less likely now with prior array validation, but keep for safety
+        if (verbose) console.log('Error parsing arguments for eth_getBalance', e);
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: 'Error parsing arguments' }, performance.now());
+        callback({ code: -32602, message: 'Invalid arguments for eth_getBalance' }, null);
+        countFailedResponse('eth_getBalance', 'Error parsing arguments');
+        return;
       }
-    } catch (e) {
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: 503, message: 'unable to get balanace' }, null)
-      countFailedResponse(api_name, 'Unable to get balance')
-      return
-    }
 
-    balance = '0x0'
-    let nodeUrl
-    try {
-      if (verbose) console.log('address', address)
-      if (verbose) console.log('ETH balance', typeof balance, balance)
-      const res = await getAccountFromValidator(address)
-      nodeUrl = res.nodeUrl
-      if ('account' in res) {
-        const account = res.account
-        if (verbose) console.log('account', account)
-        if (!account) {
-          // This covers the case where this is an uninitialized EOA
-          // and our validators return { account: null }
-          // hence returning balance as 0x0
-          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-          callback(null, balance)
-          countSuccessResponse(api_name, 'success', 'validator')
-        } else {
-          if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
-          const balance = intStringToHex(account.balance)
-          if (verbose) console.log('SHD', typeof balance, balance)
-          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-          callback(null, balance)
-          countSuccessResponse(api_name, 'success', 'validator')
+      if (!isValidAddress(address)) {
+        if (verbose) console.log('Invalid address', address);
+        logEventEmitter.emit('fn_end', ticket, { success: false, error: 'Invalid address' }, performance.now());
+        callback({ code: -32000, message: 'Invalid address' }, null);
+        countFailedResponse('eth_getBalance', 'Invalid address');
+        return;
+      }
+
+      // validate input blockNumber that support text such 'latest', 'earliest' ...
+      // Passing undefined is fine if blockNumberInput is undefined
+      const blockNumber = await validateBlockNumberInput(blockNumberInput);
+      let balance: string | null;
+      let nodeUrl: string | undefined; // Define nodeUrl here
+
+      try {
+        balance = await serviceValidator.getBalance(address, blockNumber);
+        if (balance !== null) { // Check specifically for non-null
+          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now());
+          callback(null, intStringToHex(balance));
+          countSuccessResponse('eth_getBalance', 'success', 'serviceValidator');
+          return;
         }
-      } else {
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-        callback({ code: 503, message: 'unable to get balanace' }, null)
-        countFailedResponse(api_name, 'Unable to get account')
+        // If balance is null, proceed to validator fallback
+      } catch (e: any) { // Catch errors from serviceValidator
+        console.error('Error getting balance from serviceValidator:', e);
+        // Don't return immediately, try fallback
+        // We might want to log this error but still attempt the fallback
       }
-    } catch (e) {
-      // if (verbose) console.log('Unable to get account balance', e)
-      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-      callback({ code: 503, message: 'unable to get balanace' }, null)
-      countFailedResponse(api_name, 'Unable to get balance from validator')
+
+      // Fallback to getAccountFromValidator
+      balance = '0x0'; // Default balance
+      try {
+        if (verbose) console.log('Attempting fallback: getAccountFromValidator for address', address);
+        const res = await getAccountFromValidator(address);
+        nodeUrl = res.nodeUrl; // Capture nodeUrl from the response
+
+        if ('account' in res && res.account) {
+          if (verbose) console.log('Validator account found:', res.account);
+          balance = intStringToHex(res.account.balance);
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now());
+          callback(null, balance);
+          countSuccessResponse('eth_getBalance', 'success', 'validator');
+        } else if ('account' in res && res.account === null) {
+          // Covers uninitialized EOA where validator returns { account: null }
+          if (verbose) console.log('Validator returned null account (uninitialized EOA?) for address:', address);
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now());
+          callback(null, '0x0'); // Return '0x0' as balance
+          countSuccessResponse('eth_getBalance', 'success (null account)', 'validator');
+        } else {
+          // Case where 'account' key is missing or other unexpected structure
+          if (verbose) console.log('Unable to get account from validator, response structure:', res)
+          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false, error: 'Unable to get account' }, performance.now());
+          callback({ code: 503, message: 'Unable to get balance (validator account fetch failed)' }, null);
+          countFailedResponse('eth_getBalance', 'Unable to get account from validator');
+        }
+      } catch (e: any) {
+        console.error('Error getting balance from validator fallback:', e);
+        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false, error: e.message || 'Validator fallback failed' }, performance.now());
+        callback({ code: 503, message: 'Unable to get balance (validator fallback exception)' }, null);
+        countFailedResponse('eth_getBalance', `Exception during validator fallback: ${e.message || 'Unknown error'}`);
+      }
+      if (verbose) console.log('Final balance returned', balance);
     }
-    if (verbose) console.log('Final balance', balance)
-  },
+    // Optional validator for eth_getBalance (can be expanded)
+    // (args, callback) => {
+    //   if (!args || args.length < 1 || typeof args[0] !== 'string') {
+    //     callback({ code: -32602, message: 'Invalid params: address missing or not a string' });
+    //     countFailedResponse('eth_getBalance', 'Invalid params: address missing or not a string');
+    //     logEventEmitter.emit('fn_end', 'N/A', { success: false, error: 'Invalid params' }, performance.now()); // Ticket might not be generated yet
+    //     return false;
+    //   }
+    //   return true;
+    // }
+  ),
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getStorageAt'
     nestedCountersInstance.countEvent('endpoint', api_name)
