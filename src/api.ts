@@ -814,7 +814,10 @@ function trimInjectRejection(message: string): string {
     return 'ECONNREFUSED'
   } else return message
 }
-async function validateBlockNumberInput(blockNumberInput: string) {
+async function validateBlockNumberInput(blockNumberInput: string | undefined) {
+  if (blockNumberInput === undefined) {
+    return undefined
+  }
   // If the block number is 'latest', return undefined, so that it will get latest balance
   if (blockNumberInput === 'latest') {
     return undefined
@@ -829,326 +832,231 @@ async function validateBlockNumberInput(blockNumberInput: string) {
   return blockNumberInput
 }
 
+/**
+ * - Call `cb(null, data)` on success ONCE, then `return` optional metadata
+ * - Do not call `cb()` on failure, use `throw { code(optional), message }`
+ *    - the wrapper will catch the error, call `cb(error, null)`,
+ *      call `countFailedResponse()`, and mark fn_end as `success: false`
+ */
+type HandlerMeta = { nodeUrl?: string; source?: string }
+type WrappedHandler<T extends any[]> =
+  (ticket: string, args: T, cb: JSONRPCCallbackTypePlain) => Promise<HandlerMeta | void>
+
+export function wrapApiMethod<T extends any[]>(
+  methodName: string,
+  handler: WrappedHandler<T>,
+  validateArgs?: (args: T, cb: JSONRPCCallbackTypePlain) => boolean
+) {
+  return async (requestArgs: RequestParamsLike, cb: JSONRPCCallbackTypePlain) => {
+    // pre‑flight
+    nestedCountersInstance.countEvent('endpoint', methodName)
+
+    // Treat “no params” as an empty list so zero‑arg methods succeed.
+    const args = (requestArgs ?? []) as T
+
+    if (!ensureArrayArgs(args, cb)) {               // still rejects if params isn’t an array
+      countFailedResponse(methodName, 'Invalid params: non‑array args')
+      return;
+    }
+    if (validateArgs && !validateArgs(args, cb)) return
+
+    // tracing start
+    const ticket = crypto.createHash('sha1')
+                         .update(methodName + Math.random() + Date.now())
+                         .digest('hex')
+    const t0 = performance.now()
+    logEventEmitter.emit('fn_start', ticket, methodName, t0)
+    /* prettier‑ignore */ if (firstLineLogs) { console.log(`Running ${methodName}`, args) }
+
+    // execute
+    let meta: HandlerMeta | undefined
+    let failed = false
+    let failMsg = ''
+
+    try {
+      meta = await handler(ticket, args, cb) ?? undefined
+      countSuccessResponse(methodName, 'success', meta?.source ?? 'handler')
+    } catch (err: any) {
+      failed  = true
+      failMsg = err?.message ?? 'Internal error'
+
+      countFailedResponse(methodName, failMsg)
+      cb({ code: err?.code ?? -32603, message: failMsg }, null)
+    } finally {
+      logEventEmitter.emit(
+        'fn_end',
+        ticket,
+        { success: !failed, ...(meta ?? {}), ...(failed ? { error: failMsg } : {}) },
+        performance.now()
+      );
+    }
+  };
+}
+
+
 export const methods = {
-  web3_clientVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'web3_clientVersion'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running web3_clientVersion', args) }
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running getCurrentBlockInfo', args) }
-    const result = 'Mist/v0.9.3/darwin/go1.4.1'
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  web3_sha3: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'web3_sha3'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running web3_sha3', args) }
-    const result = '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad'
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  net_version: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'net_version'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_version', args) }
-    const chainId = config.chainId.toString()
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, chainId)
-    countSuccessResponse(api_name, 'success')
-  },
-  net_listening: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'net_listening'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_listening', args) }
-    const result = true
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  net_peerCount: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'net_peerCount'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running net_peerCount', args) }
-    const result = '0x2'
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_protocolVersion: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_protocolVersion'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_protocolVersion', args) }
-    const result = '54'
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_syncing: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_syncing'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_syncing', args) }
-    // RPC talks only to active nodes, so result is always false.
-    const result = false
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_coinbase: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_coinbase'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_coinbase', args) }
-    const result = ''
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_mining: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_mining'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_mining', args) }
-    const result = true
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_hashrate: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_hashrate'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_hashrate', args) }
-    const result = '0x38a'
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success')
-  },
-  eth_gasPrice: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_gasPrice'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_gasPrice', args) }
-
-    const gasPrice = await serviceValidator.getGasPrice()
-    if (gasPrice) {
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, gasPrice)
-      countSuccessResponse(api_name, 'success', 'serviceValidator')
-      return
+  // Some example usage of WrapApiMethod()
+  web3_clientVersion: wrapApiMethod(
+    'web3_clientVersion ' + 'and getCurrentBlockInfo',
+    async (_ticket, _args, cb) => {
+      cb(null, 'Mist/v0.9.3/darwin/go1.4.1')
     }
-
-    const fallbackGasPrice = '0x3f84fc7516' // 1 Gwei
-    try {
-      const { result } = await getGasPrice()
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, result)
-      countSuccessResponse(api_name, 'success', 'TBD')
-      return
-    } catch (e) {
-      console.log('Unable to get gas price', e)
+  ),
+  web3_sha3: wrapApiMethod(
+    'web3_sha3',
+    async (_ticket, _args, cb) => {
+      cb(null, '0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad')
     }
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, fallbackGasPrice)
-    countSuccessResponse(api_name, 'success fallback', 'TBD')
-  },
-  eth_accounts: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_accounts'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_accounts', args) }
-    const result: string[] = []
-
-    logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-    callback(null, result)
-    countSuccessResponse(api_name, 'success', 'TBD')
-  },
-  eth_blockNumber: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_blockNumber'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_blockNumber', args) }
-    const result = await collectorAPI.getLatestBlockNumber()
-    if (result) {
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback(null, '0x' + result.number.toString(16))
-      countSuccessResponse(api_name, 'success', 'collector')
-      return
+  ),
+  net_version: wrapApiMethod(
+    'net_version',
+    async (_ticket, _args, cb) => {
+      cb(null, config.chainId.toString())
     }
-    const { blockNumber, nodeUrl } = await getCurrentBlockInfo()
-    if (verbose) console.log('BLOCK NUMBER', blockNumber, parseInt(blockNumber, 16))
-    if (blockNumber == null) {
-      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-      callback(null, '0x0')
-      countFailedResponse(api_name, 'blockNumber is null')
-    } else {
-      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-      callback(null, blockNumber)
-      countSuccessResponse(api_name, 'success', 'validator')
+  ),
+  net_listening: wrapApiMethod(
+    'net_listening',
+    async (_ticket, _args, cb) => {
+      cb(null, true)
     }
-  },
-  eth_getBalance: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
-    const api_name = 'eth_getBalance'
-    nestedCountersInstance.countEvent('endpoint', api_name)
-    if (!ensureArrayArgs(args, callback)) {
-      countFailedResponse(api_name, 'Invalid params: non-array args')
-      return
+  ),
+  net_peerCount: wrapApiMethod(
+    'net_peerCount',
+    async (_ticket, _args, cb) => {
+      cb(null, '0x2')
     }
-    const ticket = crypto
-      .createHash('sha1')
-      .update(api_name + Math.random() + Date.now())
-      .digest('hex')
-    logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
-    /* prettier-ignore */ if (firstLineLogs) { console.log('Running eth_getBalance', args) }
-
-    let address
-    let blockNumber
-    try {
-      address = args[0]
-      blockNumber = args[1] || undefined
-    } catch (e) {
-      if (verbose) console.log('Unable to get address', e)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: -32000, message: 'Unable to get address' }, null)
-      countFailedResponse(api_name, 'Unable to get address')
-      return
+  ),
+  eth_protocolVersion: wrapApiMethod(
+    'eth_protocolVersion',
+    async (_t, _args, cb) => { 
+      cb(null, '54')
     }
-    if (!isValidAddress(address)) {
-      if (verbose) console.log('Invalid address', address)
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: -32000, message: 'Invalid address' }, null)
-      countFailedResponse(api_name, 'Invalid address')
-      return
+  ),
+  eth_syncing: wrapApiMethod(
+    'eth_syncing',
+    async (_t, _args, cb) => { 
+      cb(null, false) 
     }
-    // validate input blockNumber that support text such 'latest', 'earliest' ...
-    blockNumber = await validateBlockNumberInput(blockNumber)
-    let balance
-    try {
-      balance = await serviceValidator.getBalance(address, blockNumber)
-      if (balance) {
-        logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-        callback(null, intStringToHex(balance))
-        countSuccessResponse(api_name, 'success', 'serviceValidator')
-        return
+  ),
+  eth_coinbase: wrapApiMethod(
+    'eth_coinbase',
+    async (_t, _args, cb) => { 
+      cb(null, '')
+    }
+  ),
+  eth_mining: wrapApiMethod(
+    'eth_mining',
+    async (_t, _args, cb) => { 
+      cb(null, true) 
+    }
+  ),
+  eth_hashrate: wrapApiMethod(
+    'eth_hashrate',
+    async (_t, _args, cb) => { 
+      cb(null, '0x38a') 
+    }
+  ),
+  eth_gasPrice: wrapApiMethod(
+    'eth_gasPrice',
+    async (_t, _args, cb) => {
+      // primary source – serviceValidator
+      const gasPrice = await serviceValidator.getGasPrice();
+      if (gasPrice) {
+        cb(null, gasPrice);
+        return { source: 'serviceValidator' };
       }
-    } catch (e) {
-      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-      callback({ code: 503, message: 'unable to get balanace' }, null)
-      countFailedResponse(api_name, 'Unable to get balance')
-      return
+  
+      //  fallback
+      try {
+        const { result } = await getGasPrice();
+        cb(null, result);
+        return { source: 'rpc' };
+      } catch {
+        // fall through to static fallback
+      }
+  
+      // static fallback: 1 Gwei 
+      const fallback = '0x3f84fc7516';
+      cb(null, fallback);
+      return { source: 'static‑fallback' };
     }
-
-    balance = '0x0'
-    let nodeUrl
-    try {
-      if (verbose) console.log('address', address)
-      if (verbose) console.log('ETH balance', typeof balance, balance)
-      const res = await getAccountFromValidator(address)
-      nodeUrl = res.nodeUrl
-      if ('account' in res) {
-        const account = res.account
-        if (verbose) console.log('account', account)
-        if (!account) {
-          // This covers the case where this is an uninitialized EOA
-          // and our validators return { account: null }
-          // hence returning balance as 0x0
-          logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
-          callback(null, balance)
-          countSuccessResponse(api_name, 'success', 'validator')
-        } else {
-          if (verbose) console.log('Shardeum balance', typeof account.balance, account.balance)
-          const balance = intStringToHex(account.balance)
-          if (verbose) console.log('SHD', typeof balance, balance)
-          logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
-          callback(null, balance)
-          countSuccessResponse(api_name, 'success', 'validator')
+  ),
+  eth_accounts: wrapApiMethod(
+    'eth_accounts',
+    async (_t, _args, cb) => {
+      cb(null, [] as string[]);
+    }
+  ),
+  eth_blockNumber: wrapApiMethod(
+    'eth_blockNumber',
+  
+    async (_t, _args, cb) => {
+      // collector 
+      const latest = await collectorAPI.getLatestBlockNumber();
+      if (latest) {
+        cb(null, '0x' + latest.number.toString(16));
+        return { source: 'collector' };
+      }
+  
+      // validator fallback 
+      const { blockNumber, nodeUrl } = await getCurrentBlockInfo();
+  
+      if (blockNumber == null) {
+        throw { message: 'blockNumber is null'};
+      }
+  
+      cb(null, blockNumber);
+      return { nodeUrl, source: 'validator' };
+    }
+  ),
+  
+  eth_getBalance: wrapApiMethod(
+    'eth_getBalance',
+  
+    async (_ticket, [address, rawBlock]: [string | undefined, string?], cb) => {
+      if (address == null) {
+        throw { code: -32000, message: 'Unable to get address' };
+      }
+      if (!isValidAddress(address)) {
+        throw { code: -32000, message: 'Invalid address' };
+      }
+  
+      const blockNumber = await validateBlockNumberInput(rawBlock);
+  
+      // primary source
+      try {
+        const balance = await serviceValidator.getBalance(address, blockNumber);
+        if (balance != null) {
+          cb(null, intStringToHex(balance));
+          return { source: 'serviceValidator' };
         }
-      } else {
-        logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-        callback({ code: 503, message: 'unable to get balanace' }, null)
-        countFailedResponse(api_name, 'Unable to get account')
+      } catch {
+        throw { code: 503, message: 'Unable to get balance' };
       }
-    } catch (e) {
-      // if (verbose) console.log('Unable to get account balance', e)
-      logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: false }, performance.now())
-      callback({ code: 503, message: 'unable to get balanace' }, null)
-      countFailedResponse(api_name, 'Unable to get balance from validator')
-    }
-    if (verbose) console.log('Final balance', balance)
-  },
+  
+      // fallback: validator node
+      let res;
+      try {
+        res = await getAccountFromValidator(address);
+      } catch {
+        throw { code: 503, message: 'Unable to get balance from validator' };
+      }
+  
+      const nodeUrl  = res.nodeUrl;
+      if (!('account' in res)) {
+        throw { code: 503, message: 'Unable to get account' };
+      }
+  
+      const account = res.account;                       
+      const balanceHex =
+        account && account.balance != null
+          ? intStringToHex(account.balance)
+          : '0x0';                                       
+  
+      cb(null, balanceHex);
+      return { nodeUrl, source: 'validator' };
+    },
+  ),
   eth_getStorageAt: async function (args: RequestParamsLike, callback: JSONRPCCallbackTypePlain) {
     const api_name = 'eth_getStorageAt'
     nestedCountersInstance.countEvent('endpoint', api_name)
