@@ -175,7 +175,7 @@ export const CONFIG: Config = {
   aalgWarmup: Boolean(process.env.AALG_WARMUP) || true,
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false, // not safe for production, keep this off. Known issue.
-  rateLimit: true,
+  rateLimit: process.env.RATE_LIMIT ? process.env.RATE_LIMIT === 'true' : true, // if RATE_LIMIT is not set, default to true
   rateLimitOption: {
     softReject: true,
     limitFromAddress: true,
