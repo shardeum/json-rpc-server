@@ -165,7 +165,7 @@ export const CONFIG: Config = {
   gasEstimateMethod: process.env.GAS_ESTIMATE_METHOD || 'serviceValidator', //serviceValidator or replayEngine or validator
   gasEstimateInvalidationIntervalInMs: 1000 * 60 * 60 * 2, // 2 hours
   gasEstimateUseCache: false,
-  staticGasEstimate: process.env.STATIC_GAS_ESTIMATE || '0x5B8D80', // comment out rather than delete this line
+  staticGasEstimate: process.env.STATIC_GAS_ESTIMATE,
   defaultRequestTimeout: {
     default: 2000,
     contract: 7000,
