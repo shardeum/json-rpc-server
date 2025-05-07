@@ -350,7 +350,11 @@ class Collector extends BaseExternal {
         })
 
         if (txResponse.data.success && txResponse.data.transactions) {
-          resultBlock.transactions = txResponse.data.transactions.map((tx: any) => this.decodeTransaction(tx))
+          resultBlock.transactions = txResponse.data.transactions.map((tx: any, index: number) => {
+            const decodedTx = this.decodeTransaction(tx, index)
+            return decodedTx
+          })
+
           resultBlock.gasUsed = calculateBlockGasUsed(txResponse.data.transactions)
 
           // Extract transaction hash array
@@ -492,7 +496,7 @@ class Collector extends BaseExternal {
     return `${apiUrl}${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`
   }
 
-  decodeTransaction(tx: any): readableTransaction {
+  decodeTransaction(tx: any, index?: number): readableTransaction {
     const readableReceipt = tx.wrappedEVMAccount.readableReceipt
     nestedCountersInstance.countEvent('collector', 'decodeTransaction')
     let result: any = null
@@ -503,7 +507,7 @@ class Collector extends BaseExternal {
     } catch (e) {
       // fallback to collectors readable receipt
       // v, r, s are not available in readableReceipt
-      return {
+      const txResult = {
         hash: readableReceipt.transactionHash,
         blockHash: readableReceipt.blockHash,
         blockNumber: readableReceipt.blockNumber,
@@ -516,11 +520,12 @@ class Collector extends BaseExternal {
         input: readableReceipt.input,
         gasPrice: readableReceipt.gasPrice,
         chainId: '0x' + CONFIG.chainId.toString(16),
-        transactionIndex: readableReceipt.transactionIndex,
+        transactionIndex: index !== undefined ? '0x' + index.toString(16) : readableReceipt.transactionIndex,
         v: '0x',
         r: '0x',
         s: '0x',
       } as readableLegacyTransaction
+      return txResult
     }
 
     if (CONFIG.verbose) console.log(txObj)
@@ -538,7 +543,7 @@ class Collector extends BaseExternal {
       input: '0x' + txObj.data.toString('hex'),
       gasPrice: readableReceipt.gasPrice,
       chainId: '0x' + CONFIG.chainId.toString(16),
-      transactionIndex: readableReceipt.transactionIndex,
+      transactionIndex: index !== undefined ? '0x' + index.toString(16) : readableReceipt.transactionIndex,
       v: '0x' + txObj.v?.toString('hex'),
       r: '0x' + txObj.r?.toString('hex'),
       s: '0x' + txObj.s?.toString('hex'),
