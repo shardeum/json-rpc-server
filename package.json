@@ -1,6 +1,6 @@
 {
   "name": "@shardeum-foundation/json-rpc-server",
-  "version": "1.2.0-prerelease.2",
+  "version": "1.2.0",
   "description": "JSON RPC server for Shardeum",
   "main": "src/server.js",
   "scripts": {
