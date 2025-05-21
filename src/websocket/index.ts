@@ -345,6 +345,9 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     ) {
     console.log(`WebSocket connection closed because of the error: ${err}`)
     }
+    else {
+      console.error('[WebSocket] Unexpected error:', err);
+    }
   })
 }
 
