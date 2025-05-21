@@ -338,6 +338,14 @@ export const onConnection = async (socket: WebSocket.WebSocket, req: IncomingMes
     if (CONFIG.verbose)
       console.log('Current WebSocket subscriptions after connection close:', logSubscriptionList.getAll())
   })
+  socket.on('error', (err) => {
+    if (
+      err instanceof RangeError &&
+      err.message === 'Max payload size exceeded'   // ws hit maxPayload
+    ) {
+    console.log(`WebSocket connection closed because of the error: ${err}`)
+    }
+  })
 }
 
 export const subscriptionEventEmitter = new EventEmitter()
