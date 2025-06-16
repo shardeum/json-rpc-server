@@ -21,6 +21,7 @@ type Config = {
     inactivityCheckIntervalMs: number // Check every 10 seconds
     maxConnectionsPerIP: number // Maximum number of connections allowed per IP per socket
     cleanupIntervalMs: number // Cleanup interval in milliseconds (default 10 minutes)
+    sizeLimit: number // maximum allowed message size in bytes
   }
   trustProxy: boolean // Whether to trust the X-Forwarded-For header
   log_server: {
@@ -138,6 +139,7 @@ export const CONFIG: Config = {
     inactivityCheckIntervalMs: 10000, // Check every 10 seconds
     maxConnectionsPerIP: Number(process.env.WS_MAX_CONNECTIONS_PER_IP) || 3,
     cleanupIntervalMs: Number(process.env.WS_CLEANUP_INTERVAL_MS) || 600000, // 10 minute in ms
+    sizeLimit: 128 * 1024, // 128 KB
   },
   trustProxy: false,
   log_server: {

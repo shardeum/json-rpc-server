@@ -64,7 +64,7 @@ extendedServer.on('connection', (socket) => {
   })
 })
 
-const wss = new WebSocket.Server({ server: extendedServer })
+const wss = new WebSocket.Server({ server: extendedServer, maxPayload: CONFIG.websocket.sizeLimit })
 
 if (CONFIG.websocket.enabled) {
   wss.on('connection', onConnection)
