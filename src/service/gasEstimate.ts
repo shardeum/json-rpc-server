@@ -47,7 +47,7 @@ function findEntryByContractAndSignature(
   function_signature: string
 ): GasEstimate | undefined {
   const stmt = db.prepare('SELECT * FROM gas_estimations WHERE contract_address = ? AND function_signature = ?')
-  const result = stmt.get(contract_address, function_signature)
+  const result = stmt.get(contract_address, function_signature) as any
   return result
     ? {
         contractAddress: result.contract_address,
