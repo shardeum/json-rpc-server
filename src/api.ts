@@ -1843,7 +1843,8 @@ export const methods = {
       console.log(`Error while making an eth call`, e)
       //callback(null, errorHexStatus)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl: undefined, success: false }, performance.now())
-      callback(errorBusy)
+      // @ts-ignore
+      callback( e.message)
       countFailedResponse(api_name, 'exception while making an eth call')
     }
   },
