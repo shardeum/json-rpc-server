@@ -1903,9 +1903,17 @@ export const methods = {
     logEventEmitter.emit('fn_start', ticket, api_name, performance.now())
     /* prettier-ignore */ if (firstLineLogs) { console.log('Running estimateGas', args) }
     // const result = '0x1C9C380' // 30 M gas
-    if (config.staticGasEstimate) {
-      callback(null, config.staticGasEstimate)
-      countSuccessResponse(api_name, 'success using static gas estimate', 'static')
+    // if (config.staticGasEstimate) {
+    //   callback(null, config.staticGasEstimate)
+    //   countSuccessResponse(api_name, 'success using static gas estimate', 'static')
+    //   return
+    // }
+
+    // LOCAL TESTING MODE: High gas defaults for local development
+    if (CONFIG.localTesting.enabled && CONFIG.localTesting.highGasDefaults) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, CONFIG.localTesting.constantGas)
+      countSuccessResponse(api_name, 'success using local testing constant gas', 'local-testing')
       return
     }
 

@@ -124,6 +124,11 @@ type Config = {
     filePath: string
     minFoundationNodesForInjectFilter: number
   }
+  localTesting: {
+    enabled: boolean
+    highGasDefaults: boolean
+    constantGas: string  // Default gas for all transactions
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -273,4 +278,28 @@ export const CONFIG: Config = {
     filePath: './foundation-nodes.json',
     minFoundationNodesForInjectFilter: 50,
   },
+  localTesting: {
+    enabled: Boolean(process.env.LOCAL_TESTING_MODE) || false,
+    highGasDefaults: Boolean(process.env.LOCAL_HIGH_GAS_DEFAULTS) || false,
+    constantGas: process.env.LOCAL_CONSTANT_GAS || '0xB71B00', // 12M gas for all transactions
+  },
 }
+
+// SAFETY CHECKS: Environment validation for local testing mode
+const isLocalNetwork = CONFIG.nodeIpInfo.externalIp === '127.0.0.1' ||
+                      CONFIG.nodeIpInfo.externalIp === 'localhost' 
+
+
+
+// Warn about potential misconfigurations
+if (CONFIG.localTesting.enabled && CONFIG.localTesting.highGasDefaults) {
+  if (!isLocalNetwork) {
+    console.warn('⚠️  WARNING: LOCAL_TESTING_MODE with high gas defaults enabled but network appears to be non-local!')
+    console.warn(`   Chain ID: ${CONFIG.chainId}, External IP: ${CONFIG.nodeIpInfo.externalIp}`)
+    console.warn('   This could result in expensive gas estimates on production networks.')
+  } else {
+    console.log('✅ Local testing mode enabled with high gas defaults for local development')
+    console.log(`   All transactions have the gas estimate as : ${CONFIG.localTesting.constantGas}`)
+  }
+}
+
