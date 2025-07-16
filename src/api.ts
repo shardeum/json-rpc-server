@@ -1830,7 +1830,13 @@ export const methods = {
 
       if (res.data.result.error) {
         // evm execution error (revert)
-        callback(res.data.result.error)
+        // Extract only the standard JSON-RPC error fields
+        const error: JSONRPCError = {
+          code: res.data.result.error.code || -32000,
+          message: res.data.result.error.message || 'execution reverted',
+        }
+        // Don't include the data field since we now have the decoded message
+        callback(error)
         logEventEmitter.emit('fn_end', ticket, { nodeUrl, success: true }, performance.now())
         return
       }
@@ -1843,7 +1849,8 @@ export const methods = {
       console.log(`Error while making an eth call`, e)
       //callback(null, errorHexStatus)
       logEventEmitter.emit('fn_end', ticket, { nodeUrl: undefined, success: false }, performance.now())
-      callback(errorBusy)
+      // @ts-ignore
+      callback( e.message)
       countFailedResponse(api_name, 'exception while making an eth call')
     }
   },
