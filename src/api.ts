@@ -1909,6 +1909,14 @@ export const methods = {
       return
     }
 
+    // LOCAL TESTING MODE: High gas defaults for local development
+    if (CONFIG.localTesting.enabled && CONFIG.localTesting.highGasDefaults) {
+      logEventEmitter.emit('fn_end', ticket, { success: true }, performance.now())
+      callback(null, CONFIG.localTesting.constantGas)
+      countSuccessResponse(api_name, 'success using local testing constant gas', 'local-testing')
+      return
+    }
+
     let result = '0x2DC6C0' // 3 M gas
     try {
       if (!args[0]['to'] && !args[0]['data']) {

@@ -1,0 +1,18 @@
+# Local Testing Configuration for JSON RPC Server
+# Copy these environment variables or export them for local development
+
+# Enable local testing mode with high gas defaults
+export LOCAL_TESTING_MODE=true
+export LOCAL_HIGH_GAS_DEFAULTS=true
+
+# Customize gas amount (optional, default shown)
+export LOCAL_CONSTANT_GAS=0xB71B00  # 12M gas for all transactions
+
+# Optional: Set a static gas estimate for all transactions (overrides local testing)
+# export STATIC_GAS_ESTIMATE=0xB71B00
+
+# Local development network configuration
+export RPC_PORT=8080
+export CHAIN_ID=8082
+export NODE_EXTERNAL_IP=127.0.0.1
+export NODE_EXTERNAL_PORT=9001

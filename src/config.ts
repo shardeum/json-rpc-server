@@ -124,6 +124,11 @@ type Config = {
     filePath: string
     minFoundationNodesForInjectFilter: number
   }
+  localTesting: {
+    enabled: boolean
+    highGasDefaults: boolean
+    constantGas: string // Default gas for all transactions
+  }
 }
 
 export type ServicePointTypes = 'aalg-warmup'
@@ -131,7 +136,7 @@ export type ServicePointTypes = 'aalg-warmup'
 export const CONFIG: Config = {
   websocket: {
     enabled: true,
-    serveSubscriptions: Boolean(process.env.WS_SAVE_SUBSCRIPTIONS) || false,
+    serveSubscriptions: Boolean(process.env.WS_SAVE_SUBSCRIPTIONS === 'true') || false,
     maxConnections: Number(process.env.WS_MAX_CONNECTIONS) || 1000,
     maxSubscriptionsPerSocket: Number(process.env.WS_MAX_SUBSCRIPTIONS_PER_SOCKET) || 50,
     connectionTimeoutMs: Number(process.env.WS_CONNECTION_TIMEOUT_MS) || 24 * 60 * 60 * 1000, // 1 day in ms
@@ -158,7 +163,7 @@ export const CONFIG: Config = {
   askLocalHostForArchiver: true,
   rotationInterval: 60,
   faucetServerUrl: process.env.FAUCET_URL || 'https://faucet.liberty10.shardeum.org',
-  queryFromValidator: Boolean(process.env.QUERY_FROM_VALIDATOR) || true,
+  queryFromValidator: Boolean(process.env.QUERY_FROM_VALIDATOR === 'true') || true,
   explorerUrl: process.env.EXPLORER_URL || 'http://127.0.0.1:6001',
   queryFromExplorer: false,
   generateTxTimestamp: true,
@@ -174,7 +179,7 @@ export const CONFIG: Config = {
     account: 10000,
     full_nodelist: 10000,
   },
-  aalgWarmup: Boolean(process.env.AALG_WARMUP) || true,
+  aalgWarmup: Boolean(process.env.AALG_WARMUP === 'true') || true,
   aalgWarmupServiceTPS: 10,
   recordTxStatus: false, // not safe for production, keep this off. Known issue.
   rateLimit: process.env.RATE_LIMIT ? process.env.RATE_LIMIT === 'true' : true, // if RATE_LIMIT is not set, default to true
@@ -194,7 +199,7 @@ export const CONFIG: Config = {
   adaptiveRejection: true,
   filterDeadNodesFromArchiver: false,
   verbose: false,
-  enableRequestLogger: process.env.SHARDEUM_JSONRPC_ENABLE_REQUEST_LOGGING === 'true' || false,
+  enableRequestLogger: Boolean(process.env.SHARDEUM_JSONRPC_ENABLE_REQUEST_LOGGING === 'true') || false,
   verboseRequestWithRetry: false,
   verboseAALG: false,
   firstLineLogs: true, // default is true and turn off for prod for perf
@@ -273,4 +278,24 @@ export const CONFIG: Config = {
     filePath: './foundation-nodes.json',
     minFoundationNodesForInjectFilter: 50,
   },
+  localTesting: {
+    enabled: Boolean(process.env.LOCAL_TESTING_MODE === 'true') || false,
+    highGasDefaults: Boolean(process.env.LOCAL_HIGH_GAS_DEFAULTS === 'true') || false,
+    constantGas: process.env.LOCAL_CONSTANT_GAS || '0xB71B00', // 12M gas for all transactions
+  },
+}
+
+// SAFETY CHECKS: Environment validation for local testing mode
+const isLocalNetwork = CONFIG.nodeIpInfo.externalIp === '127.0.0.1' || CONFIG.nodeIpInfo.externalIp === 'localhost'
+
+// Warn about potential misconfigurations
+if (CONFIG.localTesting.enabled && CONFIG.localTesting.highGasDefaults) {
+  if (!isLocalNetwork) {
+    console.warn('⚠️  WARNING: LOCAL_TESTING_MODE with high gas defaults enabled but network appears to be non-local!')
+    console.warn(`   Chain ID: ${CONFIG.chainId}, External IP: ${CONFIG.nodeIpInfo.externalIp}`)
+    console.warn('   This could result in expensive gas estimates on production networks.')
+  } else {
+    console.log('✅ Local testing mode enabled with high gas defaults for local development')
+    console.log(`   All transactions have the gas estimate as : ${CONFIG.localTesting.constantGas}`)
+  }
 }
