@@ -1915,6 +1915,15 @@ export const methods = {
         countSuccessResponse(api_name, 'success to set to 0x...0001 (default to 3M)', 'fallback')
         return
       }
+      // if sending to the zero account, return 60000 gas.  
+      // Do not merge back into dev, not compatible with smart contracts.
+      if (args[0]['to'] === '0x0000000000000000000000000000000000000000') {
+        // TODO: solve this on the validator side
+        result = '0xEA60' // 60000 gas
+        callback(null, result)
+        countSuccessResponse(api_name, 'success to set to 0x...0000 (default to 60k)', 'fallback')
+        return
+      }      
       if (!args[0]['data'] || args[0]['data'] === '0x') {
         // Check if receiver is an EOA. If so, return 21000
         const res = await getCode(args[0]['to'])
