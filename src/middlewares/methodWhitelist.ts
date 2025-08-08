@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { methods } from '../api'
 
-const allowedMethods = Object.keys(methods)
+const allowedMethods = [...Object.keys(methods), 'rpc.discover']
 
 export const methodWhitelist = (req: Request, res: Response, next: NextFunction) => {
   const body = req.body

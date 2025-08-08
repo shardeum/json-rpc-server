@@ -35,7 +35,7 @@ import { rateLimitMiddleware } from './middlewares/rateLimit'
 import requestLogger from './middlewares/requestLogger'
 import { loadFoundationNodes } from './utils/foundationNodes'
 import { setupNewHeadSubscriptionProviderConnectionStream } from './websocket/newhead_server'
-
+import rpcDiscover from './methods/rpcDiscover'
 setDefaultResultOrder('ipv4first')
 
 // const path = require('path');
@@ -51,6 +51,13 @@ setDefaultResultOrder('ipv4first')
 // }
 const app = express()
 const server = new jayson.Server(wrappedMethods)
+server._methods['rpc.discover'] = new jayson.Method((_args: unknown, done: jayson.JSONRPCCallbackTypePlain) => {
+  rpcDiscover().then((res) => {
+    done(null, res)
+  }).catch((err) => {
+    done(err, null)
+  })
+});
 let port = config.port //8080
 const chainId = config.chainId //8080
 const verbose = config.verbose
