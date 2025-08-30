@@ -470,7 +470,7 @@ class Collector extends BaseExternal {
   }
 
   buildLogAPIUrl(request: any, baseDomain = CONFIG.explorerUrl): string {
-    const apiUrl = `${baseDomain}/api/v2/logs`
+    const apiUrl = `${baseDomain}/api/log`
     const queryParams: string[] = []
 
     // Check if each query parameter exists in the request object and add it to the queryParams array if it does
